@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starfield Particle System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: radial-gradient(ellipse at 30% 40%, #4a0e4e 0%, #1a0a4e 15%, #0a1a3e 30%, #2d1b4e 45%, #0f0520 65%, #000000 100%);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 40, 0.9);
+            padding: 20px 30px;
+            border-radius: 10px;
+            color: #fff;
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .control-group {
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #aaa;
+            white-space: nowrap;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-display {
+            display: block;
+            font-weight: bold;
+            color: #4a9eff;
+            text-align: center;
+            margin-top: 3px;
+            font-size: 13px;
+        }
+
+        h2 {
+            margin: 0;
+            margin-right: 10px;
+            font-size: 18px;
+            color: #4a9eff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    
+    <div class="controls">
+        <h2>Starfield Controls</h2>
+        
+        <div class="control-group">
+            <label>Star Count</label>
+            <input type="range" id="starCount" min="100" max="2000" value="500" step="50">
+            <span class="value-display" id="countValue">500</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Speed</label>
+            <input type="range" id="speed" min="0.5" max="10" value="2" step="0.5">
+            <span class="value-display" id="speedValue">2.0</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Trail Length</label>
+            <input type="range" id="trailLength" min="0.05" max="0.5" value="0.15" step="0.05">
+            <span class="value-display" id="trailValue">0.15</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Star Size</label>
+            <input type="range" id="starSize" min="0.5" max="5" value="2" step="0.5">
+            <span class="value-display" id="sizeValue">2.0</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Spread</label>
+            <input type="range" id="spread" min="0.5" max="3" value="1.5" step="0.1">
+            <span class="value-display" id="spreadValue">1.5</span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Draw galaxy nebula background
+        function drawGalaxyBackground() {
+            // Main gradient
+            const bgGradient = ctx.createRadialGradient(
+                canvas.width * 0.3, canvas.height * 0.4, 0,
+                canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.8
+            );
+            bgGradient.addColorStop(0, '#6b2d5c');
+            bgGradient.addColorStop(0.2, '#3d1a5c');
+            bgGradient.addColorStop(0.4, '#1a2a5e');
+            bgGradient.addColorStop(0.6, '#2d1b4e');
+            bgGradient.addColorStop(0.8, '#0f0520');
+            bgGradient.addColorStop(1, '#000000');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Pink nebula cloud
+            const pinkGradient = ctx.createRadialGradient(
+                canvas.width * 0.7, canvas.height * 0.3, 0,
+                canvas.width * 0.7, canvas.height * 0.3, canvas.width * 0.4
+            );
+            pinkGradient.addColorStop(0, 'rgba(180, 50, 130, 0.3)');
+            pinkGradient.addColorStop(0.5, 'rgba(120, 40, 100, 0.15)');
+            pinkGradient.addColorStop(1, 'rgba(80, 30, 80, 0)');
+            ctx.fillStyle = pinkGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Blue nebula cloud
+            const blueGradient = ctx.createRadialGradient(
+                canvas.width * 0.2, canvas.height * 0.7, 0,
+                canvas.width * 0.2, canvas.height * 0.7, canvas.width * 0.35
+            );
+            blueGradient.addColorStop(0, 'rgba(60, 100, 180, 0.25)');
+            blueGradient.addColorStop(0.5, 'rgba(40, 70, 140, 0.12)');
+            blueGradient.addColorStop(1, 'rgba(30, 50, 100, 0)');
+            ctx.fillStyle = blueGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Purple nebula cloud
+            const purpleGradient = ctx.createRadialGradient(
+                canvas.width * 0.5, canvas.height * 0.6, 0,
+                canvas.width * 0.5, canvas.height * 0.6, canvas.width * 0.3
+            );
+            purpleGradient.addColorStop(0, 'rgba(130, 60, 150, 0.2)');
+            purpleGradient.addColorStop(0.5, 'rgba(90, 40, 110, 0.1)');
+            purpleGradient.addColorStop(1, 'rgba(60, 30, 80, 0)');
+            ctx.fillStyle = purpleGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Settings
+        let settings = {
+            starCount: 500,
+            speed: 2,
+            trailLength: 0.15,
+            starSize: 2,
+            spread: 1.5
+        };
+        
+        // Constellation data - positions as percentages of canvas size
+        const constellations = [
+            // Big Dipper
+            {
+                name: 'Big Dipper',
+                stars: [
+                    {x: 0.15, y: 0.25}, {x: 0.18, y: 0.22}, {x: 0.20, y: 0.20},
+                    {x: 0.22, y: 0.21}, {x: 0.24, y: 0.24}, {x: 0.26, y: 0.28},
+                    {x: 0.28, y: 0.30}
+                ],
+                connections: [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6]]
+            },
+            // Orion
+            {
+                name: 'Orion',
+                stars: [
+                    {x: 0.70, y: 0.30}, {x: 0.75, y: 0.28}, // shoulders
+                    {x: 0.71, y: 0.38}, {x: 0.73, y: 0.38}, {x: 0.75, y: 0.38}, // belt
+                    {x: 0.70, y: 0.48}, {x: 0.76, y: 0.50} // feet
+                ],
+                connections: [[0,2], [1,4], [2,3], [3,4], [2,5], [4,6]]
+            },
+            // Cassiopeia (W shape)
+            {
+                name: 'Cassiopeia',
+                stars: [
+                    {x: 0.50, y: 0.15}, {x: 0.53, y: 0.12}, {x: 0.56, y: 0.14},
+                    {x: 0.59, y: 0.11}, {x: 0.62, y: 0.13}
+                ],
+                connections: [[0,1], [1,2], [2,3], [3,4]]
+            },
+            // Southern Cross
+            {
+                name: 'Southern Cross',
+                stars: [
+                    {x: 0.35, y: 0.65}, {x: 0.38, y: 0.70}, 
+                    {x: 0.33, y: 0.68}, {x: 0.40, y: 0.67}
+                ],
+                connections: [[0,1], [2,3]]
+            },
+            // Leo (simplified)
+            {
+                name: 'Leo',
+                stars: [
+                    {x: 0.80, y: 0.60}, {x: 0.83, y: 0.58}, {x: 0.85, y: 0.62},
+                    {x: 0.82, y: 0.65}, {x: 0.78, y: 0.63}
+                ],
+                connections: [[0,1], [1,2], [2,3], [3,4], [4,0]]
+            }
+        ];
+        
+        function drawConstellations() {
+            constellations.forEach(constellation => {
+                // Draw connections
+                ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+                ctx.lineWidth = 1;
+                constellation.connections.forEach(([start, end]) => {
+                    const startStar = constellation.stars[start];
+                    const endStar = constellation.stars[end];
+                    ctx.beginPath();
+                    ctx.moveTo(startStar.x * canvas.width, startStar.y * canvas.height);
+                    ctx.lineTo(endStar.x * canvas.width, endStar.y * canvas.height);
+                    ctx.stroke();
+                });
+                
+                // Draw stars
+                constellation.stars.forEach(star => {
+                    const x = star.x * canvas.width;
+                    const y = star.y * canvas.height;
+                    
+                    // Glow
+                    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                    gradient.addColorStop(0, 'rgba(200, 220, 255, 0.6)');
+                    gradient.addColorStop(0.5, 'rgba(150, 180, 255, 0.3)');
+                    gradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x - 8, y - 8, 16, 16);
+                    
+                    // Star point
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(220, 230, 255, 0.9)';
+                    ctx.fill();
+                });
+            });
+        }
+        
+        // Star class
+        class Star {
+            constructor() {
+                this.reset();
+                this.twinkle = Math.random() * Math.PI * 2;
+                this.twinkleSpeed = 0.02 + Math.random() * 0.05;
+                this.colorHue = Math.random() * 60 - 30; // Slight color variation
+            }
+            
+            reset() {
+                this.x = (Math.random() - 0.5) * canvas.width * settings.spread;
+                this.y = (Math.random() - 0.5) * canvas.height * settings.spread;
+                this.z = Math.random() * canvas.width;
+                this.prevX = this.x;
+                this.prevY = this.y;
+            }
+            
+            update() {
+                this.prevX = this.x / this.z * canvas.width / 2 + canvas.width / 2;
+                this.prevY = this.y / this.z * canvas.height / 2 + canvas.height / 2;
+                
+                this.z -= settings.speed;
+                this.twinkle += this.twinkleSpeed;
+                
+                if (this.z <= 0) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                const sx = this.x / this.z * canvas.width / 2 + canvas.width / 2;
+                const sy = this.y / this.z * canvas.height / 2 + canvas.height / 2;
+                
+                const size = (1 - this.z / canvas.width) * settings.starSize;
+                const opacity = 1 - this.z / canvas.width;
+                const sparkle = Math.sin(this.twinkle) * 0.3 + 0.7; // Twinkle effect
+                
+                // Draw trail based on trail length slider
+                if (settings.trailLength > 0.05) {
+                    const trailLength = settings.trailLength * 200; // Scale the slider value
+                    const dx = sx - this.prevX;
+                    const dy = sy - this.prevY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0.1) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.prevX, this.prevY);
+                        ctx.lineTo(sx, sy);
+                        const trailGradient = ctx.createLinearGradient(this.prevX, this.prevY, sx, sy);
+                        trailGradient.addColorStop(0, `rgba(200, 220, 255, ${opacity * sparkle * 0.1})`);
+                        trailGradient.addColorStop(1, `rgba(255, 255, 255, ${opacity * sparkle * 0.6})`);
+                        ctx.strokeStyle = trailGradient;
+                        ctx.lineWidth = size * (settings.trailLength * 5);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Draw glow
+                const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, size * 3);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity * sparkle * 0.4})`);
+                gradient.addColorStop(0.3, `rgba(200, 220, 255, ${opacity * sparkle * 0.2})`);
+                gradient.addColorStop(1, 'rgba(150, 180, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(sx - size * 3, sy - size * 3, size * 6, size * 6);
+                
+                // Draw star point with color variation
+                ctx.beginPath();
+                ctx.arc(sx, sy, size * sparkle, 0, Math.PI * 2);
+                const hue = 200 + this.colorHue;
+                ctx.fillStyle = `hsla(${hue}, 80%, ${80 + sparkle * 20}%, ${opacity * sparkle})`;
+                ctx.fill();
+                
+                // Add sparkle cross
+                if (sparkle > 0.85) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * (sparkle - 0.85) * 3})`;
+                    ctx.lineWidth = size * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(sx - size * 2, sy);
+                    ctx.lineTo(sx + size * 2, sy);
+                    ctx.moveTo(sx, sy - size * 2);
+                    ctx.lineTo(sx, sy + size * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        let stars = [];
+        
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < settings.starCount; i++) {
+                stars.push(new Star());
+            }
+        }
+        
+        function animate() {
+            // Redraw galaxy background
+            drawGalaxyBackground();
+            
+            // Draw static constellations on top of background
+            drawConstellations();
+            
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Setup controls
+        document.getElementById('starCount').addEventListener('input', (e) => {
+            settings.starCount = parseInt(e.target.value);
+            document.getElementById('countValue').textContent = settings.starCount;
+            initStars();
+        });
+        
+        document.getElementById('speed').addEventListener('input', (e) => {
+            settings.speed = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = settings.speed.toFixed(1);
+        });
+        
+        document.getElementById('trailLength').addEventListener('input', (e) => {
+            settings.trailLength = parseFloat(e.target.value);
+            document.getElementById('trailValue').textContent = settings.trailLength.toFixed(2);
+        });
+        
+        document.getElementById('starSize').addEventListener('input', (e) => {
+            settings.starSize = parseFloat(e.target.value);
+            document.getElementById('sizeValue').textContent = settings.starSize.toFixed(1);
+        });
+        
+        document.getElementById('spread').addEventListener('input', (e) => {
+            settings.spread = parseFloat(e.target.value);
+            document.getElementById('spreadValue').textContent = settings.spread.toFixed(1);
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+        });
+        
+        // Start animation
+        initStars();
+        animate();
+    </script>
+</body>
+</html>
