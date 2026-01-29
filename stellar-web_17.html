@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: radial-gradient(ellipse at center, 
+                #1a0033 0%,
+                #330066 25%,
+                #660033 50%,
+                #330000 75%,
+                #000000 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+            background: transparent;
+        }
+        
+        .controls {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 10px;
+            color: white;
+            width: 280px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            border: 2px solid white;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .controls.collapsed {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .toggle-btn {
+            background: none;
+            color: white;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 24px;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .controls.collapsed .toggle-btn {
+            right: 10px;
+            top: 10px;
+            font-size: 28px;
+        }
+        
+        .toggle-btn:hover {
+            transform: scale(1.1);
+            color: #ddd;
+        }
+        
+        .controls-content {
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        
+        .controls.collapsed .controls-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .stats-panel {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            width: 280px;
+            backdrop-filter: blur(10px);
+            border: 2px solid white;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .stats-panel.collapsed {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .stats-toggle-btn {
+            background: none;
+            color: white;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 24px;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .stats-panel.collapsed .stats-toggle-btn {
+            right: 10px;
+            top: 10px;
+            font-size: 28px;
+        }
+        
+        .stats-toggle-btn:hover {
+            transform: scale(1.1);
+            color: #ddd;
+        }
+        
+        .stats-content {
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        
+        .stats-panel.collapsed .stats-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .stats-panel h2 {
+            margin-bottom: 15px;
+            margin-top: 0;
+            font-size: 18px;
+            color: white;
+            text-align: center;
+            padding-right: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 13px;
+        }
+        
+        .stat-value {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            margin-top: 0;
+            font-size: 20px;
+            color: white;
+            text-align: center;
+            padding-right: 30px;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, white 0%, white var(--value), #444 var(--value), #444 100%);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .glitter {
+            position: fixed;
+            pointer-events: none;
+            z-index: 5;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .silver-glitter {
+            position: fixed;
+            pointer-events: none;
+            z-index: 6;
+            border-radius: 50%;
+            background: silver;
+            box-shadow: 0 0 10px silver, 0 0 20px white;
+        }
+        
+        @keyframes fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .disco-ball {
+            position: fixed;
+            pointer-events: none;
+            z-index: 4;
+            font-size: 50px;
+            animation: rotate 4s linear infinite, float 3s ease-in-out infinite;
+        }
+        
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="stats-panel" id="statsPanel">
+        <button class="stats-toggle-btn" id="statsToggleBtn">✕</button>
+        <div class="stats-content">
+            <h2>Network Statistics</h2>
+            <div class="stat-item">
+                <span class="stat-label">Total Nodes:</span>
+                <span class="stat-value" id="totalNodes">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Total Edges:</span>
+                <span class="stat-value" id="totalEdges">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Avg Connections:</span>
+                <span class="stat-value" id="avgConnections">0.00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Network Density:</span>
+                <span class="stat-value" id="networkDensity">0.00%</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Max Connections:</span>
+                <span class="stat-value" id="maxConnections">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls" id="controls">
+        <button class="toggle-btn" id="toggleBtn">✕</button>
+        <div class="controls-content">
+            <h2>Controls</h2>
+        <div class="control-group">
+            <label for="nodeSpeed">Node Speed</label>
+            <input type="range" id="nodeSpeed" min="0.1" max="3" step="0.1" value="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="connectivityRadius">Connectivity Radius</label>
+            <input type="range" id="connectivityRadius" min="50" max="300" step="10" value="150">
+        </div>
+        
+        <div class="control-group">
+            <label for="nodeCount">Node Count</label>
+            <input type="range" id="nodeCount" min="20" max="200" step="10" value="100">
+        </div>
+        
+        <div class="control-group">
+            <label for="nodeSize">Node Size</label>
+            <input type="range" id="nodeSize" min="1" max="10" step="0.5" value="4">
+        </div>
+        
+        <div class="control-group">
+            <label for="edgeThickness">Edge Thickness</label>
+            <input type="range" id="edgeThickness" min="0.5" max="5" step="0.5" value="1.5">
+        </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Toggle panel functionality
+        const toggleBtn = document.getElementById('toggleBtn');
+        const controls = document.getElementById('controls');
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            controls.classList.toggle('collapsed');
+            toggleBtn.textContent = controls.classList.contains('collapsed') ? '☰' : '✕';
+        });
+        
+        // Allow clicking the collapsed box to expand
+        controls.addEventListener('click', (e) => {
+            if (controls.classList.contains('collapsed')) {
+                controls.classList.remove('collapsed');
+                toggleBtn.textContent = '✕';
+            }
+        });
+        
+        // Toggle stats panel functionality
+        const statsToggleBtn = document.getElementById('statsToggleBtn');
+        const statsPanel = document.getElementById('statsPanel');
+        
+        statsToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            statsPanel.classList.toggle('collapsed');
+            statsToggleBtn.textContent = statsPanel.classList.contains('collapsed') ? '📊' : '✕';
+        });
+        
+        // Allow clicking the collapsed stats box to expand
+        statsPanel.addEventListener('click', (e) => {
+            if (statsPanel.classList.contains('collapsed')) {
+                statsPanel.classList.remove('collapsed');
+                statsToggleBtn.textContent = '✕';
+            }
+        });
+        
+        // Parameters
+        let params = {
+            nodeSpeed: 1,
+            connectivityRadius: 150,
+            nodeCount: 100,
+            nodeSize: 4,
+            edgeThickness: 1.5
+        };
+        
+        // Update slider backgrounds
+        function updateSliderBackground(slider) {
+            const min = slider.min || 0;
+            const max = slider.max || 100;
+            const value = slider.value;
+            const percentage = ((value - min) / (max - min)) * 100;
+            slider.style.setProperty('--value', percentage + '%');
+        }
+        
+        // Setup controls
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            updateSliderBackground(slider);
+            slider.addEventListener('input', (e) => {
+                updateSliderBackground(e.target);
+                const id = e.target.id;
+                params[id] = parseFloat(e.target.value);
+                
+                // Regenerate nodes if node count changes
+                if (id === 'nodeCount') {
+                    initNodes();
+                }
+            });
+        });
+        
+        // Node class
+        class Node {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.z = Math.random() * 1000 - 500; // 3D depth
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.vz = (Math.random() - 0.5) * 2;
+                
+                // 20% chance to be a disco ball instead of a regular node
+                this.isDiscoBall = Math.random() < 0.2;
+                
+                if (this.isDiscoBall) {
+                    // Disco ball with purple or red glow
+                    this.isPurple = Math.random() > 0.5;
+                    this.color = this.isPurple ? 
+                        { r: 138, g: 43, b: 226, hex: '#8a2be2' } : 
+                        { r: 220, g: 20, b: 60, hex: '#dc143c' };
+                    this.rotation = 0;
+                } else {
+                    // Regular node - purple or red
+                    this.isPurple = Math.random() > 0.5;
+                    this.color = this.isPurple ? 
+                        { r: 138, g: 43, b: 226, hex: '#8a2be2' } : 
+                        { r: 220, g: 20, b: 60, hex: '#dc143c' };
+                }
+            }
+            
+            update() {
+                this.x += this.vx * params.nodeSpeed;
+                this.y += this.vy * params.nodeSpeed;
+                this.z += this.vz * params.nodeSpeed;
+                
+                if (this.isDiscoBall) {
+                    this.rotation += 2; // Rotate disco balls
+                }
+                
+                // Wrap around edges
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+                if (this.z < -500) this.z = 500;
+                if (this.z > 500) this.z = -500;
+            }
+            
+            draw() {
+                // Apply 3D perspective
+                const scale = 1000 / (1000 + this.z);
+                const size = params.nodeSize * scale;
+                
+                if (this.isDiscoBall) {
+                    // Draw disco ball
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.rotation * Math.PI / 180);
+                    
+                    // Glow effect
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 4);
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.8)`);
+                    gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, size * 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw disco ball emoji
+                    ctx.font = `${size * 3}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = this.color.hex;
+                    ctx.shadowColor = this.color.hex;
+                    ctx.shadowBlur = 20;
+                    ctx.fillText('🪩', 0, 0);
+                    ctx.shadowBlur = 0;
+                    
+                    ctx.restore();
+                } else {
+                    // Draw regular node
+                    // Draw glow
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 3);
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.8)`);
+                    gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`);
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, size * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw node
+                    ctx.fillStyle = this.color.hex;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        let nodes = [];
+        
+        function initNodes() {
+            nodes = [];
+            for (let i = 0; i < params.nodeCount; i++) {
+                nodes.push(new Node());
+            }
+        }
+        
+        initNodes();
+        
+        // Statistics tracking
+        let stats = {
+            totalEdges: 0,
+            connectionCounts: [],
+            maxConnections: 0
+        };
+        
+        function updateStatistics() {
+            document.getElementById('totalNodes').textContent = nodes.length;
+            document.getElementById('totalEdges').textContent = stats.totalEdges;
+            
+            const avgConnections = nodes.length > 0 ? (stats.totalEdges * 2) / nodes.length : 0;
+            document.getElementById('avgConnections').textContent = avgConnections.toFixed(2);
+            
+            const maxPossibleEdges = (nodes.length * (nodes.length - 1)) / 2;
+            const density = maxPossibleEdges > 0 ? (stats.totalEdges / maxPossibleEdges) * 100 : 0;
+            document.getElementById('networkDensity').textContent = density.toFixed(2) + '%';
+            
+            document.getElementById('maxConnections').textContent = stats.maxConnections;
+        }
+        
+        function drawConnections() {
+            stats.totalEdges = 0;
+            stats.connectionCounts = new Array(nodes.length).fill(0);
+            
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dz = nodes[i].z - nodes[j].z;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz * 0.5);
+                    
+                    if (distance < params.connectivityRadius) {
+                        stats.totalEdges++;
+                        stats.connectionCounts[i]++;
+                        stats.connectionCounts[j]++;
+                        
+                        // Calculate opacity based on distance
+                        const opacity = 1 - (distance / params.connectivityRadius);
+                        
+                        // Apply 3D perspective to edge thickness
+                        const avgZ = (nodes[i].z + nodes[j].z) / 2;
+                        const scale = 1000 / (1000 + avgZ);
+                        const thickness = params.edgeThickness * scale;
+                        
+                        // Blend colors between connected nodes
+                        const r = Math.floor((nodes[i].color.r + nodes[j].color.r) / 2);
+                        const g = Math.floor((nodes[i].color.g + nodes[j].color.g) / 2);
+                        const b = Math.floor((nodes[i].color.b + nodes[j].color.b) / 2);
+                        
+                        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${opacity * 0.6})`;
+                        ctx.lineWidth = thickness;
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            stats.maxConnections = stats.connectionCounts.length > 0 ? Math.max(...stats.connectionCounts) : 0;
+        }
+        
+        function animate() {
+            // Clear canvas completely (transparent to show galaxy background)
+            ctx.clearRect(0, 0, width, height);
+            
+            // Sort nodes by z-depth (draw far nodes first)
+            nodes.sort((a, b) => a.z - b.z);
+            
+            // Draw connections
+            drawConnections();
+            
+            // Update and draw nodes
+            nodes.forEach(node => {
+                node.update();
+                node.draw();
+            });
+            
+            // Update statistics display
+            updateStatistics();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        // Mouse interaction for dragging nodes
+        let selectedNode = null;
+        let isDragging = false;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Find closest node within range
+            let closestNode = null;
+            let closestDist = 20; // pixels threshold
+            
+            nodes.forEach(node => {
+                const dx = node.x - mouseX;
+                const dy = node.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < closestDist) {
+                    closestNode = node;
+                    closestDist = dist;
+                }
+            });
+            
+            if (closestNode) {
+                selectedNode = closestNode;
+                isDragging = true;
+                // Stop the node's movement while dragging
+                selectedNode.vx = 0;
+                selectedNode.vy = 0;
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && selectedNode) {
+                const rect = canvas.getBoundingClientRect();
+                selectedNode.x = e.clientX - rect.left;
+                selectedNode.y = e.clientY - rect.top;
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            if (isDragging && selectedNode) {
+                // Resume random movement
+                selectedNode.vx = (Math.random() - 0.5) * 2;
+                selectedNode.vy = (Math.random() - 0.5) * 2;
+            }
+            isDragging = false;
+            selectedNode = null;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            if (isDragging && selectedNode) {
+                // Resume random movement if mouse leaves canvas
+                selectedNode.vx = (Math.random() - 0.5) * 2;
+                selectedNode.vy = (Math.random() - 0.5) * 2;
+            }
+            isDragging = false;
+            selectedNode = null;
+        });
+        
+        // Create glitter particles
+        class Glitter {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.className = 'glitter';
+                
+                // Random color - purple or red
+                this.isPurple = Math.random() > 0.5;
+                const color = this.isPurple ? '#8a2be2' : '#dc143c';
+                
+                // Random size
+                this.size = Math.random() * 4 + 2;
+                this.element.style.width = this.size + 'px';
+                this.element.style.height = this.size + 'px';
+                this.element.style.background = color;
+                this.element.style.boxShadow = `0 0 ${this.size * 3}px ${color}`;
+                
+                // Random position
+                this.x = Math.random() * window.innerWidth;
+                this.y = Math.random() * window.innerHeight;
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                
+                // Random animation delay and duration
+                this.element.style.animationDelay = Math.random() * 2 + 's';
+                this.element.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                
+                document.body.appendChild(this.element);
+            }
+            
+            remove() {
+                if (this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+        
+        // Create initial glitter particles
+        const glitterParticles = [];
+        const glitterCount = 500;
+        
+        for (let i = 0; i < glitterCount; i++) {
+            glitterParticles.push(new Glitter());
+        }
+        
+        // Continuously create new glitter particles
+        setInterval(() => {
+            // Remove old particles and create new ones
+            if (glitterParticles.length > glitterCount) {
+                const oldGlitter = glitterParticles.shift();
+                oldGlitter.remove();
+            }
+            glitterParticles.push(new Glitter());
+        }, 50);
+        
+        // Silver glitter shower
+        class SilverGlitter {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.className = 'silver-glitter';
+                
+                // Random size
+                this.size = Math.random() * 6 + 3;
+                this.element.style.width = this.size + 'px';
+                this.element.style.height = this.size + 'px';
+                
+                // Random horizontal position at top of screen
+                this.x = Math.random() * window.innerWidth;
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = '-20px';
+                
+                // Random fall duration
+                const duration = Math.random() * 2 + 2;
+                this.element.style.animation = `fall ${duration}s linear forwards`;
+                
+                document.body.appendChild(this.element);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (this.element.parentNode) {
+                        this.element.parentNode.removeChild(this.element);
+                    }
+                }, duration * 1000);
+            }
+        }
+        
+        // Create silver glitter showers intermittently
+        function createSilverShower() {
+            const particleCount = Math.floor(Math.random() * 30) + 20;
+            for (let i = 0; i < particleCount; i++) {
+                setTimeout(() => {
+                    new SilverGlitter();
+                }, i * 50);
+            }
+        }
+        
+        // Trigger showers every 5-10 seconds
+        function scheduleSilverShower() {
+            createSilverShower();
+            const nextShower = Math.random() * 5000 + 5000;
+            setTimeout(scheduleSilverShower, nextShower);
+        }
+        
+        // Start the first shower after 2 seconds
+        setTimeout(scheduleSilverShower, 2000);
+    </script>
+</body>
+</html>
