@@ -158,7 +158,7 @@
 
     <div class="game-container">
         <h1>🪼 Jellyfish Adventure 🫧</h1>
-
+        
         <div class="score-board">
             <div class="score-item">
                 <strong>Score:</strong> <span id="score">0</span>
@@ -230,7 +230,7 @@
 
             update() {
                 this.x += this.speed * this.direction;
-
+                
                 // Wrap around
                 if (this.direction > 0 && this.x > canvas.width + 20) {
                     this.x = -20;
@@ -245,7 +245,7 @@
                 ctx.font = `${this.size}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-
+                
                 // Flip the fish if moving left
                 if (this.direction < 0) {
                     ctx.save();
@@ -256,7 +256,7 @@
                 } else {
                     ctx.fillText(this.emoji, this.x, this.y);
                 }
-
+                
                 ctx.globalAlpha = 1;
             }
         }
@@ -291,12 +291,12 @@
         function initializeBackground() {
             backgroundFish = [];
             coralReefs = [];
-
+            
             // Create background fish
             for (let i = 0; i < 8; i++) {
                 backgroundFish.push(new BackgroundFish());
             }
-
+            
             // Create MANY more vibrant coral reefs
             for (let i = 0; i < 25; i++) {
                 coralReefs.push(new CoralReef());
@@ -316,7 +316,7 @@
 
             update() {
                 this.changeDirectionCounter++;
-
+                
                 // Change direction occasionally
                 if (this.changeDirectionCounter > 60) {
                     if (Math.random() < 0.3) {
@@ -348,13 +348,13 @@
                 ctx.font = `${gridSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-
+                
                 // Grey/neutral glow effect instead of red
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = '#888888';
-
+                
                 ctx.fillText('🦈', this.x * gridSize + gridSize/2, this.y * gridSize + gridSize/2);
-
+                
                 ctx.shadowBlur = 0;
             }
         }
@@ -404,13 +404,13 @@
             scoreElement.textContent = score;
             gameOverDiv.style.display = 'none';
             gameRunning = true;
-
+            
             initializeBackground();
             placeBubble();
-
+            
             // Draw initial state
             drawGame();
-
+            
             if (gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(update, 100);
         }
@@ -418,11 +418,11 @@
         function placeBubble() {
             bubbleX = Math.floor(Math.random() * tileCount);
             bubbleY = Math.floor(Math.random() * tileCount);
-
+            
             // Make sure bubble doesn't spawn on jellyfish or sharks
             let onJellyfish = jellyfish.some(segment => segment.x === bubbleX && segment.y === bubbleY);
             let onShark = sharks.some(shark => Math.floor(shark.x) === bubbleX && Math.floor(shark.y) === bubbleY);
-
+            
             if (onJellyfish || onShark || (bubbleX === jellyfishX && bubbleY === jellyfishY)) {
                 placeBubble();
             }
@@ -474,7 +474,7 @@
                     scoreElement.textContent = score;
                     createParticles(bubbleX, bubbleY);
                     placeBubble();
-
+                    
                     if (score > highScore) {
                         highScore = score;
                         highScoreElement.textContent = highScore;
@@ -558,14 +558,14 @@
                 for (let strand = 0; strand < 4; strand++) {
                     jellyfish.forEach((segment, index) => {
                         const alpha = 1 - (index / jellyfish.length) * 0.6;
-
+                        
                         // Calculate offset for each tentacle strand
                         const offset = (strand - 1.5) * 4; // Spread tentacles out
                         const wave = Math.sin((index + Date.now() * 0.003) * 0.5) * 3; // Flowing motion
-
+                        
                         ctx.shadowBlur = 12;
                         ctx.shadowColor = '#ff66ff';
-
+                        
                         // Gradient for tentacles
                         const gradient = ctx.createRadialGradient(
                             segment.x * gridSize + gridSize/2, segment.y * gridSize + gridSize/2, 0,
@@ -573,17 +573,17 @@
                         );
                         gradient.addColorStop(0, `rgba(255, 102, 255, ${alpha})`);
                         gradient.addColorStop(1, `rgba(204, 51, 204, ${alpha * 0.5})`);
-
+                        
                         ctx.fillStyle = gradient;
-
+                        
                         // Draw thinner, more tentacle-like segments
                         const tentacleWidth = 3 - (strand * 0.3);
                         const tentacleHeight = gridSize - 4;
-
+                        
                         ctx.fillRect(
-                            segment.x * gridSize + gridSize/2 - tentacleWidth/2 + offset + wave,
-                            segment.y * gridSize + gridSize/2 - tentacleHeight/2,
-                            tentacleWidth,
+                            segment.x * gridSize + gridSize/2 - tentacleWidth/2 + offset + wave, 
+                            segment.y * gridSize + gridSize/2 - tentacleHeight/2, 
+                            tentacleWidth, 
                             tentacleHeight
                         );
                     });
@@ -594,12 +594,12 @@
             // Jellyfish head - use emoji
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#ff99ff';
-
+            
             ctx.font = `${gridSize * 1.5}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('🪼', jellyfishX * gridSize + gridSize/2, jellyfishY * gridSize + gridSize/2);
-
+            
             ctx.shadowBlur = 0;
 
             // Draw sharks
@@ -619,7 +619,7 @@
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (!gameRunning) return;
-
+            
             switch(e.key) {
                 case 'ArrowUp':
                     if (velocityY !== 1) {
