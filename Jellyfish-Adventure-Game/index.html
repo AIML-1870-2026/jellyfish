@@ -3,63 +3,659 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jellyfish Adventure Game</title>
+    <title>Jellyfish Adventure - Underwater Snake Game</title>
     <style>
-        body {
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             min-height: 100vh;
-            background: linear-gradient(to bottom, #001a33, #002d4d);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #66d9ff;
+            background: linear-gradient(to bottom, #001a33 0%, #003d5c 50%, #005577 100%);
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+            z-index: 10;
         }
 
         h1 {
-            margin: 0 0 20px 0;
-            color: #99e6ff;
-            text-shadow: 0 0 10px #4db8ff;
+            color: #66d9ff;
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(102, 217, 255, 0.8);
+            font-weight: bold;
         }
 
-        canvas {
-            border: 3px solid #4db8ff;
-            box-shadow: 0 0 30px rgba(77, 184, 255, 0.5);
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            color: #99e6ff;
+        }
+
+        .score-item {
+            background: rgba(0, 50, 80, 0.7);
+            padding: 10px 25px;
+            border-radius: 15px;
+            border: 2px solid #4db8ff;
+            box-shadow: 0 0 15px rgba(77, 184, 255, 0.5);
+        }
+
+        #gameCanvas {
+            border: 4px solid #4db8ff;
             border-radius: 10px;
+            box-shadow: 0 0 30px rgba(77, 184, 255, 0.6),
+                        inset 0 0 50px rgba(0, 100, 150, 0.3);
+            background: linear-gradient(135deg, #002233 0%, #003d5c 100%);
         }
 
-        #scoreBoard {
-            margin: 20px 0;
-            font-size: 24px;
-            text-align: center;
-        }
-
-        #instructions {
+        .controls {
             margin-top: 20px;
-            text-align: center;
             color: #99e6ff;
+            font-size: 1.1em;
         }
+
+        .controls p {
+            margin: 5px 0;
+        }
+
+        button {
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 102, 204, 0.4);
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 153, 255, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 40, 70, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ff6666;
+            box-shadow: 0 0 40px rgba(255, 102, 102, 0.8);
+            z-index: 100;
+        }
+
+        .game-over h2 {
+            color: #ff6666;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 102, 102, 0.8);
+        }
+
+        .game-over p {
+            color: #99e6ff;
+            font-size: 1.3em;
+            margin: 10px 0;
+        }
+
+        /* Bubble animation in background */
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), rgba(102, 217, 255, 0.1));
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: rise linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes rise {
+            to {
+                bottom: 100vh;
+                transform: translateX(50px);
+            }
+        }
+
+        /* Create multiple bubbles */
+        .bubble:nth-child(1) { left: 10%; width: 40px; height: 40px; animation-duration: 8s; animation-delay: 0s; }
+        .bubble:nth-child(2) { left: 25%; width: 25px; height: 25px; animation-duration: 10s; animation-delay: 2s; }
+        .bubble:nth-child(3) { left: 45%; width: 35px; height: 35px; animation-duration: 7s; animation-delay: 4s; }
+        .bubble:nth-child(4) { left: 65%; width: 30px; height: 30px; animation-duration: 9s; animation-delay: 1s; }
+        .bubble:nth-child(5) { left: 80%; width: 20px; height: 20px; animation-duration: 11s; animation-delay: 3s; }
+        .bubble:nth-child(6) { left: 35%; width: 45px; height: 45px; animation-duration: 8.5s; animation-delay: 5s; }
     </style>
 </head>
 <body>
-    <h1>🪼 Jellyfish Adventure 🫧</h1>
-    <div id="scoreBoard">
-        Score: <span id="score">0</span> | High Score: <span id="highScore">0</span>
-    </div>
-    <canvas id="gameCanvas" width="600" height="600"></canvas>
-    <div id="instructions">
-        Use Arrow Keys to move<br>
-        Collect bubbles, avoid sharks and walls!
+    <!-- Background bubbles -->
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+
+    <div class="game-container">
+        <h1>🪼 Jellyfish Adventure 🫧</h1>
+
+        <div class="score-board">
+            <div class="score-item">
+                <strong>Score:</strong> <span id="score">0</span>
+            </div>
+            <div class="score-item">
+                <strong>High Score:</strong> <span id="highScore">0</span>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+        <div class="controls">
+            <p>🎮 Use Arrow Keys to move the jellyfish</p>
+            <p>🫧 Eat bubbles to grow longer</p>
+            <p>🦈 Avoid sharks and your own tentacles!</p>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>High Score: <span id="finalHighScore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
     </div>
 
     <script>
-        // Game will be implemented here
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const gameOverDiv = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalHighScoreElement = document.getElementById('finalHighScore');
+        const restartBtn = document.getElementById('restartBtn');
 
-        console.log('Jellyfish Adventure Game - Ready to implement!');
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let jellyfish = [];
+        let jellyfishX = 10;
+        let jellyfishY = 10;
+        let velocityX = 0;
+        let velocityY = 0;
+        let bubbleX = 15;
+        let bubbleY = 15;
+        let score = 0;
+        let highScore = localStorage.getItem('jellyfishHighScore') || 0;
+        let gameLoop;
+        let gameRunning = false;
+        let tailLength = 3;
+        let sharks = [];
+        let sharkSpawnCounter = 0;
+        let particles = [];
+        let backgroundFish = [];
+        let coralReefs = [];
+
+        highScoreElement.textContent = highScore;
+
+        // Background fish class
+        class BackgroundFish {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.speed = 0.3 + Math.random() * 0.5;
+                this.emoji = Math.random() < 0.5 ? '🐠' : '🐟';
+                this.size = 12 + Math.random() * 8;
+                this.direction = Math.random() < 0.5 ? 1 : -1;
+            }
+
+            update() {
+                this.x += this.speed * this.direction;
+
+                // Wrap around
+                if (this.direction > 0 && this.x > canvas.width + 20) {
+                    this.x = -20;
+                }
+                if (this.direction < 0 && this.x < -20) {
+                    this.x = canvas.width + 20;
+                }
+            }
+
+            draw() {
+                ctx.globalAlpha = 0.4;
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Flip the fish if moving left
+                if (this.direction < 0) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.scale(-1, 1);
+                    ctx.fillText(this.emoji, 0, 0);
+                    ctx.restore();
+                } else {
+                    ctx.fillText(this.emoji, this.x, this.y);
+                }
+
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Coral reef class
+        class CoralReef {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height; // Spread across entire screen
+                this.emoji = '🪸'; // Only use coral emoji
+                this.size = 15 + Math.random() * 25;
+                // Vibrant color overlays
+                this.colors = ['#ff6b9d', '#ffa500', '#00ff88', '#ff1493', '#7fff00', '#ff4500'];
+                this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
+            }
+
+            draw() {
+                // Draw with vibrant glow
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.globalAlpha = 0.8;
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x, this.y);
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Initialize background elements
+        function initializeBackground() {
+            backgroundFish = [];
+            coralReefs = [];
+
+            // Create background fish
+            for (let i = 0; i < 8; i++) {
+                backgroundFish.push(new BackgroundFish());
+            }
+
+            // Create MANY more vibrant coral reefs
+            for (let i = 0; i < 25; i++) {
+                coralReefs.push(new CoralReef());
+            }
+        }
+
+        highScoreElement.textContent = highScore;
+
+        class Shark {
+            constructor() {
+                this.x = Math.floor(Math.random() * tileCount);
+                this.y = Math.floor(Math.random() * tileCount);
+                this.vx = Math.random() < 0.5 ? 1 : -1;
+                this.vy = 0;
+                this.changeDirectionCounter = 0;
+            }
+
+            update() {
+                this.changeDirectionCounter++;
+
+                // Change direction occasionally
+                if (this.changeDirectionCounter > 60) {
+                    if (Math.random() < 0.3) {
+                        const directions = [
+                            {vx: 1, vy: 0},
+                            {vx: -1, vy: 0},
+                            {vx: 0, vy: 1},
+                            {vx: 0, vy: -1}
+                        ];
+                        const dir = directions[Math.floor(Math.random() * directions.length)];
+                        this.vx = dir.vx;
+                        this.vy = dir.vy;
+                        this.changeDirectionCounter = 0;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrap around screen
+                if (this.x < 0) this.x = tileCount - 1;
+                if (this.x >= tileCount) this.x = 0;
+                if (this.y < 0) this.y = tileCount - 1;
+                if (this.y >= tileCount) this.y = 0;
+            }
+
+            draw() {
+                // Draw shark emoji
+                ctx.font = `${gridSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Grey/neutral glow effect instead of red
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#888888';
+
+                ctx.fillText('🦈', this.x * gridSize + gridSize/2, this.y * gridSize + gridSize/2);
+
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.life = 30;
+                this.maxLife = 30;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+
+            draw() {
+                const alpha = this.life / this.maxLife;
+                ctx.fillStyle = `rgba(102, 217, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 10; i++) {
+                particles.push(new Particle(x * gridSize + gridSize/2, y * gridSize + gridSize/2));
+            }
+        }
+
+        function startGame() {
+            jellyfish = [];
+            jellyfishX = 10;
+            jellyfishY = 10;
+            velocityX = 0;
+            velocityY = 0;
+            tailLength = 3;
+            score = 0;
+            sharks = [];
+            sharkSpawnCounter = 0;
+            particles = [];
+            scoreElement.textContent = score;
+            gameOverDiv.style.display = 'none';
+            gameRunning = true;
+
+            initializeBackground();
+            placeBubble();
+
+            // Draw initial state
+            drawGame();
+
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 100);
+        }
+
+        function placeBubble() {
+            bubbleX = Math.floor(Math.random() * tileCount);
+            bubbleY = Math.floor(Math.random() * tileCount);
+
+            // Make sure bubble doesn't spawn on jellyfish or sharks
+            let onJellyfish = jellyfish.some(segment => segment.x === bubbleX && segment.y === bubbleY);
+            let onShark = sharks.some(shark => Math.floor(shark.x) === bubbleX && Math.floor(shark.y) === bubbleY);
+
+            if (onJellyfish || onShark || (bubbleX === jellyfishX && bubbleY === jellyfishY)) {
+                placeBubble();
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Only move if velocity is set (player has pressed a key)
+            if (velocityX !== 0 || velocityY !== 0) {
+                // Move jellyfish
+                jellyfishX += velocityX;
+                jellyfishY += velocityY;
+
+                // Wall collision
+                if (jellyfishX < 0 || jellyfishX >= tileCount || jellyfishY < 0 || jellyfishY >= tileCount) {
+                    endGame();
+                    return;
+                }
+
+                // Add new head position
+                jellyfish.push({x: jellyfishX, y: jellyfishY});
+
+                // Remove tail
+                while (jellyfish.length > tailLength) {
+                    jellyfish.shift();
+                }
+
+                // Check self collision
+                for (let i = 0; i < jellyfish.length - 1; i++) {
+                    if (jellyfish[i].x === jellyfishX && jellyfish[i].y === jellyfishY) {
+                        endGame();
+                        return;
+                    }
+                }
+
+                // Check shark collision
+                for (let shark of sharks) {
+                    if (Math.floor(shark.x) === jellyfishX && Math.floor(shark.y) === jellyfishY) {
+                        endGame();
+                        return;
+                    }
+                }
+
+                // Check bubble collision
+                if (jellyfishX === bubbleX && jellyfishY === bubbleY) {
+                    tailLength++;
+                    score += 10;
+                    scoreElement.textContent = score;
+                    createParticles(bubbleX, bubbleY);
+                    placeBubble();
+
+                    if (score > highScore) {
+                        highScore = score;
+                        highScoreElement.textContent = highScore;
+                        localStorage.setItem('jellyfishHighScore', highScore);
+                    }
+                }
+            }
+
+            // Spawn sharks periodically
+            sharkSpawnCounter++;
+            if (sharkSpawnCounter > 100 && sharks.length < 5) {
+                sharks.push(new Shark());
+                sharkSpawnCounter = 0;
+            }
+
+            // Update sharks
+            sharks.forEach(shark => {
+                shark.update();
+            });
+
+            // Update background fish
+            backgroundFish.forEach(fish => {
+                fish.update();
+            });
+
+            // Update particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update();
+            });
+
+            drawGame();
+        }
+
+        function drawGame() {
+            // Draw ocean background
+            ctx.fillStyle = '#002233';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid pattern
+            ctx.strokeStyle = 'rgba(77, 184, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // Draw coral reefs (background layer)
+            coralReefs.forEach(coral => {
+                coral.draw();
+            });
+
+            // Draw background fish
+            backgroundFish.forEach(fish => {
+                fish.draw();
+            });
+
+            // Draw particles
+            particles.forEach(p => {
+                p.draw();
+            });
+
+            // Draw bubble emoji (bigger with bright white glow)
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#ffffff';
+            ctx.font = `${gridSize * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🫧', bubbleX * gridSize + gridSize/2, bubbleY * gridSize + gridSize/2);
+            ctx.shadowBlur = 0;
+
+            // Jellyfish body (tentacles) - draw multiple flowing tentacles
+            if (jellyfish.length > 0) {
+                // Draw 4 tentacle strands
+                for (let strand = 0; strand < 4; strand++) {
+                    jellyfish.forEach((segment, index) => {
+                        const alpha = 1 - (index / jellyfish.length) * 0.6;
+
+                        // Calculate offset for each tentacle strand
+                        const offset = (strand - 1.5) * 4; // Spread tentacles out
+                        const wave = Math.sin((index + Date.now() * 0.003) * 0.5) * 3; // Flowing motion
+
+                        ctx.shadowBlur = 12;
+                        ctx.shadowColor = '#ff66ff';
+
+                        // Gradient for tentacles
+                        const gradient = ctx.createRadialGradient(
+                            segment.x * gridSize + gridSize/2, segment.y * gridSize + gridSize/2, 0,
+                            segment.x * gridSize + gridSize/2, segment.y * gridSize + gridSize/2, gridSize/2
+                        );
+                        gradient.addColorStop(0, `rgba(255, 102, 255, ${alpha})`);
+                        gradient.addColorStop(1, `rgba(204, 51, 204, ${alpha * 0.5})`);
+
+                        ctx.fillStyle = gradient;
+
+                        // Draw thinner, more tentacle-like segments
+                        const tentacleWidth = 3 - (strand * 0.3);
+                        const tentacleHeight = gridSize - 4;
+
+                        ctx.fillRect(
+                            segment.x * gridSize + gridSize/2 - tentacleWidth/2 + offset + wave,
+                            segment.y * gridSize + gridSize/2 - tentacleHeight/2,
+                            tentacleWidth,
+                            tentacleHeight
+                        );
+                    });
+                }
+            }
+            ctx.shadowBlur = 0;
+
+            // Jellyfish head - use emoji
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff99ff';
+
+            ctx.font = `${gridSize * 1.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🪼', jellyfishX * gridSize + gridSize/2, jellyfishY * gridSize + gridSize/2);
+
+            ctx.shadowBlur = 0;
+
+            // Draw sharks
+            sharks.forEach(shark => {
+                shark.draw();
+            });
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(gameLoop);
+            finalScoreElement.textContent = score;
+            finalHighScoreElement.textContent = highScore;
+            gameOverDiv.style.display = 'block';
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (velocityY !== 1) {
+                        velocityX = 0;
+                        velocityY = -1;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    if (velocityY !== -1) {
+                        velocityX = 0;
+                        velocityY = 1;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    if (velocityX !== 1) {
+                        velocityX = -1;
+                        velocityY = 0;
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    if (velocityX !== -1) {
+                        velocityX = 1;
+                        velocityY = 0;
+                    }
+                    e.preventDefault();
+                    break;
+            }
+        });
+
+        restartBtn.addEventListener('click', startGame);
+
+        // Auto-start the game when page loads
+        startGame();
     </script>
 </body>
 </html>
