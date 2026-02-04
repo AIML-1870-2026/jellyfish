@@ -3,9 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment 01</title>
+    <title>Hello World</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #9caf88;
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 2px, transparent 2px);
+            background-size: 30px 30px;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            color: #eee;
+            border: 3px solid #eee;
+            border-radius: 15px;
+            padding: 40px;
+            background-color: rgba(156, 175, 136, 0.3);
+            z-index: 10;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin: 0 0 20px 0;
+        }
+
+        p {
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        /* Rainbow */
+        .rainbow {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 200px;
+            opacity: 0.4;
+            z-index: 1;
+        }
+
+        /* Sun */
+        .sun {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 60px;
+            z-index: 2;
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            font-size: 70px;
+            opacity: 0.6;
+            z-index: 2;
+        }
+
+        .cloud1 {
+            top: 100px;
+            left: 15%;
+        }
+
+        .cloud2 {
+            top: 150px;
+            right: 20%;
+        }
+
+        /* Center Tulip Watermark */
+        .center-tulip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 150px;
+            opacity: 0.3;
+            z-index: 5;
+        }
+
+        /* Flower Garden */
+        .flower-garden {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-evenly;
+            z-index: 3;
+        }
+
+        .flower {
+            font-size: 60px;
+        }
+
+        /* Animated Bunnies */
+        .bunny {
+            position: absolute;
+            font-size: 50px;
+            z-index: 4;
+        }
+
+        .bunny1 {
+            bottom: 20px;
+            left: 0;
+            animation: hop 3s infinite;
+        }
+
+        .bunny2 {
+            bottom: 20px;
+            right: 0;
+            animation: hop2 4s infinite 1s;
+        }
+
+        .bunny3 {
+            bottom: 20px;
+            left: 40%;
+            animation: hop3 3.5s infinite 0.5s;
+        }
+
+        @keyframes hop {
+            0%, 100% {
+                left: 0;
+                bottom: 20px;
+            }
+            25% {
+                bottom: 90px;
+            }
+            50% {
+                left: 50%;
+                bottom: 20px;
+            }
+            75% {
+                bottom: 90px;
+            }
+        }
+
+        @keyframes hop2 {
+            0%, 100% {
+                right: 0;
+                bottom: 20px;
+            }
+            25% {
+                bottom: 80px;
+            }
+            50% {
+                right: 50%;
+                bottom: 20px;
+            }
+            75% {
+                bottom: 80px;
+            }
+        }
+
+        @keyframes hop3 {
+            0%, 100% {
+                left: 40%;
+                bottom: 20px;
+            }
+            25% {
+                bottom: 70px;
+            }
+            50% {
+                left: 60%;
+                bottom: 20px;
+            }
+            75% {
+                bottom: 70px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello from jellyfish!</h1>
+    <!-- Rainbow -->
+    <div class="rainbow">🌈</div>
+
+    <!-- Sun -->
+    <div class="sun">☀️</div>
+
+    <!-- Clouds -->
+    <div class="cloud cloud1">☁️</div>
+    <div class="cloud cloud2">☁️</div>
+
+    <!-- Center Tulip Watermark -->
+    <div class="center-tulip">🌷</div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1>Hello, World!</h1>
+        <p>I'm Georgia and I'm ready to vibe code.</p>
+    </div>
+
+    <!-- Flower Garden -->
+    <div class="flower-garden">
+        <div class="flower">🌷</div>
+        <div class="flower">🌻</div>
+        <div class="flower">🌺</div>
+        <div class="flower">🌸</div>
+        <div class="flower">🌼</div>
+        <div class="flower">🌹</div>
+    </div>
+
+    <!-- Animated Bunnies -->
+    <div class="bunny bunny1">🐰</div>
+    <div class="bunny bunny2">🐰</div>
+    <div class="bunny bunny3">🐰</div>
 </body>
 </html>
