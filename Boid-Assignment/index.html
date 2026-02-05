@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzzing Bees - Boids Simulation Specification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #B0E0E6 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #2C5AA0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(44, 90, 160, 0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #2C5AA0;
+        }
+
+        h2 {
+            color: #4A90E2;
+            border-bottom: 3px solid #FFD700;
+            padding-bottom: 10px;
+            margin: 40px 0 20px 0;
+            font-size: 1.6em;
+        }
+
+        h3 {
+            color: #2C5AA0;
+            margin: 25px 0 15px 0;
+            font-size: 1.3em;
+        }
+
+        h4 {
+            color: #4A90E2;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        .overview {
+            background: linear-gradient(135deg, #FFD700 0%, #F9A825 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            color: #2C5AA0;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        ul {
+            margin: 15px 0 15px 25px;
+            color: #444;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: #2C5AA0;
+        }
+
+        .feature-box {
+            background: #f8fafc;
+            border-left: 4px solid #FFD700;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 0.9em;
+            white-space: pre;
+        }
+
+        .file-structure {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre;
+            font-size: 0.9em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #4A90E2 0%, #2C5AA0 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-card .check {
+            color: #90EE90;
+            font-size: 1.2em;
+        }
+
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .preset-card {
+            background: white;
+            border: 2px solid #4A90E2;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .preset-card h5 {
+            color: #4A90E2;
+            margin-bottom: 10px;
+        }
+
+        .chart-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .chart-color {
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .credits {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .browser-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .browser-item {
+            background: #f0f9ff;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #4A90E2;
+        }
+
+        .enhancement-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .enhancement-list li {
+            background: linear-gradient(135deg, #FFD54F 0%, #F9A825 100%);
+            padding: 10px 15px;
+            border-radius: 20px;
+            text-align: center;
+            color: #2C5AA0;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐝 Buzzing Bees</h1>
+        <h2 style="border: none; text-align: center; color: #666; font-weight: normal; margin-top: 0;">Boids Simulation Specification</h2>
+
+        <div class="overview">
+            An interactive, high-performance web-based boids flocking simulation featuring bee-themed triangular agents with real-time controls, statistics visualization, and predator mechanics.
+        </div>
+
+        <h2>Core Features</h2>
+
+        <h3>1. Boid Visualization</h3>
+        <div class="feature-box">
+            <ul>
+                <li><strong>Shape:</strong> Triangular agents (7px size)</li>
+                <li><strong>Appearance:</strong> <span class="color-swatch" style="background: #FFD700;"></span>Yellow (#FFD700) fill with two black vertical stripes</li>
+                <li><strong>Orientation:</strong> Triangles rotate to face their direction of movement</li>
+                <li><strong>Count:</strong> Default 500, adjustable from 10 to 3000</li>
+                <li><strong>Target Performance:</strong> 60 FPS with up to 2000+ boids</li>
+            </ul>
+        </div>
+
+        <h3>2. Flocking Algorithm</h3>
+        <p>Implementation of Craig Reynolds' boids algorithm with three fundamental rules:</p>
+
+        <h4>Separation</h4>
+        <div class="feature-box">
+            <ul>
+                <li><strong>Weight:</strong> 5.0 (range: 0-6)</li>
+                <li><strong>Purpose:</strong> Avoid crowding neighbors</li>
+                <li><strong>Implementation:</strong>
+                    <ul>
+                        <li>Minimum distance enforcement: 20px hard floor</li>
+                        <li>Emergency repulsion force: 20x when under minimum distance</li>
+                        <li>Distance-weighted normal separation: 2/(dist+1)</li>
+                        <li>Prevents any visual overlap between boids</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <h4>Alignment</h4>
+        <div class="feature-box">
+            <ul>
+                <li><strong>Weight:</strong> 3.0 (range: 0-5)</li>
+                <li><strong>Purpose:</strong> Match direction with neighbors</li>
+                <li><strong>Implementation:</strong> Average velocity of 5 nearest neighbors</li>
+                <li><strong>Effect:</strong> Creates coordinated, flowing movement patterns</li>
+            </ul>
+        </div>
+
+        <h4>Cohesion</h4>
+        <div class="feature-box">
+            <ul>
+                <li><strong>Weight:</strong> 0.3 (range: 0-3)</li>
+                <li><strong>Purpose:</strong> Stay with the group</li>
+                <li><strong>Implementation:</strong> Move toward average position of up to 10 neighbors</li>
+                <li><strong>Balance:</strong> Intentionally low to prevent tight clustering</li>
+            </ul>
+        </div>
+
+        <h4>Additional Parameters</h4>
+        <ul>
+            <li><strong>Neighbor Radius:</strong> 70px (range: 20-150)</li>
+            <li><strong>Max Speed:</strong> 3.5 (range: 0.5-8)</li>
+            <li><strong>Boundary Mode:</strong> Wrap-around or bounce (toggleable)</li>
+        </ul>
+
+        <h3>3. Visual Environment</h3>
+
+        <h4>Background</h4>
+        <ul>
+            <li><strong>Sky gradient:</strong> Linear gradient from <span class="color-swatch" style="background: #87CEEB;"></span>#87CEEB to <span class="color-swatch" style="background: #B0E0E6;"></span>#B0E0E6</li>
+            <li><strong>Clouds:</strong> 5 static white clouds positioned across the canvas</li>
+            <li><strong>Optimization:</strong> Clouds cached in offscreen canvas, drawn once</li>
+        </ul>
+
+        <h4>Canvas</h4>
+        <ul>
+            <li><strong>Dimensions:</strong> Full width × 600px height</li>
+            <li><strong>Border:</strong> 2px solid <span class="color-swatch" style="background: #4A90E2;"></span>#4A90E2</li>
+            <li><strong>Border radius:</strong> 8px rounded corners</li>
+        </ul>
+
+        <h3>4. User Controls</h3>
+
+        <h4>Behavior Presets (3 buttons)</h4>
+
+        <div class="preset-card">
+            <h5>1. Schooling</h5>
+            <ul>
+                <li>High alignment (2.5)</li>
+                <li>Medium cohesion (1.5)</li>
+                <li>Low separation (0.8)</li>
+                <li>Larger neighbor radius (60)</li>
+            </ul>
+        </div>
+
+        <div class="preset-card">
+            <h5>2. Chaotic Swarm</h5>
+            <ul>
+                <li>Low alignment (0.3)</li>
+                <li>Low cohesion (0.3)</li>
+                <li>Normal separation (1.0)</li>
+                <li>Small neighbor radius (30)</li>
+            </ul>
+        </div>
+
+        <div class="preset-card">
+            <h5>3. Tight Cluster</h5>
+            <ul>
+                <li>Normal alignment (1.0)</li>
+                <li>High cohesion (2.5)</li>
+                <li>Moderate separation (1.2)</li>
+                <li>Large neighbor radius (80)</li>
+            </ul>
+        </div>
+
+        <h4>Parameter Sliders (6 controls)</h4>
+        <ul>
+            <li>Separation Weight (0-6, step 0.1)</li>
+            <li>Alignment Weight (0-5, step 0.1)</li>
+            <li>Cohesion Weight (0-3, step 0.1)</li>
+            <li>Neighbor Radius (20-150, step 5)</li>
+            <li>Max Speed (0.5-8, step 0.1)</li>
+            <li>Boid Count (10-3000, step 50)</li>
+        </ul>
+
+        <h4>Simulation Controls (3 buttons)</h4>
+        <ul>
+            <li><strong>Pause/Resume:</strong> Toggle simulation state</li>
+            <li><strong>Reset:</strong> Regenerate all boids with random positions</li>
+            <li><strong>Add/Remove Predator:</strong> Toggle bear predator mode</li>
+        </ul>
+
+        <h4>Boundary Controls (2 toggle buttons)</h4>
+        <ul>
+            <li><strong>Wrap Around:</strong> Boids teleport to opposite edge (default)</li>
+            <li><strong>Bounce:</strong> Boids turn away from edges with soft margins</li>
+        </ul>
+
+        <h3>5. Predator Mechanics</h3>
+
+        <h4>Predator Entity</h4>
+        <ul>
+            <li><strong>Visual:</strong> 🐻 bear emoji (80px font size)</li>
+            <li><strong>Control:</strong> Follows mouse cursor with smooth interpolation (0.2 factor)</li>
+            <li><strong>Activation:</strong> Toggle via "Add Predator" button</li>
+        </ul>
+
+        <h4>Boid Evasion Behavior</h4>
+        <ul>
+            <li><strong>Avoidance radius:</strong> 200px</li>
+            <li><strong>Panic force:</strong> 8.0 × (1 - distance/radius)</li>
+            <li><strong>Effect:</strong> Creates dramatic waves and splits in the flock</li>
+            <li><strong>Visual result:</strong> Murmuration-like rippling patterns</li>
+        </ul>
+
+        <h3>6. Performance Statistics</h3>
+
+        <h4>Real-Time Metrics (4 displays)</h4>
+        <ol>
+            <li><strong>FPS:</strong> Frame rate counter</li>
+            <li><strong>Boid Count:</strong> Current number of active boids</li>
+            <li><strong>Average Speed:</strong> Mean velocity across all boids</li>
+            <li><strong>Average Neighbors:</strong> Mean neighbors per boid within radius</li>
+        </ol>
+
+        <h4>Statistics Charts (3 live graphs)</h4>
+        <p>Displayed in a single row below controls, showing last 100 data points:</p>
+
+        <div class="chart-info">
+            <div class="chart-color" style="background: #FFD54F;"></div>
+            <div><strong>Average Neighbors</strong> - Y-axis range: 0-20, Shows flock connectivity</div>
+        </div>
+        <div class="chart-info">
+            <div class="chart-color" style="background: #4FC3F7;"></div>
+            <div><strong>Speed Variance</strong> - Y-axis range: 0-3, Measures synchronization (lower = more synchronized)</div>
+        </div>
+        <div class="chart-info">
+            <div class="chart-color" style="background: #81C784;"></div>
+            <div><strong>Flock Compactness</strong> - Y-axis range: 0-200, Average distance from center of mass</div>
+        </div>
+
+        <h3>7. UX/UI Design</h3>
+
+        <h4>Color Scheme</h4>
+        <ul>
+            <li><strong>Primary:</strong> Blues (<span class="color-swatch" style="background: #4A90E2;"></span>#4A90E2, <span class="color-swatch" style="background: #2C5AA0;"></span>#2C5AA0, <span class="color-swatch" style="background: #87CEEB;"></span>#87CEEB)</li>
+            <li><strong>Accent:</strong> Yellow/Gold (<span class="color-swatch" style="background: #FFD54F;"></span>#FFD54F, <span class="color-swatch" style="background: #F9A825;"></span>#F9A825)</li>
+            <li><strong>Background:</strong> Sky blue gradient</li>
+            <li><strong>Text:</strong> Dark blue (#2C5AA0) for headings, light blue (#B0E0E6) for labels</li>
+        </ul>
+
+        <h4>Layout</h4>
+        <ol>
+            <li><strong>Title:</strong> "🐝 Buzzing Bees" (centered, 2em)</li>
+            <li><strong>Main canvas:</strong> Top section, full width</li>
+            <li><strong>Control panels:</strong> Horizontal row of 5 boxes (Performance Stats, Controls, Behavior Presets, Flocking Parameters, Boundary Behavior)</li>
+            <li><strong>Statistics charts:</strong> Full-width box below controls</li>
+        </ol>
+
+        <h4>Tooltips</h4>
+        <ul>
+            <li>Question mark icons (?) with hover tooltips</li>
+            <li>Plain English explanations for each parameter</li>
+            <li>Appears on control group headers</li>
+        </ul>
+
+        <h3>8. Performance Optimizations</h3>
+
+        <h4>Rendering Optimizations</h4>
+        <ul>
+            <li><strong>Path2D reuse:</strong> Pre-created triangle and stripe paths (~400% faster)</li>
+            <li><strong>Batch rendering:</strong> All boids drawn with shared fill/stroke styles</li>
+            <li><strong>Cloud caching:</strong> Offscreen canvas, drawn once and reused</li>
+            <li><strong>Frame limiting:</strong> Target 60 FPS with frame skipping</li>
+        </ul>
+
+        <h4>Physics Optimizations</h4>
+        <ul>
+            <li><strong>Spatial grid:</strong> Neighbor search using grid partitioning</li>
+            <li><strong>Neighbor limiting:</strong> Maximum 30 neighbors checked per boid</li>
+            <li><strong>Early exit:</strong> Break from loops when limits reached</li>
+            <li><strong>Reduced calculations:</strong> Cohesion checks only 10 nearest neighbors</li>
+            <li><strong>Alignment focus:</strong> Only 5 nearest neighbors for velocity matching</li>
+        </ul>
+
+        <h4>Update Frequency Optimizations</h4>
+        <ul>
+            <li><strong>Text stats:</strong> Update every 3 frames</li>
+            <li><strong>Chart stats:</strong> Update every 10 frames</li>
+            <li><strong>Predator smoothing:</strong> Interpolated position updates</li>
+        </ul>
+
+        <h4>Movement Smoothing</h4>
+        <ul>
+            <li><strong>Acceleration damping:</strong> 0.3 factor for gradual changes</li>
+            <li><strong>Velocity blending:</strong> 0.7 temporal smoothing between frames</li>
+            <li><strong>Previous velocity tracking:</strong> Eliminates jerky movement</li>
+        </ul>
+
+        <h3>9. Technical Implementation</h3>
+
+        <h4>Core Technologies</h4>
+        <ul>
+            <li><strong>HTML5 Canvas:</strong> Main rendering surface</li>
+            <li><strong>Vanilla JavaScript:</strong> No framework dependencies</li>
+            <li><strong>ES6 Classes:</strong> Object-oriented boid structure</li>
+            <li><strong>Path2D API:</strong> High-performance shape rendering</li>
+        </ul>
+
+        <h4>Data Structures</h4>
+        <ul>
+            <li><strong>Spatial Grid:</strong> Map&lt;string, Boid[]&gt; for O(1) neighbor lookup</li>
+            <li><strong>Boid Array:</strong> Single array of all active boids</li>
+            <li><strong>Stats History:</strong> Arrays of last 100 data points per metric</li>
+        </ul>
+
+        <h4>Animation Loop</h4>
+        <ul>
+            <li><strong>RequestAnimationFrame:</strong> Browser-optimized timing</li>
+            <li><strong>Delta time tracking:</strong> Frame rate independence</li>
+            <li><strong>Conditional rendering:</strong> Only when not paused</li>
+        </ul>
+
+        <h3>10. Key Algorithms</h3>
+
+        <h4>Spatial Partitioning</h4>
+        <div class="code-block">cellSize = neighborRadius
+cellX = floor(position.x / cellSize)
+cellY = floor(position.y / cellSize)
+key = "${cellX},${cellY}"</div>
+
+        <h4>Emergency Separation</h4>
+        <div class="code-block">if (distance < minDistance) {
+  emergencyForce = (minDistance - distance) / minDistance
+  force = direction * emergencyForce * 20
+}</div>
+
+        <h4>Velocity Smoothing</h4>
+        <div class="code-block">velocity += acceleration * 0.3
+velocity = prevVelocity * 0.3 + velocity * 0.7
+prevVelocity = velocity</div>
+
+        <h3>11. Success Metrics</h3>
+
+        <h4>Performance Targets</h4>
+        <div class="metrics-grid">
+            <div class="metric-card">60 FPS with 500 boids <span class="check">✓</span></div>
+            <div class="metric-card">60 FPS with 2000 boids <span class="check">✓</span></div>
+            <div class="metric-card">Smooth predator movement <span class="check">✓</span></div>
+            <div class="metric-card">No frame drops during charts <span class="check">✓</span></div>
+        </div>
+
+        <h4>Visual Quality Targets</h4>
+        <div class="metrics-grid">
+            <div class="metric-card">Always see individual boids <span class="check">✓</span></div>
+            <div class="metric-card">No visual overlap in clusters <span class="check">✓</span></div>
+            <div class="metric-card">Smooth, fluid movement <span class="check">✓</span></div>
+            <div class="metric-card">Murmuration-like behavior <span class="check">✓</span></div>
+        </div>
+
+        <h4>User Experience Targets</h4>
+        <div class="metrics-grid">
+            <div class="metric-card">Intuitive controls <span class="check">✓</span></div>
+            <div class="metric-card">Real-time feedback <span class="check">✓</span></div>
+            <div class="metric-card">Responsive parameters <span class="check">✓</span></div>
+            <div class="metric-card">Clear visual feedback <span class="check">✓</span></div>
+        </div>
+
+        <h2>File Structure</h2>
+        <div class="file-structure">boids-simulation.html
+├── HTML Structure
+│   ├── Header (title)
+│   ├── Canvas (simulation)
+│   ├── Controls (5 horizontal panels)
+│   └── Charts (3 graphs)
+├── CSS Styles
+│   ├── Layout (flexbox)
+│   ├── Control styling
+│   ├── Color scheme
+│   └── Responsive design
+└── JavaScript
+    ├── Boid class
+    ├── Physics engine
+    ├── Rendering system
+    ├── Stats tracking
+    ├── Event handlers
+    └── Animation loop</div>
+
+        <h2>Browser Compatibility</h2>
+        <div class="browser-grid">
+            <div class="browser-item"><strong>Chrome/Edge</strong><br>Full support</div>
+            <div class="browser-item"><strong>Firefox</strong><br>Full support</div>
+            <div class="browser-item"><strong>Safari</strong><br>Full support</div>
+            <div class="browser-item"><strong>Mobile</strong><br>Touch support</div>
+        </div>
+
+        <h2>Future Enhancement Ideas</h2>
+        <ul class="enhancement-list">
+            <li>Obstacle avoidance</li>
+            <li>Multiple predators</li>
+            <li>Save/load presets</li>
+            <li>Export as GIF</li>
+            <li>3D visualization</li>
+            <li>Sound effects</li>
+            <li>Color customization</li>
+            <li>Wind/environmental forces</li>
+        </ul>
+
+        <div class="credits">
+            <p>Based on Craig Reynolds' Boids algorithm (1986)</p>
+            <p>Inspired by starling murmurations and bee swarm behavior</p>
+        </div>
+    </div>
+</body>
+</html>
