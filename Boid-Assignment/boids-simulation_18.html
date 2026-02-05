@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzzing Bees</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #4A90E2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 20px;
+            max-width: 1600px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2C5AA0;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .canvas-container {
+            width: 100%;
+            position: relative;
+        }
+        
+        canvas {
+            border: 2px solid #4A90E2;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: 600px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 100%);
+        }
+        
+        .controls {
+            width: 100%;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 12px;
+            color: #2C5AA0;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tooltip {
+            cursor: help;
+            background: #4A90E2;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .control-item {
+            margin-bottom: 10px;
+        }
+        
+        .control-item label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #2C5AA0;
+        }
+        
+        .control-item input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .control-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4A90E2;
+            cursor: pointer;
+        }
+        
+        .control-item input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4A90E2;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .value-display {
+            font-weight: bold;
+            color: #4A90E2;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 90px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .preset-btn {
+            background: #4A90E2;
+            color: white;
+        }
+        
+        .preset-btn:hover {
+            background: #357ABD;
+        }
+        
+        .control-btn {
+            background: #F9A825;
+            color: white;
+        }
+        
+        .control-btn:hover {
+            background: #F57F17;
+        }
+        
+        .control-btn.pause {
+            background: #FF6F00;
+        }
+        
+        .control-btn.pause:hover {
+            background: #E65100;
+        }
+        
+        .stats {
+            background: #2C5AA0;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #B0E0E6;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #FFD54F;
+        }
+        
+        .boundary-toggle {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .boundary-toggle button {
+            background: #87CEEB;
+            color: #2C5AA0;
+        }
+        
+        .boundary-toggle button.active {
+            background: #4A90E2;
+            color: white;
+        }
+        
+        .boundary-toggle button:hover {
+            background: #357ABD;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐝 Buzzing Bees</h1>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="boidsCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>📊 Performance Stats</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">FPS</span>
+                            <span class="stat-value" id="fps">60</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Boid Count</span>
+                            <span class="stat-value" id="boidCount">100</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Speed</span>
+                            <span class="stat-value" id="avgSpeed">0.0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Neighbors</span>
+                            <span class="stat-value" id="avgNeighbors">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>🎮 Controls</h3>
+                    <div class="button-group">
+                        <button class="control-btn" id="pauseBtn">Pause</button>
+                        <button class="control-btn" id="resetBtn">Reset</button>
+                        <button class="control-btn" id="predatorBtn">Add Predator</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>🎯 Behavior Presets</h3>
+                    <div class="button-group">
+                        <button class="preset-btn" id="schoolingBtn" title="High alignment, medium cohesion, low separation - like fish swimming together">Schooling</button>
+                        <button class="preset-btn" id="chaoticBtn" title="Low alignment, low cohesion, small radius - unpredictable movement">Chaotic Swarm</button>
+                        <button class="preset-btn" id="clusterBtn" title="High cohesion, moderate separation - tight grouping">Tight Cluster</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>
+                        🔧 Flocking Parameters
+                        <span class="tooltip" title="Adjust how boids interact with each other">?</span>
+                    </h3>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="How much boids try to avoid crowding each other">Separation Weight</span>
+                            <span class="value-display" id="separationValue">5.0</span>
+                        </label>
+                        <input type="range" id="separation" min="0" max="6" step="0.1" value="5.0">
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="How much boids try to match direction with neighbors">Alignment Weight</span>
+                            <span class="value-display" id="alignmentValue">3.0</span>
+                        </label>
+                        <input type="range" id="alignment" min="0" max="5" step="0.1" value="3.0">
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="How much boids try to stay close to the group">Cohesion Weight</span>
+                            <span class="value-display" id="cohesionValue">0.3</span>
+                        </label>
+                        <input type="range" id="cohesion" min="0" max="3" step="0.1" value="0.3">
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="How far boids can see their neighbors">Neighbor Radius</span>
+                            <span class="value-display" id="radiusValue">70</span>
+                        </label>
+                        <input type="range" id="radius" min="20" max="150" step="5" value="70">
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="Maximum speed each boid can travel">Max Speed</span>
+                            <span class="value-display" id="speedValue">3.5</span>
+                        </label>
+                        <input type="range" id="maxSpeed" min="0.5" max="8" step="0.1" value="3.5">
+                    </div>
+                    
+                    <div class="control-item">
+                        <label>
+                            <span title="Number of boids in the simulation">Boid Count</span>
+                            <span class="value-display" id="countValue">500</span>
+                        </label>
+                        <input type="range" id="count" min="10" max="3000" step="50" value="500">
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>
+                        🔲 Boundary Behavior
+                        <span class="tooltip" title="How boids behave at screen edges">?</span>
+                    </h3>
+                    <div class="boundary-toggle">
+                        <button id="wrapBtn" class="active">Wrap Around</button>
+                        <button id="bounceBtn">Bounce</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls" style="margin-top: 0;">
+                <div class="control-group" style="flex: 1; min-width: 100%;">
+                    <h3>📈 Statistics Over Time</h3>
+                    <canvas id="chartsCanvas" style="width: 100%; height: 200px; border-radius: 8px; background: #2C5AA0;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('boidsCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth - 4;
+            canvas.height = 600;
+            
+            const chartCanvas = document.getElementById('chartsCanvas');
+            if (chartCanvas) {
+                const chartContainer = chartCanvas.parentElement;
+                chartCanvas.width = chartContainer.offsetWidth - 30;
+                chartCanvas.height = 200;
+            }
+        }
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            cloudsCanvas = null; // Clear cloud cache on resize
+        });
+        
+        // Boid class
+        class Boid {
+            constructor(x, y) {
+                this.position = { x, y };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2
+                };
+                this.acceleration = { x: 0, y: 0 };
+                // Randomly assign black or yellow color
+                this.color = Math.random() > 0.5 ? '#FFD700' : '#000000';
+            }
+            
+            update(boids, params, spatialGrid) {
+                // Find neighbors using spatial grid for better performance
+                const neighbors = [];
+                const cellSize = params.neighborRadius;
+                const cellX = Math.floor(this.position.x / cellSize);
+                const cellY = Math.floor(this.position.y / cellSize);
+                
+                const maxNeighborsToCheck = 30; // Limit neighbor checks for performance
+                let neighborsChecked = 0;
+                
+                // Check current cell and adjacent cells
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const key = `${cellX + dx},${cellY + dy}`;
+                        const cellBoids = spatialGrid.get(key);
+                        if (cellBoids) {
+                            for (let other of cellBoids) {
+                                if (other === this) continue;
+                                if (neighborsChecked >= maxNeighborsToCheck) break;
+                                
+                                const dx = other.position.x - this.position.x;
+                                const dy = other.position.y - this.position.y;
+                                const distSq = dx * dx + dy * dy;
+                                if (distSq < params.neighborRadius * params.neighborRadius) {
+                                    neighbors.push({ boid: other, distSq });
+                                    neighborsChecked++;
+                                }
+                            }
+                        }
+                        if (neighborsChecked >= maxNeighborsToCheck) break;
+                    }
+                    if (neighborsChecked >= maxNeighborsToCheck) break;
+                }
+                
+                this.neighborCount = neighbors.length;
+                
+                if (neighbors.length > 0) {
+                    // Sort by distance - closer neighbors have more influence (murmuration behavior)
+                    neighbors.sort((a, b) => a.distSq - b.distSq);
+                    
+                    // Separation - VERY strong with closest neighbors to prevent overlap
+                    let separationForce = { x: 0, y: 0 };
+                    let separationCount = 0;
+                    const minDistance = 20; // Minimum pixels between boids (increased from 15)
+                    
+                    for (let neighbor of neighbors) {
+                        const other = neighbor.boid;
+                        const dx = this.position.x - other.position.x;
+                        const dy = this.position.y - other.position.y;
+                        const distSq = neighbor.distSq;
+                        
+                        if (distSq > 0) {
+                            const dist = Math.sqrt(distSq);
+                            
+                            // CRITICAL: EXTREMELY strong repulsion when too close
+                            if (dist < minDistance) {
+                                const emergencyForce = (minDistance - dist) / minDistance;
+                                separationForce.x += (dx / dist) * emergencyForce * 20; // Increased from 10
+                                separationForce.y += (dy / dist) * emergencyForce * 20;
+                            } else {
+                                // Normal distance-weighted separation (stronger)
+                                const weight = 2 / (dist + 1); // Doubled weight
+                                separationForce.x += (dx / dist) * weight;
+                                separationForce.y += (dy / dist) * weight;
+                            }
+                            separationCount++;
+                        }
+                    }
+                    if (separationCount > 0) {
+                        separationForce.x /= separationCount;
+                        separationForce.y /= separationCount;
+                    }
+                    
+                    // Alignment - match velocity of nearest neighbors (key for murmuration)
+                    let alignmentForce = { x: 0, y: 0 };
+                    const nearestCount = Math.min(5, neighbors.length); // Reduced from 7 to 5
+                    for (let i = 0; i < nearestCount; i++) {
+                        alignmentForce.x += neighbors[i].boid.velocity.x;
+                        alignmentForce.y += neighbors[i].boid.velocity.y;
+                    }
+                    if (nearestCount > 0) {
+                        alignmentForce.x /= nearestCount;
+                        alignmentForce.y /= nearestCount;
+                    }
+                    
+                    // Cohesion - move toward average position (simplified calculation)
+                    let cohesionForce = { x: 0, y: 0 };
+                    const cohesionCount = Math.min(10, neighbors.length);
+                    for (let i = 0; i < cohesionCount; i++) {
+                        cohesionForce.x += neighbors[i].boid.position.x;
+                        cohesionForce.y += neighbors[i].boid.position.y;
+                    }
+                    if (cohesionCount > 0) {
+                        cohesionForce.x = (cohesionForce.x / cohesionCount) - this.position.x;
+                        cohesionForce.y = (cohesionForce.y / cohesionCount) - this.position.y;
+                    }
+                    
+                    // Apply weights
+                    this.acceleration.x = 
+                        separationForce.x * params.separationWeight +
+                        alignmentForce.x * params.alignmentWeight +
+                        cohesionForce.x * params.cohesionWeight;
+                    this.acceleration.y = 
+                        separationForce.y * params.separationWeight +
+                        alignmentForce.y * params.alignmentWeight +
+                        cohesionForce.y * params.cohesionWeight;
+                }
+                
+                // Predator evasion - creates dramatic splits and waves
+                if (predatorActive) {
+                    const dx = this.position.x - predatorPos.x;
+                    const dy = this.position.y - predatorPos.y;
+                    const distSq = dx * dx + dy * dy;
+                    const avoidRadius = 200;
+                    
+                    if (distSq < avoidRadius * avoidRadius && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        // Strong panic response like starlings avoiding a predator
+                        const avoidForce = 8.0 * (1 - dist / avoidRadius);
+                        this.acceleration.x += (dx / dist) * avoidForce;
+                        this.acceleration.y += (dy / dist) * avoidForce;
+                    }
+                }
+                
+                // Center-seeking to keep boids on screen (gentle)
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const distFromCenter = Math.sqrt(
+                    (this.position.x - centerX) ** 2 + 
+                    (this.position.y - centerY) ** 2
+                );
+                const maxDistFromCenter = Math.min(canvas.width, canvas.height) * 0.45;
+                
+                if (distFromCenter > maxDistFromCenter) {
+                    const centerForce = 0.02;
+                    this.acceleration.x += (centerX - this.position.x) * centerForce;
+                    this.acceleration.y += (centerY - this.position.y) * centerForce;
+                }
+                
+                // Update velocity with damping for smooth, fluid movement
+                const smoothing = 0.3; // Smooth out acceleration changes
+                this.velocity.x += this.acceleration.x * smoothing;
+                this.velocity.y += this.acceleration.y * smoothing;
+                
+                // Limit speed
+                const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+                if (speed > params.maxSpeed) {
+                    this.velocity.x = (this.velocity.x / speed) * params.maxSpeed;
+                    this.velocity.y = (this.velocity.y / speed) * params.maxSpeed;
+                }
+                
+                // Smooth out velocity changes (temporal smoothing)
+                if (!this.prevVelocity) {
+                    this.prevVelocity = { x: this.velocity.x, y: this.velocity.y };
+                }
+                const blend = 0.7;
+                this.velocity.x = this.prevVelocity.x * (1 - blend) + this.velocity.x * blend;
+                this.velocity.y = this.prevVelocity.y * (1 - blend) + this.velocity.y * blend;
+                this.prevVelocity.x = this.velocity.x;
+                this.prevVelocity.y = this.velocity.y;
+                
+                // Update position
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                
+                // Handle boundaries
+                if (params.boundaryMode === 'wrap') {
+                    if (this.position.x < 0) this.position.x = canvas.width;
+                    if (this.position.x > canvas.width) this.position.x = 0;
+                    if (this.position.y < 0) this.position.y = canvas.height;
+                    if (this.position.y > canvas.height) this.position.y = 0;
+                } else {
+                    const margin = 100;
+                    const turnFactor = 0.5;
+                    
+                    if (this.position.x < margin) {
+                        this.velocity.x += turnFactor;
+                    }
+                    if (this.position.x > canvas.width - margin) {
+                        this.velocity.x -= turnFactor;
+                    }
+                    if (this.position.y < margin) {
+                        this.velocity.y += turnFactor;
+                    }
+                    if (this.position.y > canvas.height - margin) {
+                        this.velocity.y -= turnFactor;
+                    }
+                    
+                    // Hard boundary to prevent escape
+                    if (this.position.x < 0) {
+                        this.position.x = 0;
+                        this.velocity.x = Math.abs(this.velocity.x);
+                    }
+                    if (this.position.x > canvas.width) {
+                        this.position.x = canvas.width;
+                        this.velocity.x = -Math.abs(this.velocity.x);
+                    }
+                    if (this.position.y < 0) {
+                        this.position.y = 0;
+                        this.velocity.y = Math.abs(this.velocity.y);
+                    }
+                    if (this.position.y > canvas.height) {
+                        this.position.y = canvas.height;
+                        this.velocity.y = -Math.abs(this.velocity.y);
+                    }
+                }
+                
+                // Reset acceleration
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+            }
+            
+            draw(ctx) {
+                // Draw triangle pointing in direction of movement
+                const angle = Math.atan2(this.velocity.y, this.velocity.x);
+                const size = 6;
+                
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(angle);
+                
+                ctx.beginPath();
+                ctx.moveTo(size, 0);
+                ctx.lineTo(-size, size / 2);
+                ctx.lineTo(-size, -size / 2);
+                ctx.closePath();
+                
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = this.color === '#FFD700' ? '#FFA500' : '#333333';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
+        // Simulation state
+        let boids = [];
+        let params = {
+            separationWeight: 5.0,
+            alignmentWeight: 3.0,
+            cohesionWeight: 0.3,
+            neighborRadius: 70,
+            maxSpeed: 3.5,
+            boidCount: 500,
+            boundaryMode: 'wrap'
+        };
+        let isPaused = false;
+        let predatorActive = false;
+        let predatorPos = { x: 0, y: 0 };
+        let predatorTargetPos = { x: 0, y: 0 }; // Smooth target position
+        
+        // FPS tracking
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 60;
+        
+        // Stats history for plotting
+        let statsHistory = {
+            avgNeighbors: [],
+            speedVariance: [],
+            compactness: [],
+            maxPoints: 100
+        };
+        let statsUpdateCounter = 0;
+        
+        // Initialize boids
+        function initBoids() {
+            boids = [];
+            for (let i = 0; i < params.boidCount; i++) {
+                boids.push(new Boid(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+        }
+        
+        // Pre-create triangle path for reuse (massive performance boost)
+        const trianglePath = new Path2D();
+        const triangleSize = 7; // Increased from 6 for better visibility
+        trianglePath.moveTo(triangleSize, 0);
+        trianglePath.lineTo(-triangleSize, triangleSize / 2);
+        trianglePath.lineTo(-triangleSize, -triangleSize / 2);
+        trianglePath.closePath();
+        
+        const stripePath1 = new Path2D();
+        stripePath1.moveTo(-triangleSize * 0.3, triangleSize / 2);
+        stripePath1.lineTo(-triangleSize * 0.3, -triangleSize / 2);
+        
+        const stripePath2 = new Path2D();
+        stripePath2.moveTo(-triangleSize * 0.7, triangleSize / 2);
+        stripePath2.lineTo(-triangleSize * 0.7, -triangleSize / 2);
+        
+        // Draw clouds on canvas
+        let cloudsCanvas = null;
+        let cloudsNeedRedraw = true;
+        
+        function drawClouds() {
+            // Use cached cloud rendering for performance
+            if (!cloudsCanvas) {
+                cloudsCanvas = document.createElement('canvas');
+                cloudsCanvas.width = canvas.width;
+                cloudsCanvas.height = canvas.height;
+                const cloudsCtx = cloudsCanvas.getContext('2d');
+                
+                cloudsCtx.save();
+                
+                // Cloud 1
+                drawCloudOnCanvas(cloudsCtx, canvas.width * 0.2, canvas.height * 0.3, 150, 80);
+                
+                // Cloud 2
+                drawCloudOnCanvas(cloudsCtx, canvas.width * 0.6, canvas.height * 0.2, 200, 100);
+                
+                // Cloud 3
+                drawCloudOnCanvas(cloudsCtx, canvas.width * 0.85, canvas.height * 0.4, 180, 90);
+                
+                // Cloud 4
+                drawCloudOnCanvas(cloudsCtx, canvas.width * 0.4, canvas.height * 0.7, 160, 85);
+                
+                // Cloud 5
+                drawCloudOnCanvas(cloudsCtx, canvas.width * 0.75, canvas.height * 0.8, 190, 95);
+                
+                cloudsCtx.restore();
+            }
+            
+            // Draw cached clouds
+            ctx.drawImage(cloudsCanvas, 0, 0);
+        }
+        
+        function drawCloudOnCanvas(ctx, x, y, width, height) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            
+            // Draw multiple overlapping circles to create cloud shape
+            const numCircles = 5;
+            for (let i = 0; i < numCircles; i++) {
+                const offsetX = (i - 2) * (width / 6);
+                const offsetY = Math.sin(i * 0.8) * (height / 4);
+                const radius = width / 4 + (i % 2) * 10;
+                
+                ctx.beginPath();
+                ctx.arc(x + offsetX, y + offsetY, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Draw charts for stats over time
+        function drawCharts() {
+            const chartCanvas = document.getElementById('chartsCanvas');
+            if (!chartCanvas) return;
+            
+            const ctx = chartCanvas.getContext('2d');
+            const width = chartCanvas.width;
+            const height = chartCanvas.height;
+            
+            // Clear
+            ctx.fillStyle = '#2C5AA0';
+            ctx.fillRect(0, 0, width, height);
+            
+            const chartWidth = width / 3;
+            const padding = 10;
+            
+            // Draw three charts side by side
+            drawLineChart(ctx, statsHistory.avgNeighbors, 0, 0, chartWidth, height, 
+                'Avg Neighbors', '#FFD54F', 0, 20);
+            drawLineChart(ctx, statsHistory.speedVariance, chartWidth, 0, chartWidth, height, 
+                'Speed Variance', '#4FC3F7', 0, 3);
+            drawLineChart(ctx, statsHistory.compactness, chartWidth * 2, 0, chartWidth, height, 
+                'Compactness', '#81C784', 0, 200);
+        }
+        
+        function drawLineChart(ctx, data, offsetX, offsetY, width, height, label, color, minVal, maxVal) {
+            const padding = 15;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+            
+            // Label
+            ctx.fillStyle = '#B0E0E6';
+            ctx.font = '14px Arial';
+            ctx.fillText(label, offsetX + padding, offsetY + padding + 15);
+            
+            if (data.length < 2) return;
+            
+            // Find min/max if not provided
+            if (minVal === undefined) minVal = Math.min(...data);
+            if (maxVal === undefined) maxVal = Math.max(...data);
+            const range = maxVal - minVal || 1;
+            
+            // Draw line
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < data.length; i++) {
+                const x = offsetX + padding + (i / (data.length - 1)) * chartWidth;
+                const normalizedValue = (data[i] - minVal) / range;
+                const y = offsetY + height - padding - (normalizedValue * chartHeight);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Draw current value
+            ctx.fillStyle = color;
+            ctx.font = '16px Arial';
+            const currentValue = data[data.length - 1].toFixed(1);
+            ctx.fillText(currentValue, offsetX + padding, offsetY + height - padding - 10);
+        }
+        
+        // Animation loop with performance optimizations
+        let lastFrameTime = performance.now();
+        const targetFrameTime = 1000 / 60; // 60 FPS target
+        
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastFrameTime;
+            
+            // Skip frame if running too fast (already at 60 FPS)
+            if (deltaTime < targetFrameTime - 1) {
+                requestAnimationFrame(animate);
+                return;
+            }
+            
+            lastFrameTime = currentTime;
+            
+            if (!isPaused) {
+                // Draw sky gradient background
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#B0E0E6');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw clouds
+                drawClouds();
+                
+                // Build spatial grid for efficient neighbor search
+                const spatialGrid = new Map();
+                const cellSize = params.neighborRadius;
+                for (let boid of boids) {
+                    const cellX = Math.floor(boid.position.x / cellSize);
+                    const cellY = Math.floor(boid.position.y / cellSize);
+                    const key = `${cellX},${cellY}`;
+                    if (!spatialGrid.has(key)) {
+                        spatialGrid.set(key, []);
+                    }
+                    spatialGrid.get(key).push(boid);
+                }
+                
+                // Smooth predator position
+                if (predatorActive) {
+                    const smoothFactor = 0.2;
+                    predatorPos.x += (predatorTargetPos.x - predatorPos.x) * smoothFactor;
+                    predatorPos.y += (predatorTargetPos.y - predatorPos.y) * smoothFactor;
+                }
+                
+                // Update all boids
+                for (let boid of boids) {
+                    boid.update(boids, params, spatialGrid);
+                }
+                
+                // Batch draw all boids using pre-created paths for maximum performance
+                ctx.fillStyle = '#FFD700';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                
+                for (let boid of boids) {
+                    const angle = Math.atan2(boid.velocity.y, boid.velocity.x);
+                    
+                    ctx.save();
+                    ctx.translate(boid.position.x, boid.position.y);
+                    ctx.rotate(angle);
+                    
+                    // Draw using pre-created paths
+                    ctx.fill(trianglePath);
+                    ctx.stroke(stripePath1);
+                    ctx.stroke(stripePath2);
+                    
+                    ctx.restore();
+                }
+                
+                // Draw predator (bear) - bigger size
+                if (predatorActive) {
+                    ctx.save();
+                    ctx.font = '80px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Use shadowColor to ensure emoji renders properly
+                    ctx.shadowColor = 'transparent';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText('🐻', predatorPos.x, predatorPos.y);
+                    ctx.restore();
+                }
+                
+                // Update stats
+                updateStats();
+            }
+            
+            // Calculate FPS
+            frameCount++;
+            const currentTime2 = performance.now();
+            if (currentTime2 - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime2;
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        function updateStats() {
+            // Only update every 3 frames for performance
+            statsUpdateCounter++;
+            if (statsUpdateCounter % 3 !== 0) return;
+            
+            document.getElementById('fps').textContent = fps;
+            document.getElementById('boidCount').textContent = boids.length;
+            
+            // Calculate average speed
+            let totalSpeed = 0;
+            let speeds = [];
+            for (let boid of boids) {
+                const speed = Math.sqrt(boid.velocity.x ** 2 + boid.velocity.y ** 2);
+                totalSpeed += speed;
+                speeds.push(speed);
+            }
+            const avgSpeed = (totalSpeed / boids.length).toFixed(2);
+            document.getElementById('avgSpeed').textContent = avgSpeed;
+            
+            // Calculate average neighbors
+            let totalNeighbors = 0;
+            for (let boid of boids) {
+                totalNeighbors += boid.neighborCount || 0;
+            }
+            const avgNeighbors = Math.round(totalNeighbors / boids.length);
+            document.getElementById('avgNeighbors').textContent = avgNeighbors;
+            
+            // Only update charts every 10 frames
+            if (statsUpdateCounter % 10 !== 0) return;
+            
+            // Calculate speed variance
+            const avgSpeedNum = totalSpeed / boids.length;
+            let variance = 0;
+            for (let speed of speeds) {
+                variance += (speed - avgSpeedNum) ** 2;
+            }
+            variance = Math.sqrt(variance / speeds.length);
+            
+            // Calculate compactness (average distance from center of mass)
+            let centerX = 0, centerY = 0;
+            for (let boid of boids) {
+                centerX += boid.position.x;
+                centerY += boid.position.y;
+            }
+            centerX /= boids.length;
+            centerY /= boids.length;
+            
+            let totalDist = 0;
+            for (let boid of boids) {
+                const dx = boid.position.x - centerX;
+                const dy = boid.position.y - centerY;
+                totalDist += Math.sqrt(dx * dx + dy * dy);
+            }
+            const compactness = totalDist / boids.length;
+            
+            // Store history
+            statsHistory.avgNeighbors.push(avgNeighbors);
+            statsHistory.speedVariance.push(variance);
+            statsHistory.compactness.push(compactness);
+            
+            // Keep only last maxPoints
+            if (statsHistory.avgNeighbors.length > statsHistory.maxPoints) {
+                statsHistory.avgNeighbors.shift();
+                statsHistory.speedVariance.shift();
+                statsHistory.compactness.shift();
+            }
+            
+            // Draw charts
+            drawCharts();
+        }
+        
+        // Control handlers
+        document.getElementById('separation').addEventListener('input', (e) => {
+            params.separationWeight = parseFloat(e.target.value);
+            document.getElementById('separationValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('alignment').addEventListener('input', (e) => {
+            params.alignmentWeight = parseFloat(e.target.value);
+            document.getElementById('alignmentValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('cohesion').addEventListener('input', (e) => {
+            params.cohesionWeight = parseFloat(e.target.value);
+            document.getElementById('cohesionValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('radius').addEventListener('input', (e) => {
+            params.neighborRadius = parseFloat(e.target.value);
+            document.getElementById('radiusValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('maxSpeed').addEventListener('input', (e) => {
+            params.maxSpeed = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('count').addEventListener('input', (e) => {
+            params.boidCount = parseInt(e.target.value);
+            document.getElementById('countValue').textContent = e.target.value;
+            initBoids();
+        });
+        
+        // Preset buttons
+        document.getElementById('schoolingBtn').addEventListener('click', () => {
+            setSlider('alignment', 2.5);
+            setSlider('cohesion', 1.5);
+            setSlider('separation', 0.8);
+            setSlider('radius', 60);
+        });
+        
+        document.getElementById('chaoticBtn').addEventListener('click', () => {
+            setSlider('alignment', 0.3);
+            setSlider('cohesion', 0.3);
+            setSlider('separation', 1.0);
+            setSlider('radius', 30);
+        });
+        
+        document.getElementById('clusterBtn').addEventListener('click', () => {
+            setSlider('alignment', 1.0);
+            setSlider('cohesion', 2.5);
+            setSlider('separation', 1.2);
+            setSlider('radius', 80);
+        });
+        
+        function setSlider(id, value) {
+            const slider = document.getElementById(id);
+            slider.value = value;
+            slider.dispatchEvent(new Event('input'));
+        }
+        
+        // Control buttons
+        document.getElementById('pauseBtn').addEventListener('click', (e) => {
+            isPaused = !isPaused;
+            e.target.textContent = isPaused ? 'Resume' : 'Pause';
+            e.target.classList.toggle('pause');
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            initBoids();
+        });
+        
+        document.getElementById('predatorBtn').addEventListener('click', (e) => {
+            predatorActive = !predatorActive;
+            e.target.textContent = predatorActive ? 'Remove Predator' : 'Add Predator';
+            if (predatorActive) {
+                e.target.style.backgroundColor = '#D32F2F';
+            } else {
+                e.target.style.backgroundColor = '#F9A825';
+            }
+        });
+        
+        // Boundary mode buttons
+        document.getElementById('wrapBtn').addEventListener('click', (e) => {
+            params.boundaryMode = 'wrap';
+            e.target.classList.add('active');
+            document.getElementById('bounceBtn').classList.remove('active');
+        });
+        
+        document.getElementById('bounceBtn').addEventListener('click', (e) => {
+            params.boundaryMode = 'bounce';
+            e.target.classList.add('active');
+            document.getElementById('wrapBtn').classList.remove('active');
+        });
+        
+        // Initialize and start
+        initBoids();
+        requestAnimationFrame(animate);
+        
+        // Track mouse position for predator
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            predatorTargetPos.x = e.clientX - rect.left;
+            predatorTargetPos.y = e.clientY - rect.top;
+        });
+    </script>
+</body>
+</html>
