@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Turing Patterns Explorer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body { margin:0; background:#0f172a; color:#e2e8f0; font-family:system-ui,-apple-system,sans-serif; overflow-x:hidden; }
+  input[type=range] { -webkit-appearance:none; width:100%; height:6px; border-radius:3px; background:#334155; outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#3b82f6; cursor:pointer; }
+  input[type=range]::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#3b82f6; cursor:pointer; border:none; }
+  select, button { transition: all 0.15s ease; }
+  .tooltip { position:relative; }
+  .tooltip:hover::after { content:attr(data-tip); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:#1e293b; color:#e2e8f0; padding:4px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:10; border:1px solid #334155; pointer-events:none; }
+  canvas { cursor:crosshair; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ========== CONSTANTS ==========
+const PRESETS = {
+  'Spots (Leopard)':    { F:0.038, k:0.062 },
+  'Stripes (Zebra)':    { F:0.038, k:0.058 },
+  'Waves':              { F:0.014, k:0.045 },
+  'Spiral Waves':       { F:0.018, k:0.047 },
+  'Mitosis':            { F:0.029, k:0.053 },
+  'Coral Growth':       { F:0.062, k:0.060 },
+  'Fingerprint':        { F:0.041, k:0.059 },
+  'Unstable Chaos':     { F:0.022, k:0.051 },
+};
+
+const COLOR_SCHEMES = [
+  'Rainbow','Grayscale','Viridis','Plasma','Inferno',
+  'Heat Map','Ocean','Sunset','Cool Blue','Neon','Forest','Fire'
+];
+
+const GRID_SIZES = [128, 256, 512];
+
+// ========== GPU SIMULATOR ==========
+class GPUSimulator {
+  constructor(canvas, size) {
+    this.canvas = canvas;
+    this.size = size;
+    this.gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+    if (!this.gl) throw new Error('WebGL not supported');
+    const gl = this.gl;
+    const ext = gl.getExtension('OES_texture_float');
+    if (!ext) throw new Error('OES_texture_float not supported');
+    gl.getExtension('OES_texture_float_linear');
+    canvas.width = size;
+    canvas.height = size;
+    gl.viewport(0, 0, size, size);
+    this.setupShaders();
+    this.setupTextures();
+    this.setupBuffers();
+  }
+
+  setupBuffers() {
+    const gl = this.gl;
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  }
+
+  compileShader(src, type) {
+    const gl = this.gl;
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  createProgram(vSrc, fSrc) {
+    const gl = this.gl;
+    const p = gl.createProgram();
+    gl.attachShader(p, this.compileShader(vSrc, gl.VERTEX_SHADER));
+    gl.attachShader(p, this.compileShader(fSrc, gl.FRAGMENT_SHADER));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(p));
+      return null;
+    }
+    return p;
+  }
+
+  setupShaders() {
+    const vertSrc = `
+      attribute vec2 a_pos;
+      varying vec2 v_uv;
+      void main(){
+        v_uv = (a_pos + 1.0) * 0.5;
+        gl_Position = vec4(a_pos, 0, 1);
+      }
+    `;
+
+    const simFrag = `
+      precision highp float;
+      varying vec2 v_uv;
+      uniform sampler2D u_state;
+      uniform float u_F, u_k, u_Du, u_Dv, u_dt;
+      uniform vec2 u_texel;
+      void main(){
+        vec4 c = texture2D(u_state, v_uv);
+        float u = c.r, v = c.g;
+        float lu = texture2D(u_state, v_uv + vec2(u_texel.x, 0)).r
+                 + texture2D(u_state, v_uv - vec2(u_texel.x, 0)).r
+                 + texture2D(u_state, v_uv + vec2(0, u_texel.y)).r
+                 + texture2D(u_state, v_uv - vec2(0, u_texel.y)).r
+                 - 4.0 * u;
+        float lv = texture2D(u_state, v_uv + vec2(u_texel.x, 0)).g
+                 + texture2D(u_state, v_uv - vec2(u_texel.x, 0)).g
+                 + texture2D(u_state, v_uv + vec2(0, u_texel.y)).g
+                 + texture2D(u_state, v_uv - vec2(0, u_texel.y)).g
+                 - 4.0 * v;
+        float uvv = u * v * v;
+        float du = u_Du * lu - uvv + u_F * (1.0 - u);
+        float dv = u_Dv * lv + uvv - (u_F + u_k) * v;
+        u = clamp(u + du * u_dt, 0.0, 1.0);
+        v = clamp(v + dv * u_dt, 0.0, 1.0);
+        gl_FragColor = vec4(u, v, 0, 1);
+      }
+    `;
+
+    const renderFrag = `
+      precision highp float;
+      varying vec2 v_uv;
+      uniform sampler2D u_state;
+      uniform int u_colorScheme;
+      vec3 rainbow(float t){
+        return 0.5 + 0.5*cos(6.28318*(t*vec3(1,1,1)+vec3(0,0.33,0.67)));
+      }
+      void main(){
+        float v = texture2D(u_state, v_uv).g;
+        vec3 col;
+        if(u_colorScheme==0){
+          col = rainbow(v);
+        } else if(u_colorScheme==1){
+          col = vec3(v);
+        } else if(u_colorScheme==2){
+          col = mix(vec3(0.267,0.004,0.329), mix(vec3(0.127,0.567,0.551), vec3(0.993,0.906,0.144), v), v);
+        } else if(u_colorScheme==3){
+          col = mix(vec3(0.05,0.03,0.53), mix(vec3(0.8,0.15,0.42), vec3(0.94,0.97,0.13), v), v);
+        } else if(u_colorScheme==4){
+          col = mix(vec3(0.0,0.0,0.02), mix(vec3(0.57,0.14,0.02), vec3(0.99,1.0,0.64), v), v);
+        } else if(u_colorScheme==5){
+          col = mix(vec3(0,0,1), vec3(1,0,0), v);
+        } else if(u_colorScheme==6){
+          col = mix(vec3(0.0,0.05,0.2), vec3(0.0,0.8,0.7), v);
+        } else if(u_colorScheme==7){
+          col = mix(vec3(0.2,0.0,0.4), mix(vec3(0.9,0.3,0.1), vec3(1.0,0.9,0.3), v), v);
+        } else if(u_colorScheme==8){
+          col = mix(vec3(0.0,0.05,0.15), vec3(0.3,0.6,1.0), v);
+        } else if(u_colorScheme==9){
+          float t = v;
+          col = vec3(
+            0.5+0.5*sin(t*12.0),
+            0.5+0.5*sin(t*12.0+2.09),
+            0.5+0.5*sin(t*12.0+4.19)
+          );
+        } else if(u_colorScheme==10){
+          col = mix(vec3(0.0,0.15,0.0), vec3(0.3,0.9,0.1), v);
+        } else {
+          col = mix(vec3(0), mix(vec3(0.8,0.1,0.0), vec3(1,1,0.9), v), v);
+        }
+        gl_FragColor = vec4(col, 1);
+      }
+    `;
+
+    this.simProgram = this.createProgram(vertSrc, simFrag);
+    this.renderProgram = this.createProgram(vertSrc, renderFrag);
+  }
+
+  createTexture(data) {
+    const gl = this.gl;
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.size, this.size, 0, gl.RGBA, gl.FLOAT, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    return tex;
+  }
+
+  setupTextures() {
+    const gl = this.gl;
+    this.textures = [this.createTexture(null), this.createTexture(null)];
+    this.framebuffers = this.textures.map(tex => {
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      return fb;
+    });
+    this.currentTex = 0;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  initialize(mode) {
+    const gl = this.gl;
+    const s = this.size;
+    const data = new Float32Array(s * s * 4);
+    for (let i = 0; i < s * s; i++) {
+      data[i*4] = 1.0;
+      data[i*4+1] = 0.0;
+      data[i*4+2] = 0.0;
+      data[i*4+3] = 1.0;
+    }
+    if (mode === 'center') {
+      const cx = s/2, cy = s/2, r = 20;
+      for (let y = 0; y < s; y++)
+        for (let x = 0; x < s; x++) {
+          if ((x-cx)*(x-cx)+(y-cy)*(y-cy) < r*r) {
+            const idx = (y*s+x)*4;
+            data[idx] = 0.5;
+            data[idx+1] = 0.25;
+          }
+        }
+    } else {
+      for (let n = 0; n < 30; n++) {
+        const cx = Math.random()*s, cy = Math.random()*s, r = 5+Math.random()*8;
+        for (let y = Math.max(0,Math.floor(cy-r)); y < Math.min(s,Math.ceil(cy+r)); y++)
+          for (let x = Math.max(0,Math.floor(cx-r)); x < Math.min(s,Math.ceil(cx+r)); x++) {
+            if ((x-cx)*(x-cx)+(y-cy)*(y-cy) < r*r) {
+              const idx = (y*s+x)*4;
+              data[idx] = 0.5;
+              data[idx+1] = 0.25;
+            }
+          }
+      }
+    }
+    for (let i = 0; i < 2; i++) {
+      gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, s, s, 0, gl.RGBA, gl.FLOAT, data);
+    }
+    this.currentTex = 0;
+  }
+
+  step(params) {
+    const gl = this.gl;
+    const src = this.currentTex;
+    const dst = 1 - src;
+    gl.useProgram(this.simProgram);
+    const aPos = gl.getAttribLocation(this.simProgram, 'a_pos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.textures[src]);
+    gl.uniform1i(gl.getUniformLocation(this.simProgram, 'u_state'), 0);
+    gl.uniform1f(gl.getUniformLocation(this.simProgram, 'u_F'), params.F);
+    gl.uniform1f(gl.getUniformLocation(this.simProgram, 'u_k'), params.k);
+    gl.uniform1f(gl.getUniformLocation(this.simProgram, 'u_Du'), params.Du);
+    gl.uniform1f(gl.getUniformLocation(this.simProgram, 'u_Dv'), params.Dv);
+    gl.uniform1f(gl.getUniformLocation(this.simProgram, 'u_dt'), params.dt);
+    gl.uniform2f(gl.getUniformLocation(this.simProgram, 'u_texel'), 1/this.size, 1/this.size);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[dst]);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    this.currentTex = dst;
+  }
+
+  render(colorSchemeIndex) {
+    const gl = this.gl;
+    gl.useProgram(this.renderProgram);
+    const aPos = gl.getAttribLocation(this.renderProgram, 'a_pos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.textures[this.currentTex]);
+    gl.uniform1i(gl.getUniformLocation(this.renderProgram, 'u_state'), 0);
+    gl.uniform1i(gl.getUniformLocation(this.renderProgram, 'u_colorScheme'), colorSchemeIndex);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  paintBrush(x, y, radius, mode) {
+    const gl = this.gl;
+    const s = this.size;
+    const src = this.currentTex;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffers[src]);
+    const pixels = new Float32Array(s * s * 4);
+    gl.readPixels(0, 0, s, s, gl.RGBA, gl.FLOAT, pixels);
+    const r2 = radius * radius;
+    for (let dy = -radius; dy <= radius; dy++)
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx*dx+dy*dy > r2) continue;
+        let px = Math.floor(x + dx), py = Math.floor(y + dy);
+        if (px < 0 || px >= s || py < 0 || py >= s) continue;
+        const idx = (py * s + px) * 4;
+        if (mode === 'inhibitor') {
+          pixels[idx] = 0.5;
+          pixels[idx+1] = 0.25;
+        } else if (mode === 'activator') {
+          pixels[idx] = 1.0;
+          pixels[idx+1] = 0.0;
+        } else {
+          pixels[idx] = 1.0;
+          pixels[idx+1] = 0.0;
+        }
+      }
+    gl.bindTexture(gl.TEXTURE_2D, this.textures[src]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, s, s, 0, gl.RGBA, gl.FLOAT, pixels);
+    // Also update the other texture
+    gl.bindTexture(gl.TEXTURE_2D, this.textures[1-src]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, s, s, 0, gl.RGBA, gl.FLOAT, pixels);
+  }
+
+  destroy() {
+    const gl = this.gl;
+    this.textures.forEach(t => gl.deleteTexture(t));
+    this.framebuffers.forEach(f => gl.deleteFramebuffer(f));
+    gl.deleteProgram(this.simProgram);
+    gl.deleteProgram(this.renderProgram);
+  }
+}
+
+// ========== MAIN COMPONENT ==========
+function TuringPatternsExplorer() {
+  const canvasRef = React.useRef(null);
+  const simRef = React.useRef(null);
+  const animRef = React.useRef(null);
+  const fpsTimesRef = React.useRef([]);
+
+  const [isRunning, setIsRunning] = React.useState(true);
+  const [gridSize, setGridSize] = React.useState(256);
+  const [selectedPreset, setSelectedPreset] = React.useState('Spots (Leopard)');
+  const [F, setF] = React.useState(0.038);
+  const [k, setK] = React.useState(0.062);
+  const [Du, setDu] = React.useState(0.16);
+  const [Dv, setDv] = React.useState(0.08);
+  const [colorScheme, setColorScheme] = React.useState('Rainbow');
+  const [initialCondition, setInitialCondition] = React.useState('random');
+  const [showFPS, setShowFPS] = React.useState(false);
+  const [fps, setFps] = React.useState(0);
+  const [brushEnabled, setBrushEnabled] = React.useState(false);
+  const [brushMode, setBrushMode] = React.useState('inhibitor');
+  const [brushSize, setBrushSize] = React.useState(15);
+  const [isPainting, setIsPainting] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  const paramsRef = React.useRef({ F, k, Du, Dv, dt: 1.0 });
+  const isRunningRef = React.useRef(isRunning);
+  const colorSchemeRef = React.useRef(0);
+
+  React.useEffect(() => { paramsRef.current = { F, k, Du, Dv, dt: 1.0 }; }, [F, k, Du, Dv]);
+  React.useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
+  React.useEffect(() => { colorSchemeRef.current = COLOR_SCHEMES.indexOf(colorScheme); }, [colorScheme]);
+
+  const initSim = React.useCallback((size, condition) => {
+    try {
+      if (simRef.current) simRef.current.destroy();
+      const sim = new GPUSimulator(canvasRef.current, size);
+      sim.initialize(condition === 'center' ? 'center' : 'random');
+      simRef.current = sim;
+      setError(null);
+    } catch (e) {
+      setError(e.message);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    initSim(gridSize, initialCondition);
+    return () => { if (simRef.current) simRef.current.destroy(); };
+  }, [gridSize]);
+
+  React.useEffect(() => {
+    const animate = () => {
+      animRef.current = requestAnimationFrame(animate);
+      const sim = simRef.current;
+      if (!sim) return;
+      if (isRunningRef.current) {
+        for (let i = 0; i < 15; i++) sim.step(paramsRef.current);
+      }
+      sim.render(colorSchemeRef.current);
+      // FPS
+      const now = performance.now();
+      const times = fpsTimesRef.current;
+      times.push(now);
+      while (times.length > 0 && times[0] < now - 1000) times.shift();
+      setFps(times.length);
+    };
+    animRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animRef.current);
+  }, []);
+
+  const handlePresetChange = (name) => {
+    const p = PRESETS[name];
+    setSelectedPreset(name);
+    setF(p.F);
+    setK(p.k);
+    setTimeout(() => initSim(gridSize, initialCondition), 0);
+  };
+
+  const handleReset = () => initSim(gridSize, initialCondition);
+
+  const handleApplyCondition = (cond) => {
+    setInitialCondition(cond);
+    initSim(gridSize, cond);
+  };
+
+  const getCanvasCoords = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = gridSize / rect.width;
+    const scaleY = gridSize / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: gridSize - (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  const paint = (e) => {
+    if (!simRef.current) return;
+    const { x, y } = getCanvasCoords(e);
+    if (brushEnabled) {
+      simRef.current.paintBrush(x, y, brushSize, brushMode);
+    } else {
+      simRef.current.paintBrush(x, y, 20, 'inhibitor');
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    setIsPainting(true);
+    paint(e);
+  };
+  const handleMouseMove = (e) => { if (isPainting) paint(e); };
+  const handleMouseUp = () => setIsPainting(false);
+
+  const savePNG = () => {
+    const sim = simRef.current;
+    if (!sim) return;
+    sim.render(colorSchemeRef.current);
+    const link = document.createElement('a');
+    link.download = `turing-pattern-${Date.now()}.png`;
+    link.href = canvasRef.current.toDataURL('image/png');
+    link.click();
+  };
+
+  const exportParams = () => {
+    const data = { preset: selectedPreset, F, k, Du, Dv, colorScheme, gridSize };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `turing-parameters-${Date.now()}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+        <div className="bg-slate-800 p-8 rounded-xl border border-slate-700 max-w-md text-center">
+          <h2 className="text-xl font-bold text-red-400 mb-4">WebGL Error</h2>
+          <p className="text-slate-300 mb-4">{error}</p>
+          <p className="text-slate-400 text-sm">Please use a modern browser with WebGL support (Chrome, Firefox, Safari).</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
+        <h1 className="text-xl font-bold text-white tracking-tight">Turing Patterns Explorer</h1>
+        <div className="flex items-center gap-4">
+          {showFPS && <span className="text-sm text-slate-400 font-mono">{fps} FPS</span>}
+          <div className="tooltip" data-tip="GPU-accelerated Gray-Scott reaction-diffusion">
+            <button className="text-slate-400 hover:text-white text-sm border border-slate-600 rounded-full w-6 h-6 flex items-center justify-center">i</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      <div className="flex flex-col lg:flex-row" style={{height:'calc(100vh - 52px)'}}>
+        {/* Canvas */}
+        <div className="flex-1 flex items-center justify-center p-4 min-w-0">
+          <canvas
+            ref={canvasRef}
+            style={{ width:'100%', maxWidth:'700px', maxHeight:'calc(100vh - 80px)', aspectRatio:'1/1', imageRendering:'pixelated', borderRadius:'8px' }}
+            className="border border-slate-700"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          />
+        </div>
+
+        {/* Control Panel */}
+        <div className="lg:w-80 w-full bg-slate-800 border-l border-slate-700 overflow-y-auto p-4 space-y-5" style={{maxHeight:'calc(100vh - 52px)'}}>
+
+          {/* Preset */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Preset Patterns</h3>
+            <select
+              className="w-full bg-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 outline-none"
+              value={selectedPreset}
+              onChange={e => handlePresetChange(e.target.value)}
+            >
+              {Object.keys(PRESETS).map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </section>
+
+          {/* Sim Controls */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Simulation</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium ${isRunning ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-600 hover:bg-slate-500 text-slate-200'}`}
+              >
+                {isRunning ? 'Pause' : 'Play'}
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
+              >
+                Reset
+              </button>
+            </div>
+          </section>
+
+          {/* Parameters */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Parameters</h3>
+            <div className="space-y-3">
+              {[
+                { label:'Feed Rate (F)', val:F, set:v=>{setF(v);setTimeout(()=>initSim(gridSize,initialCondition),0)}, min:0.001, max:0.1, step:0.001, tip:'Controls activator addition rate' },
+                { label:'Kill Rate (k)', val:k, set:v=>{setK(v);setTimeout(()=>initSim(gridSize,initialCondition),0)}, min:0.04, max:0.08, step:0.001, tip:'Controls inhibitor removal rate' },
+                { label:'Diffusion U', val:Du, set:v=>{setDu(v);setTimeout(()=>initSim(gridSize,initialCondition),0)}, min:0.05, max:0.25, step:0.01, tip:'Activator spread rate' },
+                { label:'Diffusion V', val:Dv, set:v=>{setDv(v);setTimeout(()=>initSim(gridSize,initialCondition),0)}, min:0.01, max:0.15, step:0.01, tip:'Inhibitor spread rate' },
+              ].map(p => (
+                <div key={p.label} className="tooltip" data-tip={p.tip}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300">{p.label}</span>
+                    <span className="text-blue-400 font-mono">{p.val.toFixed(3)}</span>
+                  </div>
+                  <input type="range" min={p.min} max={p.max} step={p.step} value={p.val}
+                    onChange={e => p.set(parseFloat(e.target.value))} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Visualization */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Visualization</h3>
+            <div className="space-y-2">
+              <select
+                className="w-full bg-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 outline-none"
+                value={colorScheme}
+                onChange={e => setColorScheme(e.target.value)}
+              >
+                {COLOR_SCHEMES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                className="w-full bg-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm border border-slate-600 focus:border-blue-500 outline-none"
+                value={gridSize}
+                onChange={e => setGridSize(Number(e.target.value))}
+              >
+                {GRID_SIZES.map(s => <option key={s} value={s}>{s}x{s}</option>)}
+              </select>
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={showFPS} onChange={e => setShowFPS(e.target.checked)} className="accent-blue-500" />
+                Show FPS
+              </label>
+            </div>
+          </section>
+
+          {/* Initial Conditions */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Initial Conditions</h3>
+            <div className="flex gap-2">
+              <select
+                className="flex-1 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm border border-slate-600 outline-none"
+                value={initialCondition}
+                onChange={e => setInitialCondition(e.target.value)}
+              >
+                <option value="random">Random Seeds</option>
+                <option value="center">Central Circle</option>
+              </select>
+              <button
+                onClick={() => handleApplyCondition(initialCondition)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+              >
+                Apply
+              </button>
+            </div>
+          </section>
+
+          {/* Brush Tools */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Brush Tools</h3>
+            <button
+              onClick={() => setBrushEnabled(!brushEnabled)}
+              className={`w-full py-2 rounded-lg text-sm font-medium mb-2 ${brushEnabled ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600'}`}
+            >
+              {brushEnabled ? 'Advanced Brush: ON' : 'Simple Click Mode'}
+            </button>
+
+            {brushEnabled && (
+              <div className="space-y-3 bg-slate-900/50 rounded-lg p-3">
+                <div className="flex gap-2">
+                  {[
+                    { id:'inhibitor', label:'Inhibitor', color:'bg-purple-600 hover:bg-purple-700', ring:'ring-purple-400' },
+                    { id:'activator', label:'Activator', color:'bg-green-600 hover:bg-green-700', ring:'ring-green-400' },
+                    { id:'erase', label:'Erase', color:'bg-red-600 hover:bg-red-700', ring:'ring-red-400' },
+                  ].map(b => (
+                    <button
+                      key={b.id}
+                      onClick={() => setBrushMode(b.id)}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium text-white ${b.color} ${brushMode===b.id ? 'ring-2 '+b.ring : ''}`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300">Brush Size</span>
+                    <span className="text-blue-400 font-mono">{brushSize}px</span>
+                  </div>
+                  <input type="range" min="3" max="80" value={brushSize}
+                    onChange={e => setBrushSize(Number(e.target.value))} />
+                </div>
+                <div className="text-xs text-slate-400 space-y-1">
+                  <p>Click and drag to paint on the canvas.</p>
+                  <p>Purple: creates patterns | Green: clears | Red: resets</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Export */}
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 font-semibold">Export</h3>
+            <div className="flex gap-2">
+              <button onClick={savePNG}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white">
+                Save PNG
+              </button>
+              <button onClick={exportParams}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white">
+                Export Params
+              </button>
+            </div>
+          </section>
+
+          {/* Info */}
+          <section className="text-xs text-slate-500 border-t border-slate-700 pt-3">
+            <p>Gray-Scott reaction-diffusion model</p>
+            <p>GPU-accelerated via WebGL</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<TuringPatternsExplorer />);
+</script>
+</body>
+</html>
