@@ -3,1373 +3,1708 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fractal Explorer - Specification</title>
+    <title>Fractal Explorer - Soft Dreams</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-deep: #1a0f14;
+            --bg-darker: #251a21;
+            --bg-dark: #2d2129;
+            --bg-medium: #3d2f37;
+            --accent-pink: #ffb3d9;
+            --accent-rose: #ff8ec9;
+            --accent-peach: #ffc4dd;
+            --accent-lavender: #e8b4f0;
+            --text-primary: #ffe8f5;
+            --text-secondary: #d4a5c2;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Space Mono', monospace;
-            background: linear-gradient(135deg, #1a0f14 0%, #251a21 50%, #1a0f14 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-            line-height: 1.7;
-            color: #ffe8f5;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
         }
 
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            background: rgba(45, 33, 41, 0.95);
-            border-radius: 16px;
-            box-shadow: 0 10px 60px rgba(255, 179, 217, 0.1), 0 0 80px rgba(232, 180, 240, 0.05);
-            padding: 50px 40px;
-            border: 1px solid rgba(255, 179, 217, 0.15);
+        /* CANVAS AREA */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-deeper, #120a0e);
         }
 
-        h1 {
+        canvas {
+            flex: 1;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .zoom-controls button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(255,179,217,0.3);
+            background: rgba(45,33,41,0.85);
+            color: var(--accent-pink);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zoom-controls button:hover {
+            background: rgba(255,179,217,0.15);
+            box-shadow: 0 0 12px rgba(255,179,217,0.2);
+        }
+
+        .zoom-indicator {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(45,33,41,0.85);
+            border: 1px solid rgba(255,179,217,0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-lavender);
+        }
+
+        .coord-tooltip {
+            position: absolute;
+            bottom: 45px;
+            left: 15px;
+            background: rgba(45,33,41,0.85);
+            border: 1px solid rgba(255,179,217,0.2);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            pointer-events: none;
+            display: none;
+        }
+
+        .status-bar {
+            height: 32px;
+            background: var(--bg-darker);
+            border-top: 1px solid rgba(255,179,217,0.15);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .status-bar span { white-space: nowrap; }
+        .status-bar .status-ready { color: #a8e6a3; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-dark);
+            border-left: 1px solid rgba(255,179,217,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 18px 16px 12px;
             text-align: center;
+            border-bottom: 1px solid rgba(255,179,217,0.15);
+        }
+
+        .sidebar-header h1 {
             font-family: 'Orbitron', sans-serif;
             font-weight: 900;
-            font-size: 2.6em;
-            margin-bottom: 5px;
-            background: linear-gradient(135deg, #ffb3d9, #e8b4f0);
+            font-size: 1.2em;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-lavender));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .subtitle {
-            text-align: center;
-            font-family: 'Space Mono', monospace;
-            color: #d4a5c2;
-            font-size: 1em;
-            margin-bottom: 30px;
+        .sidebar-header p {
+            font-size: 0.7em;
+            color: var(--text-secondary);
             letter-spacing: 2px;
+            margin-top: 2px;
         }
 
-        h2 {
+        /* TABS */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 8px 8px 0;
+            background: var(--bg-darker);
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 48px;
+            padding: 6px 4px;
             font-family: 'Orbitron', sans-serif;
+            font-size: 0.6em;
             font-weight: 700;
-            color: #ffb3d9;
-            border-bottom: 2px solid rgba(255, 179, 217, 0.3);
-            padding-bottom: 10px;
-            margin: 45px 0 20px 0;
-            font-size: 1.5em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--accent-peach); }
+        .tab-btn.active {
+            color: var(--accent-pink);
+            border-bottom-color: var(--accent-pink);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* CONTROLS */
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7em;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-        }
-
-        h3 {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            color: #ffc4dd;
-            margin: 30px 0 15px 0;
-            font-size: 1.15em;
-        }
-
-        h4 {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            color: #e8b4f0;
-            margin: 20px 0 10px 0;
-            font-size: 0.95em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        p {
-            margin-bottom: 15px;
-            color: #d4a5c2;
-        }
-
-        .overview {
-            background: linear-gradient(135deg, rgba(255, 179, 217, 0.15) 0%, rgba(232, 180, 240, 0.15) 100%);
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            text-align: center;
-            font-size: 1.05em;
-            color: #ffe8f5;
-            border: 1px solid rgba(255, 179, 217, 0.2);
-        }
-
-        .overview strong {
-            color: #ffb3d9;
-        }
-
-        .meta-info {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #d4a5c2;
-            font-size: 0.85em;
-        }
-
-        .meta-info span {
-            margin: 0 10px;
-        }
-
-        ul {
-            margin: 15px 0 15px 25px;
-            color: #d4a5c2;
-        }
-
-        ol {
-            margin: 15px 0 15px 25px;
-            color: #d4a5c2;
-        }
-
-        li {
+            color: var(--accent-pink);
             margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        li strong {
-            color: #ffb3d9;
-        }
-
-        .feature-box {
-            background: rgba(61, 47, 55, 0.6);
-            border-left: 4px solid #ff8ec9;
-            padding: 15px 20px;
-            margin: 15px 0;
-            border-radius: 0 10px 10px 0;
-        }
-
-        .code-block {
-            background: #1a0f14;
-            color: #e8b4f0;
-            padding: 20px;
-            border-radius: 10px;
+        .control-label .val {
             font-family: 'Space Mono', monospace;
-            overflow-x: auto;
-            margin: 15px 0;
-            font-size: 0.85em;
-            white-space: pre;
-            border: 1px solid rgba(255, 179, 217, 0.15);
+            color: var(--accent-lavender);
+            font-weight: 700;
         }
 
-        .code-block .comment {
-            color: #7a5a6e;
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--bg-medium);
+            border-radius: 3px;
+            outline: none;
+            margin: 4px 0 10px;
         }
 
-        .file-structure {
-            background: #1a0f14;
-            color: #e8b4f0;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: 'Space Mono', monospace;
-            white-space: pre;
-            font-size: 0.85em;
-            border: 1px solid rgba(255, 179, 217, 0.15);
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-rose));
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255,179,217,0.4);
         }
 
-        .color-swatch {
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-right: 6px;
-            border: 1px solid rgba(255, 179, 217, 0.3);
+        .btn {
+            padding: 8px 14px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255,179,217,0.3);
+            background: rgba(255,179,217,0.1);
+            color: var(--accent-pink);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
+        .btn:hover {
+            background: rgba(255,179,217,0.2);
+            box-shadow: 0 0 12px rgba(255,179,217,0.15);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, rgba(255,142,201,0.3), rgba(232,180,240,0.3));
+            border-color: var(--accent-pink);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row .btn { flex: 1; text-align: center; }
+
+        .info-box {
+            background: rgba(255,179,217,0.06);
+            border: 1px solid rgba(255,179,217,0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
+        /* PALETTE GRID */
         .palette-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 14px;
         }
 
-        .palette-card {
-            background: rgba(61, 47, 55, 0.5);
-            border: 1px solid rgba(255, 179, 217, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            transition: box-shadow 0.3s;
+        .palette-item {
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .palette-card:hover {
-            box-shadow: 0 0 20px rgba(255, 179, 217, 0.15);
-        }
+        .palette-item:hover { transform: scale(1.03); }
+        .palette-item.active { border-color: var(--accent-pink); box-shadow: 0 0 10px rgba(255,179,217,0.3); }
 
-        .palette-card h5 {
-            font-family: 'Orbitron', sans-serif;
-            color: #ffb3d9;
-            font-size: 0.85em;
-            margin-bottom: 6px;
-        }
-
-        .palette-card p {
-            font-size: 0.8em;
-            margin: 0;
-        }
-
-        .preset-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 0.85em;
-        }
-
-        .preset-table th {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            color: #ffb3d9;
-            text-align: left;
-            padding: 12px 15px;
-            border-bottom: 2px solid rgba(255, 179, 217, 0.3);
-            text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 1px;
-        }
-
-        .preset-table td {
-            padding: 10px 15px;
-            border-bottom: 1px solid rgba(255, 179, 217, 0.1);
-            color: #d4a5c2;
-        }
-
-        .preset-table tr:hover td {
-            background: rgba(255, 179, 217, 0.05);
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
-        }
-
-        .metric-card {
-            background: linear-gradient(135deg, rgba(255, 142, 201, 0.2) 0%, rgba(232, 180, 240, 0.2) 100%);
-            color: #ffe8f5;
-            padding: 15px;
-            border-radius: 10px;
+        .palette-item span {
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            right: 0;
             text-align: center;
-            border: 1px solid rgba(255, 179, 217, 0.2);
-            font-size: 0.9em;
-        }
-
-        .metric-card .value {
+            font-size: 0.55em;
             font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            font-size: 1.3em;
-            color: #ffb3d9;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .metric-card .label {
-            color: #d4a5c2;
-            font-size: 0.85em;
-        }
-
-        .check {
-            color: #a8e6a3;
-        }
-
-        .perf-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 0.85em;
-        }
-
-        .perf-table th {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            color: #ffb3d9;
-            text-align: left;
-            padding: 10px 15px;
-            border-bottom: 2px solid rgba(255, 179, 217, 0.3);
-            text-transform: uppercase;
-            font-size: 0.8em;
-            letter-spacing: 1px;
-        }
-
-        .perf-table td {
-            padding: 10px 15px;
-            border-bottom: 1px solid rgba(255, 179, 217, 0.1);
-            color: #d4a5c2;
-        }
-
-        .tab-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .tab-item {
-            background: rgba(61, 47, 55, 0.5);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 179, 217, 0.15);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8em;
-            color: #ffc4dd;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
             font-weight: 700;
         }
 
-        .layout-diagram {
-            background: #1a0f14;
-            color: #e8b4f0;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: 'Space Mono', monospace;
-            white-space: pre;
-            font-size: 0.75em;
-            border: 1px solid rgba(255, 179, 217, 0.15);
-            overflow-x: auto;
-            line-height: 1.4;
-        }
-
-        .browser-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .browser-item {
-            background: rgba(61, 47, 55, 0.5);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 179, 217, 0.15);
-            color: #d4a5c2;
-        }
-
-        .browser-item strong {
-            display: block;
-            color: #ffb3d9;
-            margin-bottom: 4px;
-        }
-
-        .enhancement-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin: 15px 0;
-            list-style: none;
-            margin-left: 0;
-        }
-
-        .enhancement-list li {
-            background: linear-gradient(135deg, rgba(255, 142, 201, 0.15) 0%, rgba(232, 180, 240, 0.15) 100%);
-            padding: 10px 15px;
-            border-radius: 20px;
-            text-align: center;
-            color: #ffc4dd;
-            font-size: 0.9em;
-            border: 1px solid rgba(255, 179, 217, 0.15);
-        }
-
-        .easing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .easing-card {
-            background: rgba(61, 47, 55, 0.5);
-            padding: 12px 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 179, 217, 0.15);
-        }
-
-        .easing-card strong {
-            display: block;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8em;
-            color: #ffb3d9;
-            margin-bottom: 4px;
-        }
-
-        .easing-card span {
-            font-size: 0.8em;
-            color: #d4a5c2;
-        }
-
-        .lesson-box {
-            background: rgba(255, 179, 217, 0.08);
-            border: 1px solid rgba(255, 179, 217, 0.2);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .lesson-box h5 {
-            font-family: 'Orbitron', sans-serif;
-            color: #ff8ec9;
-            font-size: 0.9em;
-            margin-bottom: 8px;
-        }
-
-        .lesson-box .problem {
-            color: #e8b4f0;
-            font-size: 0.9em;
-            margin-bottom: 8px;
-        }
-
-        .lesson-box .solution {
-            color: #a8e6a3;
-            font-size: 0.9em;
-            margin-bottom: 8px;
-        }
-
-        .lesson-box .takeaway {
-            color: #ffb3d9;
-            font-style: italic;
-            font-size: 0.9em;
-        }
-
-        .color-var-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 8px;
-            margin: 15px 0;
-        }
-
-        .color-var {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background: rgba(61, 47, 55, 0.4);
+        /* PRESET LIST */
+        .preset-item {
+            padding: 10px 12px;
+            background: rgba(61,47,55,0.5);
+            border: 1px solid rgba(255,179,217,0.1);
             border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .color-var code {
-            font-family: 'Space Mono', monospace;
+        .preset-item:hover {
+            background: rgba(255,179,217,0.1);
+            border-color: rgba(255,179,217,0.3);
+        }
+
+        .preset-item .name {
+            font-family: 'Orbitron', sans-serif;
             font-size: 0.8em;
-            color: #e8b4f0;
+            font-weight: 700;
+            color: var(--accent-peach);
         }
 
-        .color-var .name {
-            font-size: 0.75em;
-            color: #d4a5c2;
+        .preset-item .desc {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            margin-top: 2px;
         }
 
-        .achievements-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
+        /* COLOR PICKER */
+        input[type="color"] {
+            width: 40px;
+            height: 28px;
+            border: 1px solid rgba(255,179,217,0.3);
+            border-radius: 4px;
+            background: var(--bg-medium);
+            cursor: pointer;
         }
 
-        .achievement {
+        .color-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 15px;
-            background: rgba(61, 47, 55, 0.5);
-            border-radius: 10px;
-            border: 1px solid rgba(168, 230, 163, 0.2);
+            margin-bottom: 8px;
         }
 
-        .achievement .check {
-            font-size: 1.1em;
+        .color-row label {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            min-width: 60px;
         }
 
-        .achievement span {
-            color: #ffe8f5;
-            font-size: 0.9em;
+        /* CHECKBOX */
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .credits {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 25px;
-            border-top: 1px solid rgba(255, 179, 217, 0.2);
-            color: #7a5a6e;
-            font-size: 0.85em;
+        .check-row label {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            cursor: pointer;
         }
 
-        .credits p {
-            color: #7a5a6e;
-            margin-bottom: 5px;
+        input[type="checkbox"] {
+            accent-color: var(--accent-rose);
         }
 
-        .philosophy {
-            text-align: center;
-            font-style: italic;
-            color: #ffb3d9;
-            font-size: 1.1em;
-            margin: 30px 0;
-            padding: 20px;
-            border: 1px solid rgba(255, 179, 217, 0.2);
-            border-radius: 10px;
-            background: rgba(255, 179, 217, 0.05);
+        /* SELECT */
+        select {
+            width: 100%;
+            padding: 6px 10px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8em;
+            background: var(--bg-medium);
+            color: var(--text-primary);
+            border: 1px solid rgba(255,179,217,0.2);
+            border-radius: 6px;
+            outline: none;
+            margin-bottom: 10px;
         }
 
-        .toc {
-            background: rgba(61, 47, 55, 0.4);
-            border-radius: 10px;
-            padding: 20px 30px;
-            margin: 20px 0 30px 0;
-            border: 1px solid rgba(255, 179, 217, 0.15);
+        select:focus { border-color: var(--accent-pink); }
+
+        /* ANIM CONTROLS */
+        .anim-controls {
+            display: flex;
+            gap: 6px;
+            margin: 10px 0;
         }
 
-        .toc ol {
-            margin: 0;
-            color: #ffc4dd;
+        .anim-controls .btn { font-size: 1em; padding: 8px 16px; }
+
+        /* SCROLLBAR */
+        .tab-content::-webkit-scrollbar { width: 6px; }
+        .tab-content::-webkit-scrollbar-track { background: var(--bg-dark); }
+        .tab-content::-webkit-scrollbar-thumb { background: var(--bg-medium); border-radius: 3px; }
+        .tab-content::-webkit-scrollbar-thumb:hover { background: rgba(255,179,217,0.3); }
+
+        /* WAYPOINT LIST */
+        .waypoint-list {
+            max-height: 120px;
+            overflow-y: auto;
+            margin: 8px 0;
         }
 
-        .toc li {
-            margin-bottom: 6px;
+        .waypoint-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            background: rgba(61,47,55,0.4);
+            border-radius: 4px;
+            margin-bottom: 3px;
+            font-size: 0.75em;
+            color: var(--text-secondary);
         }
 
-        .toc a {
-            color: #ffc4dd;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .toc a:hover {
-            color: #ffb3d9;
-            text-decoration: underline;
-        }
-
-        a {
-            color: #ff8ec9;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .section-divider {
+        .waypoint-item button {
+            background: none;
             border: none;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255, 179, 217, 0.3), transparent);
-            margin: 40px 0;
+            color: var(--accent-rose);
+            cursor: pointer;
+            font-size: 1em;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Fractal Explorer</h1>
-        <div class="subtitle">Soft Dreams &middot; Pastel Fractals</div>
-
-        <div class="meta-info">
-            <span>February 2026</span> &middot;
-            <span>Single-page HTML Application</span> &middot;
-            <span>Vanilla JavaScript</span>
+    <!-- CANVAS AREA -->
+    <div class="canvas-container">
+        <canvas id="fractalCanvas"></canvas>
+        <div class="zoom-indicator" id="zoomIndicator">Zoom: 1.00x</div>
+        <div class="zoom-controls">
+            <button id="zoomIn" title="Zoom In">+</button>
+            <button id="zoomOut" title="Zoom Out">-</button>
+            <button id="zoomReset" title="Reset View">&#8634;</button>
         </div>
-
-        <div class="overview">
-            An interactive web application for exploring and visualizing <strong>Julia sets</strong> and <strong>Mandelbrot sets</strong> with a focus on artistic expression, smooth 60fps interaction, mesmerizing parameter morphing, and a soft pink aesthetic.
-        </div>
-
-        <div class="toc">
-            <ol>
-                <li><a href="#overview">Overview</a></li>
-                <li><a href="#design">Design Philosophy</a></li>
-                <li><a href="#features">Core Features</a></li>
-                <li><a href="#architecture">Technical Architecture</a></li>
-                <li><a href="#ui">User Interface</a></li>
-                <li><a href="#performance">Performance Optimizations</a></li>
-                <li><a href="#implementation">Implementation Details</a></li>
-                <li><a href="#lessons">Lessons Learned</a></li>
-                <li><a href="#future">Future Enhancements</a></li>
-                <li><a href="#conclusion">Conclusion</a></li>
-            </ol>
-        </div>
-
-        <!-- OVERVIEW -->
-        <h2 id="overview">Overview</h2>
-
-        <h3>Purpose</h3>
-        <div class="feature-box">
-            <ul>
-                <li><strong>Artistic expression</strong> &mdash; Creating beautiful fractal visualizations</li>
-                <li><strong>Smooth interaction</strong> &mdash; Buttery 60fps zoom and animation</li>
-                <li><strong>Parameter morphing</strong> &mdash; Mesmerizing transitions between fractal states</li>
-                <li><strong>Accessibility</strong> &mdash; Cute, inviting soft pink aesthetic</li>
-            </ul>
-        </div>
-
-        <h3>Target Audience</h3>
-        <p>Artists, designers, fractal enthusiasts, and anyone interested in creating beautiful mathematical visualizations.</p>
-
-        <h3>Key Capabilities</h3>
-        <ul>
-            <li>Real-time Julia and Mandelbrot set rendering</li>
-            <li>Smooth zoom and pan navigation</li>
-            <li>Parameter morphing animations</li>
-            <li>Multiple color palettes</li>
-            <li>Preset Julia sets</li>
-            <li>Export capabilities</li>
-        </ul>
-
-        <hr class="section-divider">
-
-        <!-- DESIGN PHILOSOPHY -->
-        <h2 id="design">Design Philosophy</h2>
-
-        <h3>Color Palette</h3>
-        <h4>Backgrounds</h4>
-        <div class="color-var-grid">
-            <div class="color-var">
-                <span class="color-swatch" style="background: #1a0f14;"></span>
-                <div><code>#1a0f14</code><br><span class="name">Deep plum background</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #251a21;"></span>
-                <div><code>#251a21</code><br><span class="name">Darker plum container</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #2d2129;"></span>
-                <div><code>#2d2129</code><br><span class="name">Dark plum panels</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #3d2f37;"></span>
-                <div><code>#3d2f37</code><br><span class="name">Medium plum controls</span></div>
-            </div>
-        </div>
-
-        <h4>Accents</h4>
-        <div class="color-var-grid">
-            <div class="color-var">
-                <span class="color-swatch" style="background: #ffb3d9;"></span>
-                <div><code>#ffb3d9</code><br><span class="name">Soft pink &mdash; primary accent</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #ff8ec9;"></span>
-                <div><code>#ff8ec9</code><br><span class="name">Rose pink &mdash; secondary accent</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #ffc4dd;"></span>
-                <div><code>#ffc4dd</code><br><span class="name">Peach pink &mdash; tertiary accent</span></div>
-            </div>
-            <div class="color-var">
-                <span class="color-swatch" style="background: #e8b4f0;"></span>
-                <div><code>#e8b4f0</code><br><span class="name">Lavender &mdash; complementary</span></div>
-            </div>
-        </div>
-
-        <h4>Design Principles</h4>
-        <ol>
-            <li><strong>Soft and Inviting</strong> &mdash; Gentle pink gradients, rounded corners, subtle glows</li>
-            <li><strong>Clear Hierarchy</strong> &mdash; Bold typography (Orbitron) for headers, monospace (Space Mono) for data</li>
-            <li><strong>Smooth Interactions</strong> &mdash; All transitions animated, hover states with pink glows</li>
-            <li><strong>Responsive Feedback</strong> &mdash; Immediate visual response to all user actions</li>
-            <li><strong>Cohesive Theme</strong> &mdash; Pink accents throughout, consistent spacing and styling</li>
-        </ol>
-
-        <hr class="section-divider">
-
-        <!-- CORE FEATURES -->
-        <h2 id="features">Core Features</h2>
-
-        <h3>1. Dual Fractal Modes</h3>
-
-        <h4>Julia Set Mode (Default)</h4>
-        <div class="feature-box">
-            <ul>
-                <li>Fixed complex parameter <code>c = a + bi</code></li>
-                <li>Each point z iterated using z&sup2; + c</li>
-                <li>User controls the c parameter</li>
-                <li>Default: <code>c = -0.4 + 0.6i</code> (Spiral preset)</li>
-            </ul>
-        </div>
-
-        <h4>Mandelbrot Set Mode</h4>
-        <div class="feature-box">
-            <ul>
-                <li>Each point c tested by iterating z&sup2; + c starting from z = 0</li>
-                <li>Shows the iconic Mandelbrot shape</li>
-                <li>Click any point to generate its Julia set</li>
-                <li>Default view: Centered at (-0.5, 0) with zoom 0.8x</li>
-            </ul>
-        </div>
-
-        <h3>2. Interactive Navigation</h3>
-
-        <h4>Zoom Controls</h4>
-        <div class="feature-box">
-            <ul>
-                <li><strong>Mouse Wheel:</strong> Smooth interpolated zoom (60fps)</li>
-                <li><strong>Zoom Buttons:</strong> +/- buttons with animated transitions</li>
-                <li><strong>Reset Button:</strong> Return to default view</li>
-                <li><strong>Zoom Indicator:</strong> Live display of current zoom level</li>
-                <li><strong>Implementation:</strong> Exponential interpolation (15% per frame) for natural feel</li>
-            </ul>
-        </div>
-
-        <h4>Pan Controls</h4>
-        <div class="feature-box">
-            <ul>
-                <li><strong>Click &amp; Drag:</strong> Move around the complex plane</li>
-                <li><strong>Smooth Panning:</strong> 60fps throttled for no judder</li>
-                <li><strong>Low-res Preview:</strong> During drag for performance</li>
-                <li><strong>High-res Refinement:</strong> When drag ends</li>
-            </ul>
-        </div>
-
-        <h3>3. Parameter Controls</h3>
-
-        <h4>Julia Set Parameters</h4>
-        <ul>
-            <li><strong>Real Component (a):</strong> Slider from -2.0 to 2.0, step 0.01</li>
-            <li><strong>Imaginary Component (b):</strong> Slider from -2.0 to 2.0, step 0.01</li>
-            <li><strong>Live Preview:</strong> Updates as you drag sliders</li>
-            <li><strong>Numeric Display:</strong> Shows current values to 2 decimal places</li>
-        </ul>
-
-        <h4>Rendering Parameters</h4>
-        <ul>
-            <li><strong>Max Iterations:</strong> 50&ndash;500, default 100 (lower = faster, higher = more detail)</li>
-            <li><strong>Escape Radius:</strong> 2&ndash;10, default 2 (controls bailout threshold)</li>
-            <li><strong>Throttled Updates:</strong> 60fps max to prevent lag</li>
-        </ul>
-
-        <h3>4. Color Palette System</h3>
-
-        <h4>8 Built-in Palettes</h4>
-        <div class="palette-grid">
-            <div class="palette-card">
-                <h5>Classic</h5>
-                <p>Black &rarr; Blue &rarr; White (traditional)</p>
-            </div>
-            <div class="palette-card">
-                <h5>Fire</h5>
-                <p>Black &rarr; Red &rarr; Orange &rarr; Yellow</p>
-            </div>
-            <div class="palette-card">
-                <h5>Ocean</h5>
-                <p>Deep Blue &rarr; Cyan &rarr; Light Blue</p>
-            </div>
-            <div class="palette-card">
-                <h5>Sunset</h5>
-                <p>Purple &rarr; Orange &rarr; Pink</p>
-            </div>
-            <div class="palette-card">
-                <h5>Monochrome</h5>
-                <p>Black &rarr; White (simple)</p>
-            </div>
-            <div class="palette-card">
-                <h5>Psychedelic</h5>
-                <p>Rainbow spectrum (colorful)</p>
-            </div>
-            <div class="palette-card">
-                <h5>Cosmic</h5>
-                <p>Deep space &rarr; Purple &rarr; Cyan &rarr; Yellow</p>
-            </div>
-            <div class="palette-card">
-                <h5>Plasma</h5>
-                <p>Blue &rarr; Purple &rarr; Red &rarr; Orange &rarr; Yellow</p>
-            </div>
-        </div>
-
-        <h4>Color Customization</h4>
-        <ul>
-            <li><strong>Custom Gradient:</strong> Pick start and end colors</li>
-            <li><strong>Color Steps:</strong> 10&ndash;256 discrete color bands</li>
-            <li><strong>Interior Color:</strong> Color for points inside the set (default: black)</li>
-            <li><strong>Reverse Palette:</strong> Flip color order</li>
-            <li><strong>Live Preview:</strong> Instant visual feedback</li>
-        </ul>
-
-        <h4>Smooth Coloring Algorithm</h4>
-        <div class="code-block">// Smooth coloring to avoid banding
-smoothed = iteration + 1 - log(log(|z|)) / log(2)
-colorIndex = floor(smoothed) % colorSteps</div>
-
-        <h3>5. Preset Julia Sets</h3>
-        <p>10 carefully curated presets with evocative names:</p>
-
-        <table class="preset-table">
-            <thead>
-                <tr>
-                    <th>Preset</th>
-                    <th>c Value</th>
-                    <th>Iter</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td><strong>Dendrite</strong></td><td>0 + 1i</td><td>100</td><td>Tree-like structure</td></tr>
-                <tr><td><strong>Siegel Disk</strong></td><td>-0.391 - 0.587i</td><td>120</td><td>Circular patterns</td></tr>
-                <tr><td><strong>Douady's Rabbit</strong></td><td>-0.123 + 0.745i</td><td>100</td><td>Classic fractal shape</td></tr>
-                <tr><td><strong>San Marco</strong></td><td>-0.75 + 0i</td><td>80</td><td>Symmetric beauty</td></tr>
-                <tr><td><strong>Spiral</strong></td><td>-0.4 + 0.6i</td><td>100</td><td>Swirling patterns (default)</td></tr>
-                <tr><td><strong>Dragon</strong></td><td>-0.8 + 0.156i</td><td>120</td><td>Curved tendrils</td></tr>
-                <tr><td><strong>Cauliflower</strong></td><td>0.25 + 0i</td><td>90</td><td>Fractal vegetable shape</td></tr>
-                <tr><td><strong>Airplane</strong></td><td>-0.194 + 0.6557i</td><td>120</td><td>Winged appearance</td></tr>
-                <tr><td><strong>Lightning</strong></td><td>-0.54 + 0.54i</td><td>100</td><td>Electric branches</td></tr>
-                <tr><td><strong>Nebula</strong></td><td>0.285 + 0.01i</td><td>120</td><td>Cosmic cloud patterns</td></tr>
-            </tbody>
-        </table>
-
-        <h3>6. Animation System</h3>
-
-        <h4>Path Animations</h4>
-        <ol>
-            <li><strong>Circular Path</strong> &mdash; Orbit around starting point</li>
-            <li><strong>Linear Path</strong> &mdash; Back-and-forth motion</li>
-            <li><strong>Figure-8 Path</strong> &mdash; Lemniscate trajectory</li>
-        </ol>
-
-        <h4>Parameter Morphing</h4>
-        <div class="feature-box">
-            <ul>
-                <li>Select start preset (e.g., Dendrite) and end preset (e.g., Spiral)</li>
-                <li>Set duration (1&ndash;20 seconds) and easing function</li>
-                <li>Watch smooth transformation between fractal states</li>
-                <li>Build custom morph paths with waypoints: A &rarr; B &rarr; C &rarr; D</li>
-            </ul>
-        </div>
-
-        <h4>Easing Functions</h4>
-        <div class="easing-grid">
-            <div class="easing-card"><strong>Linear</strong><span>Constant speed</span></div>
-            <div class="easing-card"><strong>Ease In-Out</strong><span>Slow start &amp; end (default)</span></div>
-            <div class="easing-card"><strong>Ease In</strong><span>Slow start, fast finish</span></div>
-            <div class="easing-card"><strong>Ease Out</strong><span>Fast start, slow finish</span></div>
-            <div class="easing-card"><strong>Bounce</strong><span>Playful bouncing effect</span></div>
-        </div>
-
-        <h4>Performance During Animation</h4>
-        <ul>
-            <li><strong>Adaptive Quality:</strong> Reduces iterations by 30% during playback</li>
-            <li><strong>Smooth 60fps:</strong> 1.5x more frames than standard animation</li>
-            <li><strong>Auto-restore:</strong> Full quality when paused/stopped</li>
-        </ul>
-
-        <h3>7. Export Capabilities</h3>
-
-        <h4>Image Export</h4>
-        <ul>
-            <li><strong>Format:</strong> PNG (lossless)</li>
-            <li><strong>Resolution:</strong> Current, 2x, 4x, or custom</li>
-            <li>Renders at target resolution before export</li>
-        </ul>
-
-        <h4>Settings Export/Import</h4>
-        <ul>
-            <li><strong>Export:</strong> JSON file with all current parameters</li>
-            <li><strong>Import:</strong> Load saved configurations</li>
-            <li><strong>Use Case:</strong> Save interesting discoveries, share with others</li>
-        </ul>
-
-        <h4>URL Sharing</h4>
-        <ul>
-            <li>Copy link with parameters encoded in query string</li>
-            <li>Opens with exact same view when shared</li>
-        </ul>
-
-        <hr class="section-divider">
-
-        <!-- TECHNICAL ARCHITECTURE -->
-        <h2 id="architecture">Technical Architecture</h2>
-
-        <h3>Technology Stack</h3>
-        <ul>
-            <li><strong>Pure HTML5/CSS3/JavaScript</strong> &mdash; No frameworks, no build step</li>
-            <li><strong>Single File Application</strong> &mdash; Complete app in one HTML file</li>
-            <li><strong>Canvas 2D API</strong> &mdash; For fractal rendering</li>
-            <li><strong>Google Fonts</strong> &mdash; Orbitron (display), Space Mono (monospace)</li>
-        </ul>
-
-        <h3>Code Organization</h3>
-        <div class="file-structure">&lt;html&gt;
-  &lt;head&gt;
-    - Google Fonts imports
-    - CSS styles (embedded)
-  &lt;/head&gt;
-  &lt;body&gt;
-    - HTML structure
-    - &lt;script&gt;
-      1. State management
-      2. Easing functions
-      3. Color palettes
-      4. Preset definitions
-      5. Fractal calculations
-      6. Rendering engine
-      7. Event handlers
-      8. Animation system
-      9. Export functions
-      10. Initialization
-    &lt;/script&gt;
-  &lt;/body&gt;
-&lt;/html&gt;</div>
-
-        <h3>State Management</h3>
-        <div class="code-block">const state = {
-  mode: 'julia',               // 'julia' or 'mandelbrot'
-
-  c: { real: -0.4, imag: 0.6 },
-  maxIter: 100,
-  escapeRadius: 2,
-
-  zoom: 1,
-  centerX: 0,
-  centerY: 0,
-
-  currentPalette: 'ocean',
-  interiorColor: '#000000',
-  colorSteps: 100,
-  reversePalette: false,
-
-  isDragging: false,
-  lowResMode: false,
-
-  animation: {
-    playing: false,
-    type: 'circular',
-    speed: 30,
-    radius: 0.3,
-    loop: true,
-    morphFrom: null,
-    morphTo: null,
-    morphProgress: 0,
-    morphDuration: 5,
-    easing: 'easeInOut',
-    waypoints: [],
-    currentWaypoint: 0
-  }
-}</div>
-
-        <hr class="section-divider">
-
-        <!-- USER INTERFACE -->
-        <h2 id="ui">User Interface</h2>
-
-        <h3>Layout Structure</h3>
-        <div class="layout-diagram">+-----------------------------------------------------+
-|  Canvas Container (70%)                             |
-|  +--------------------------------------------+    |
-|  |                                            |    |
-|  |         Fractal Visualization              |    |
-|  |                                            |    |
-|  |  [Zoom: 1.00x]              [+]           |    |
-|  |                             [-]           |    |
-|  |                             [Reset]       |    |
-|  |                                            |    |
-|  |  [Coords tooltip]                          |    |
-|  |                                            |    |
-|  +--------------------------------------------+    |
-|  [Status Bar: Ready | 120ms | Center | Bounds]     |
-+-----------------------------------------------------+
-|  Sidebar (30%)                                      |
-|  +----------------------------------------------+  |
-|  |  FRACTAL EXPLORER                             |  |
-|  |  Soft Dreams . Pastel Fractals               |  |
-|  +----------------------------------------------+  |
-|  | [Mode][Params][Colors][Presets][Animate][Export]| |
-|  +----------------------------------------------+  |
-|  |  Tab Content                                  |  |
-|  |  - Controls, Sliders, Buttons, Info boxes     |  |
-|  +----------------------------------------------+  |
-+-----------------------------------------------------+</div>
-
-        <h3>Tab Organization</h3>
-        <div class="tab-grid">
-            <div class="tab-item">Mode</div>
-            <div class="tab-item">Params</div>
-            <div class="tab-item">Colors</div>
-            <div class="tab-item">Presets</div>
-            <div class="tab-item">Animate</div>
-            <div class="tab-item">Export</div>
-        </div>
-
-        <h4>Tab 1: Mode</h4>
-        <ul>
-            <li>Julia Set / Mandelbrot Set toggle buttons</li>
-            <li>Info box explaining current mode</li>
-            <li>Tip: "Click on Mandelbrot to generate Julia set"</li>
-        </ul>
-
-        <h4>Tab 2: Params</h4>
-        <ul>
-            <li>Complex Parameter (c) sliders (Julia mode only)</li>
-            <li>Iterations slider (50&ndash;500)</li>
-            <li>Escape Radius slider (2&ndash;10)</li>
-            <li>Randomize and Reset buttons</li>
-        </ul>
-
-        <h4>Tab 3: Colors</h4>
-        <ul>
-            <li>Palette Gallery (2x4 grid of color previews)</li>
-            <li>Custom Colors (start/end color pickers)</li>
-            <li>Interior Color picker</li>
-            <li>Color Steps slider (10&ndash;256)</li>
-            <li>Reverse Palette checkbox</li>
-        </ul>
-
-        <h4>Tab 4: Presets</h4>
-        <ul>
-            <li>Preset List (10 items) with name and description</li>
-            <li>Click to load instantly</li>
-        </ul>
-
-        <h4>Tab 5: Animate</h4>
-        <ul>
-            <li>Animation Type dropdown (Circular, Linear, Figure-8, Morph, Custom Morph)</li>
-            <li>Morph preset selectors (from/to)</li>
-            <li>Custom waypoint builder</li>
-            <li>Speed, Duration, Easing, and Loop controls</li>
-            <li>Play / Pause / Stop buttons</li>
-        </ul>
-
-        <h4>Tab 6: Export</h4>
-        <ul>
-            <li>Export Image (resolution selector + download PNG)</li>
-            <li>Export/Import Settings (JSON)</li>
-            <li>Copy Share URL</li>
-        </ul>
-
-        <h3>Visual Design Elements</h3>
-
-        <h4>Typography</h4>
-        <ul>
-            <li><strong>Headers:</strong> Orbitron, 900 weight, gradient fill</li>
-            <li><strong>Labels:</strong> Orbitron, 700 weight, uppercase, pink</li>
-            <li><strong>Body:</strong> Space Mono, 400/700 weight</li>
-            <li><strong>Values:</strong> Space Mono, 700 weight, lavender</li>
-        </ul>
-
-        <h4>Interactive States</h4>
-        <ul>
-            <li><strong>Hover:</strong> Slightly brighter, pink glow</li>
-            <li><strong>Active:</strong> Pink gradient background</li>
-            <li><strong>Focus:</strong> Pink border with glow</li>
-            <li><strong>Disabled:</strong> Reduced opacity</li>
-        </ul>
-
-        <hr class="section-divider">
-
-        <!-- PERFORMANCE -->
-        <h2 id="performance">Performance Optimizations</h2>
-
-        <h3>1. Adaptive Quality Rendering</h3>
-        <div class="code-block">// Low-res mode during interaction (2x2 pixel blocks)
-const step = state.lowResMode ? 2 : 1;
-
-for (let y = 0; y &lt; height; y += step) {
-  for (let x = 0; x &lt; width; x += step) {
-    const iter = calculateFractal(x, y);
-    // Fill block for low-res
-    for (let dy = 0; dy &lt; step; dy++)
-      for (let dx = 0; dx &lt; step; dx++)
-        setPixelColor(x+dx, y+dy, iter);
-  }
-}</div>
-        <p>Result: 4x faster rendering during drag/zoom</p>
-
-        <h3>2. Smooth Interpolated Zoom</h3>
-        <div class="code-block">// Exponential interpolation for natural feel
-function smoothZoom() {
-  const diff = targetZoom - currentZoom;
-  if (Math.abs(diff) &lt; 0.001) {
-    currentZoom = targetZoom;
-    state.lowResMode = false;
-    render();
-    return;
-  }
-  currentZoom += diff * 0.15;  // 15% per frame
-  state.zoom = currentZoom;
-  render();
-  requestAnimationFrame(smoothZoom);
-}</div>
-        <p>Result: Buttery smooth 60fps zoom with no judder</p>
-
-        <h3>3. Optimized Fractal Calculation</h3>
-        <div class="feature-box">
-            <ul>
-                <li><strong>Pre-computed escape radius squared</strong> &mdash; Avoid sqrt on every iteration</li>
-                <li><strong>Magnitude squared comparison</strong> &mdash; Compare zReal&sup2; + zImag&sup2; directly</li>
-                <li><strong>Reduced variable assignments</strong> &mdash; Minimize allocations in hot loop</li>
-                <li><strong>Half iterations in low-res mode</strong> &mdash; Faster interactive feedback</li>
-            </ul>
-        </div>
-
-        <h3>Performance Metrics</h3>
-        <table class="perf-table">
-            <thead>
-                <tr>
-                    <th>Operation</th>
-                    <th>Target</th>
-                    <th>Achieved</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>Initial render (1920x1080)</td><td>&lt; 2s</td><td>~500ms</td></tr>
-                <tr><td>Low-res drag (960x540 equiv)</td><td>60fps</td><td>60fps</td></tr>
-                <tr><td>Smooth zoom transition</td><td>60fps</td><td>60fps</td></tr>
-                <tr><td>Animation playback</td><td>30&ndash;60fps</td><td>60fps</td></tr>
-                <tr><td>Parameter slider response</td><td>&lt; 100ms</td><td>~50ms</td></tr>
-                <tr><td>Preset loading</td><td>&lt; 500ms</td><td>~200ms</td></tr>
-            </tbody>
-        </table>
-
-        <hr class="section-divider">
-
-        <!-- IMPLEMENTATION DETAILS -->
-        <h2 id="implementation">Implementation Details</h2>
-
-        <h3>Julia Set Calculation</h3>
-        <div class="code-block">function calculateJulia(x, y) {
-  const scale = 4 / state.zoom;
-  const real = (x - width/2) / (width/4) * scale + state.centerX;
-  const imag = (y - height/2) / (height/4) * scale + state.centerY;
-
-  let zReal = real, zImag = imag, iter = 0;
-
-  while (zReal*zReal + zImag*zImag &lt;= 4 &amp;&amp; iter &lt; maxIter) {
-    const temp = zReal*zReal - zImag*zImag + state.c.real;
-    zImag = 2*zReal*zImag + state.c.imag;
-    zReal = temp;
-    iter++;
-  }
-  return iter;
-}</div>
-
-        <h3>Mandelbrot Set Calculation</h3>
-        <div class="code-block">function calculateMandelbrot(x, y) {
-  const scale = 4 / state.zoom;
-  const cReal = (x - width/2) / (width/4) * scale + state.centerX;
-  const cImag = (y - height/2) / (height/4) * scale + state.centerY;
-
-  let zReal = 0, zImag = 0, iter = 0;
-
-  while (zReal*zReal + zImag*zImag &lt;= 4 &amp;&amp; iter &lt; maxIter) {
-    const temp = zReal*zReal - zImag*zImag + cReal;
-    zImag = 2*zReal*zImag + cImag;
-    zReal = temp;
-    iter++;
-  }
-  return iter;
-}</div>
-
-        <h3>Easing Functions</h3>
-        <div class="code-block">const easingFunctions = {
-  linear:    (t) =&gt; t,
-  easeInOut: (t) =&gt; t &lt; 0.5 ? 2*t*t : -1 + (4 - 2*t)*t,
-  easeIn:    (t) =&gt; t*t,
-  easeOut:   (t) =&gt; t*(2-t),
-  bounce:    (t) =&gt; {
-    if (t &lt; 0.5) return 8*t*t*t*t;
-    const f = t - 1;
-    return 1 + 8*f*f*f*f;
-  }
-};</div>
-
-        <h3>Complex Interpolation</h3>
-        <div class="code-block">function interpolateComplex(c1, c2, t, easing = 'linear') {
-  const easedT = easingFunctions[easing](t);
-  return {
-    real: c1.real + (c2.real - c1.real) * easedT,
-    imag: c1.imag + (c2.imag - c1.imag) * easedT
-  };
-}</div>
-
-        <h3>Coordinate Transformations</h3>
-        <div class="code-block">// Pixel to Complex Plane
-function pixelToComplex(px, py) {
-  const scale = 4 / state.zoom;
-  const real = (px - canvas.width/2) / (canvas.width/4) * scale + state.centerX;
-  const imag = (py - canvas.height/2) / (canvas.height/4) * scale + state.centerY;
-  return { real, imag };
-}
-
-// Complex Plane to Pixel
-function complexToPixel(real, imag) {
-  const scale = 4 / state.zoom;
-  const px = (real - state.centerX) * (canvas.width/4) / scale + canvas.width/2;
-  const py = (imag - state.centerY) * (canvas.height/4) / scale + canvas.height/2;
-  return { x: px, y: py };
-}</div>
-
-        <hr class="section-divider">
-
-        <!-- LESSONS LEARNED -->
-        <h2 id="lessons">Lessons Learned</h2>
-
-        <div class="lesson-box">
-            <h5>Challenge 1: Blank Canvas on Load</h5>
-            <p class="problem">Problem: Canvas wouldn't render on initial page load</p>
-            <p class="solution">Solution: Removed validation checks, set explicit fallback dimensions (1200x800), render immediately without delays</p>
-            <p class="takeaway">"Sometimes the simplest solution is the best. Don't over-engineer."</p>
-        </div>
-
-        <div class="lesson-box">
-            <h5>Challenge 2: Slow Rendering Performance</h5>
-            <p class="problem">Problem: Rendering too slow, causing lag during interaction</p>
-            <p class="solution">Solution: Adaptive quality system &mdash; low-res (2x2 blocks) during interaction, half iterations during animation, full quality when idle</p>
-            <p class="takeaway">"Profile before optimizing. The biggest win was adaptive quality, not algorithmic improvements."</p>
-        </div>
-
-        <div class="lesson-box">
-            <h5>Challenge 3: Janky Zoom</h5>
-            <p class="problem">Problem: Mouse wheel zoom was jumpy and unpleasant</p>
-            <p class="solution">Solution: Smooth exponential interpolation &mdash; <code>currentZoom += (targetZoom - currentZoom) * 0.15</code></p>
-            <p class="takeaway">"User experience is about feel, not just functionality."</p>
-        </div>
-
-        <div class="lesson-box">
-            <h5>Challenge 4: Button Responsiveness</h5>
-            <p class="problem">Problem: Buttons felt laggy due to over-aggressive debouncing (100&ndash;150ms)</p>
-            <p class="solution">Solution: Removed all debouncing from buttons; direct render calls. Throttle only continuous inputs (sliders)</p>
-            <p class="takeaway">"Different interactions need different strategies."</p>
-        </div>
-
-        <div class="lesson-box">
-            <h5>Challenge 5: Animation Smoothness</h5>
-            <p class="problem">Problem: Animations stuttery at 30fps</p>
-            <p class="solution">Solution: Increased frame generation (15x multiplier), reduced iterations 30% during playback, smoother easing</p>
-            <p class="takeaway">"Smooth animation requires both algorithmic optimization AND adaptive quality."</p>
-        </div>
-
-        <h3>Best Practices Discovered</h3>
-
-        <h4>Performance</h4>
-        <ul>
-            <li><strong>Adaptive quality is key</strong> &mdash; Different quality for different contexts</li>
-            <li><strong>Profile, don't guess</strong> &mdash; The bottleneck might surprise you</li>
-            <li><strong>Throttle continuously, not discrete</strong> &mdash; Sliders need throttling, buttons don't</li>
-            <li><strong>Pre-compute when possible</strong> &mdash; Escape radius squared, not checking every iteration</li>
-        </ul>
-
-        <h4>User Experience</h4>
-        <ul>
-            <li><strong>Smooth &gt; Fast</strong> &mdash; 30fps smooth beats 60fps janky</li>
-            <li><strong>Instant feedback</strong> &mdash; Visual response should be immediate</li>
-            <li><strong>Progressive enhancement</strong> &mdash; Low-res preview, high-res refinement</li>
-            <li><strong>Clear affordances</strong> &mdash; Cursor changes, hover states, visual feedback</li>
-        </ul>
-
-        <h4>Code Organization</h4>
-        <ul>
-            <li><strong>Single file can work</strong> &mdash; For apps under 5000 lines</li>
-            <li><strong>State centralization</strong> &mdash; One source of truth</li>
-            <li><strong>Pure functions</strong> &mdash; Easier to debug and optimize</li>
-        </ul>
-
-        <hr class="section-divider">
-
-        <!-- FUTURE ENHANCEMENTS -->
-        <h2 id="future">Future Enhancements</h2>
-
-        <h3>Short Term</h3>
-        <ul class="enhancement-list">
-            <li>Touch gesture support</li>
-            <li>Keyboard shortcuts</li>
-            <li>More easing functions</li>
-            <li>Custom color palette creator</li>
-            <li>Animation export (GIF)</li>
-        </ul>
-
-        <h3>Medium Term</h3>
-        <ul class="enhancement-list">
-            <li>WebGL renderer (10x performance)</li>
-            <li>Deep zoom (arbitrary precision)</li>
-            <li>More fractal types</li>
-            <li>3D visualization</li>
-            <li>Mobile app version</li>
-        </ul>
-
-        <h3>Long Term</h3>
-        <ul class="enhancement-list">
-            <li>Community preset gallery</li>
-            <li>Social sharing</li>
-            <li>Video export (WebM/MP4)</li>
-            <li>GPU acceleration</li>
-            <li>Real-time collaboration</li>
-            <li>VR/AR visualization</li>
-        </ul>
-
-        <hr class="section-divider">
-
-        <!-- TECHNICAL REQUIREMENTS -->
-        <h2>Technical Requirements</h2>
-
-        <h3>Browser Compatibility</h3>
-        <div class="browser-grid">
-            <div class="browser-item"><strong>Chrome/Edge</strong>Full support (recommended)</div>
-            <div class="browser-item"><strong>Firefox</strong>Full support</div>
-            <div class="browser-item"><strong>Safari</strong>Full support</div>
-            <div class="browser-item"><strong>Mobile</strong>Partial (no touch gestures)</div>
-        </div>
-
-        <h3>Minimum System Requirements</h3>
-        <ul>
-            <li><strong>CPU:</strong> Any modern processor</li>
-            <li><strong>RAM:</strong> 2GB minimum, 4GB recommended</li>
-            <li><strong>Display:</strong> 1280x720 minimum, 1920x1080 recommended</li>
-            <li><strong>GPU:</strong> Not required (Canvas 2D)</li>
-        </ul>
-
-        <h3>Performance Targets</h3>
-        <div class="metrics-grid">
-            <div class="metric-card"><span class="value">&lt; 1s</span><span class="label">Initial Load</span></div>
-            <div class="metric-card"><span class="value">&lt; 500ms</span><span class="label">Initial Render (1080p)</span></div>
-            <div class="metric-card"><span class="value">&lt; 16ms</span><span class="label">Interaction Response</span></div>
-            <div class="metric-card"><span class="value">60fps</span><span class="label">Animation Frame</span></div>
-        </div>
-
-        <h3>File Structure</h3>
-        <div class="file-structure">fractal-explorer.html (single file)
-+-- HTML Structure
-|   +-- Canvas container
-|   +-- Sidebar with tabs
-|   +-- Status bar
-+-- CSS Styles (~500 lines)
-|   +-- Color variables
-|   +-- Layout
-|   +-- Components
-|   +-- Animations
-+-- JavaScript (~2000 lines)
-    +-- State management
-    +-- Easing functions
-    +-- Color palettes
-    +-- Presets
-    +-- Fractal calculations
-    +-- Rendering engine
-    +-- Event handlers
-    +-- Animation system
-    +-- Export functions
-    +-- Initialization</div>
-
-        <hr class="section-divider">
-
-        <!-- CONCLUSION -->
-        <h2 id="conclusion">Conclusion</h2>
-
-        <p>The Fractal Explorer successfully combines mathematical beauty with user-friendly design. Through iterative development and performance optimization, we created a smooth, responsive, and visually stunning tool for exploring Julia and Mandelbrot sets.</p>
-
-        <h3>Key Achievements</h3>
-        <div class="achievements-grid">
-            <div class="achievement"><span class="check">&#10003;</span><span>Buttery smooth 60fps zoom and pan</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Mesmerizing parameter morphing</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Beautiful soft pink aesthetic</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Instant button responsiveness</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Single-file, no-build-step simplicity</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>10 curated presets</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>8 color palettes</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Dual fractal modes</span></div>
-            <div class="achievement"><span class="check">&#10003;</span><span>Comprehensive export options</span></div>
-        </div>
-
-        <div class="philosophy">
-            "Make it smooth, make it beautiful, make it work."
-        </div>
-
-        <p>The journey from blank canvas to polished application taught valuable lessons about performance, user experience, and the importance of iterative refinement. The result is a tool that's both powerful for exploration and delightful to use.</p>
-
-        <div class="credits">
-            <p>Created by Claude (Anthropic)</p>
-            <p>February 2026 &middot; Version 1.0</p>
+        <div class="coord-tooltip" id="coordTooltip"></div>
+        <div class="status-bar">
+            <span class="status-ready" id="statusText">Ready</span>
+            <span id="renderTime">0ms</span>
+            <span id="statusCenter">Center: 0.00, 0.00</span>
+            <span id="statusBounds"></span>
         </div>
     </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>FRACTAL EXPLORER</h1>
+            <p>Soft Dreams &middot; Pastel Fractals</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="mode">Mode</button>
+            <button class="tab-btn" data-tab="params">Params</button>
+            <button class="tab-btn" data-tab="colors">Colors</button>
+            <button class="tab-btn" data-tab="presets">Presets</button>
+            <button class="tab-btn" data-tab="animate">Animate</button>
+            <button class="tab-btn" data-tab="export">Export</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- MODE TAB -->
+            <div class="tab-panel active" id="tab-mode">
+                <div class="control-group">
+                    <div class="control-label">Fractal Type</div>
+                    <div class="btn-row">
+                        <button class="btn active" id="btnJulia">Julia Set</button>
+                        <button class="btn" id="btnMandelbrot">Mandelbrot</button>
+                    </div>
+                </div>
+                <div class="info-box" id="modeInfo">
+                    <strong>Julia Set Mode</strong><br>
+                    Each pixel z is iterated using z&sup2; + c where c is the complex parameter you control. Adjust c in the Params tab to explore different shapes.
+                </div>
+                <div class="info-box" id="modeTip" style="margin-top:8px; display:none;">
+                    Tip: Click anywhere on the Mandelbrot set to generate its corresponding Julia set!
+                </div>
+            </div>
+
+            <!-- PARAMS TAB -->
+            <div class="tab-panel" id="tab-params">
+                <div class="control-group" id="juliaParams">
+                    <div class="control-label">Real (a) <span class="val" id="valReal">-0.40</span></div>
+                    <input type="range" id="sliderReal" min="-2" max="2" step="0.01" value="-0.4">
+                    <div class="control-label">Imaginary (b) <span class="val" id="valImag">0.60</span></div>
+                    <input type="range" id="sliderImag" min="-2" max="2" step="0.01" value="0.6">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Max Iterations <span class="val" id="valIter">100</span></div>
+                    <input type="range" id="sliderIter" min="50" max="500" step="10" value="100">
+                    <div class="control-label">Escape Radius <span class="val" id="valEscape">2</span></div>
+                    <input type="range" id="sliderEscape" min="2" max="10" step="0.5" value="2">
+                </div>
+                <div class="btn-row">
+                    <button class="btn" id="btnRandomize">Randomize</button>
+                    <button class="btn" id="btnResetParams">Reset</button>
+                </div>
+                <div class="info-box">
+                    The Julia set is defined by iterating z&sup2; + c for every point z in the complex plane. Different values of c produce wildly different fractal shapes.
+                </div>
+            </div>
+
+            <!-- COLORS TAB -->
+            <div class="tab-panel" id="tab-colors">
+                <div class="control-group">
+                    <div class="control-label">Palette</div>
+                    <div class="palette-grid" id="paletteGrid"></div>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Custom Gradient</div>
+                    <div class="color-row">
+                        <label>Start</label>
+                        <input type="color" id="colorStart" value="#000066">
+                        <label>End</label>
+                        <input type="color" id="colorEnd" value="#ff88cc">
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn" id="btnApplyCustom">Apply Custom</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="color-row">
+                        <label>Interior</label>
+                        <input type="color" id="colorInterior" value="#000000">
+                    </div>
+                    <div class="control-label">Color Steps <span class="val" id="valSteps">100</span></div>
+                    <input type="range" id="sliderSteps" min="10" max="256" step="1" value="100">
+                    <div class="check-row">
+                        <input type="checkbox" id="chkReverse">
+                        <label for="chkReverse">Reverse Palette</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRESETS TAB -->
+            <div class="tab-panel" id="tab-presets">
+                <div id="presetList"></div>
+            </div>
+
+            <!-- ANIMATE TAB -->
+            <div class="tab-panel" id="tab-animate">
+                <div class="control-group">
+                    <div class="control-label">Animation Type</div>
+                    <select id="animType">
+                        <option value="circular">Circular Path</option>
+                        <option value="linear">Linear Path</option>
+                        <option value="figure8">Figure-8 Path</option>
+                        <option value="morph">Morph Between Presets</option>
+                        <option value="customMorph">Custom Morph Path</option>
+                    </select>
+                </div>
+
+                <div id="morphControls" style="display:none;">
+                    <div class="control-group">
+                        <div class="control-label">From Preset</div>
+                        <select id="morphFrom"></select>
+                        <div class="control-label">To Preset</div>
+                        <select id="morphTo"></select>
+                    </div>
+                </div>
+
+                <div id="customMorphControls" style="display:none;">
+                    <div class="control-group">
+                        <div class="control-label">Waypoints</div>
+                        <div class="waypoint-list" id="waypointList"></div>
+                        <div class="btn-row">
+                            <button class="btn" id="btnAddWaypoint">Add Current</button>
+                            <button class="btn" id="btnClearWaypoints">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group" id="pathControls">
+                    <div class="control-label">Speed (FPS) <span class="val" id="valSpeed">30</span></div>
+                    <input type="range" id="sliderSpeed" min="1" max="60" step="1" value="30">
+                    <div class="control-label">Path Radius <span class="val" id="valRadius">0.30</span></div>
+                    <input type="range" id="sliderRadius" min="0.1" max="1" step="0.05" value="0.3">
+                </div>
+
+                <div class="control-group" id="morphDurationControl" style="display:none;">
+                    <div class="control-label">Duration (s) <span class="val" id="valDuration">5</span></div>
+                    <input type="range" id="sliderDuration" min="1" max="20" step="1" value="5">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Easing</div>
+                    <select id="easingSelect">
+                        <option value="linear">Linear</option>
+                        <option value="easeInOut" selected>Ease In-Out</option>
+                        <option value="easeIn">Ease In</option>
+                        <option value="easeOut">Ease Out</option>
+                        <option value="bounce">Bounce</option>
+                    </select>
+                    <div class="check-row">
+                        <input type="checkbox" id="chkLoop" checked>
+                        <label for="chkLoop">Loop Animation</label>
+                    </div>
+                </div>
+
+                <div class="anim-controls">
+                    <button class="btn" id="btnPlay">&#9654;</button>
+                    <button class="btn" id="btnPause">&#9208;</button>
+                    <button class="btn" id="btnStop">&#9209;</button>
+                </div>
+            </div>
+
+            <!-- EXPORT TAB -->
+            <div class="tab-panel" id="tab-export">
+                <div class="control-group">
+                    <div class="control-label">Export Image</div>
+                    <select id="exportRes">
+                        <option value="1">Current Resolution</option>
+                        <option value="2">2x Resolution</option>
+                        <option value="4">4x Resolution</option>
+                    </select>
+                    <button class="btn" id="btnExportPNG" style="width:100%;">Download PNG</button>
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Settings</div>
+                    <div class="btn-row">
+                        <button class="btn" id="btnExportJSON">Export JSON</button>
+                        <button class="btn" id="btnImportJSON">Import JSON</button>
+                    </div>
+                    <input type="file" id="fileImport" accept=".json" style="display:none;">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">Share</div>
+                    <button class="btn" id="btnShareURL" style="width:100%;">Copy Share URL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+    mode: 'julia',
+    c: { real: -0.4, imag: 0.6 },
+    maxIter: 100,
+    escapeRadius: 2,
+    zoom: 1,
+    centerX: 0,
+    centerY: 0,
+    currentPalette: 'ocean',
+    interiorColor: [0, 0, 0],
+    colorSteps: 100,
+    reversePalette: false,
+    isDragging: false,
+    lowResMode: false,
+    animation: {
+        playing: false,
+        type: 'circular',
+        speed: 30,
+        radius: 0.3,
+        loop: true,
+        morphFrom: null,
+        morphTo: null,
+        morphProgress: 0,
+        morphDuration: 5,
+        easing: 'easeInOut',
+        waypoints: [],
+        currentWaypoint: 0,
+        startTime: 0,
+        startC: null,
+        animFrame: null
+    }
+};
+
+// ============================================================
+// EASING FUNCTIONS
+// ============================================================
+const easingFunctions = {
+    linear: (t) => t,
+    easeInOut: (t) => t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t,
+    easeIn: (t) => t*t,
+    easeOut: (t) => t*(2-t),
+    bounce: (t) => {
+        if (t < 0.5) return 8*t*t*t*t;
+        const f = t - 1;
+        return 1 + 8*f*f*f*f;
+    }
+};
+
+// ============================================================
+// COLOR PALETTES
+// ============================================================
+const palettes = {
+    classic: [
+        { pos: 0, color: [0, 0, 0] },
+        { pos: 0.4, color: [0, 0, 180] },
+        { pos: 0.7, color: [0, 100, 255] },
+        { pos: 1, color: [255, 255, 255] }
+    ],
+    fire: [
+        { pos: 0, color: [0, 0, 0] },
+        { pos: 0.3, color: [180, 0, 0] },
+        { pos: 0.6, color: [255, 120, 0] },
+        { pos: 1, color: [255, 255, 50] }
+    ],
+    ocean: [
+        { pos: 0, color: [0, 20, 40] },
+        { pos: 0.4, color: [0, 105, 148] },
+        { pos: 0.7, color: [0, 191, 255] },
+        { pos: 1, color: [173, 216, 230] }
+    ],
+    sunset: [
+        { pos: 0, color: [30, 0, 50] },
+        { pos: 0.3, color: [128, 0, 128] },
+        { pos: 0.6, color: [255, 100, 50] },
+        { pos: 1, color: [255, 180, 200] }
+    ],
+    monochrome: [
+        { pos: 0, color: [0, 0, 0] },
+        { pos: 1, color: [255, 255, 255] }
+    ],
+    psychedelic: [
+        { pos: 0, color: [255, 0, 0] },
+        { pos: 0.17, color: [255, 165, 0] },
+        { pos: 0.33, color: [255, 255, 0] },
+        { pos: 0.5, color: [0, 200, 0] },
+        { pos: 0.67, color: [0, 100, 255] },
+        { pos: 0.83, color: [128, 0, 255] },
+        { pos: 1, color: [255, 0, 128] }
+    ],
+    cosmic: [
+        { pos: 0, color: [5, 5, 20] },
+        { pos: 0.25, color: [60, 0, 100] },
+        { pos: 0.5, color: [0, 180, 200] },
+        { pos: 0.75, color: [200, 200, 50] },
+        { pos: 1, color: [255, 255, 220] }
+    ],
+    plasma: [
+        { pos: 0, color: [13, 8, 135] },
+        { pos: 0.25, color: [126, 3, 168] },
+        { pos: 0.5, color: [204, 71, 120] },
+        { pos: 0.75, color: [249, 149, 64] },
+        { pos: 1, color: [240, 249, 33] }
+    ]
+};
+
+// ============================================================
+// PRESETS
+// ============================================================
+const presets = [
+    { name: 'Dendrite', real: 0, imag: 1, iter: 100, desc: 'Tree-like structure' },
+    { name: 'Siegel Disk', real: -0.391, imag: -0.587, iter: 120, desc: 'Circular patterns' },
+    { name: "Douady's Rabbit", real: -0.123, imag: 0.745, iter: 100, desc: 'Classic fractal shape' },
+    { name: 'San Marco', real: -0.75, imag: 0, iter: 80, desc: 'Symmetric beauty' },
+    { name: 'Spiral', real: -0.4, imag: 0.6, iter: 100, desc: 'Swirling patterns' },
+    { name: 'Dragon', real: -0.8, imag: 0.156, iter: 120, desc: 'Curved tendrils' },
+    { name: 'Cauliflower', real: 0.25, imag: 0, iter: 90, desc: 'Fractal vegetable shape' },
+    { name: 'Airplane', real: -0.194, imag: 0.6557, iter: 120, desc: 'Winged appearance' },
+    { name: 'Lightning', real: -0.54, imag: 0.54, iter: 100, desc: 'Electric branches' },
+    { name: 'Nebula', real: 0.285, imag: 0.01, iter: 120, desc: 'Cosmic cloud patterns' }
+];
+
+// ============================================================
+// CANVAS & DOM
+// ============================================================
+const canvas = document.getElementById('fractalCanvas');
+const ctx = canvas.getContext('2d');
+let currentColors = [];
+let imageData, pixels;
+
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight - 32;
+    imageData = ctx.createImageData(canvas.width, canvas.height);
+    pixels = imageData.data;
+    render();
+}
+
+// ============================================================
+// COLOR GENERATION
+// ============================================================
+function generatePaletteColors(palette, steps) {
+    const colors = [];
+    for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1);
+        for (let j = 0; j < palette.length - 1; j++) {
+            if (t >= palette[j].pos && t <= palette[j+1].pos) {
+                const localT = (t - palette[j].pos) / (palette[j+1].pos - palette[j].pos);
+                const color = palette[j].color.map((c, idx) =>
+                    Math.round(c + (palette[j+1].color[idx] - c) * localT)
+                );
+                colors.push(color);
+                break;
+            }
+        }
+    }
+    return state.reversePalette ? colors.reverse() : colors;
+}
+
+function generateCustomColors(startHex, endHex, steps) {
+    const s = hexToRgb(startHex);
+    const e = hexToRgb(endHex);
+    const colors = [];
+    for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1);
+        colors.push([
+            Math.round(s[0] + (e[0] - s[0]) * t),
+            Math.round(s[1] + (e[1] - s[1]) * t),
+            Math.round(s[2] + (e[2] - s[2]) * t)
+        ]);
+    }
+    return state.reversePalette ? colors.reverse() : colors;
+}
+
+function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return [r, g, b];
+}
+
+function updateColors() {
+    if (state.currentPalette === 'custom') {
+        const start = document.getElementById('colorStart').value;
+        const end = document.getElementById('colorEnd').value;
+        currentColors = generateCustomColors(start, end, state.colorSteps);
+    } else {
+        currentColors = generatePaletteColors(palettes[state.currentPalette], state.colorSteps);
+    }
+}
+
+// ============================================================
+// FRACTAL CALCULATION & RENDERING
+// ============================================================
+function render() {
+    const startTime = performance.now();
+    const w = canvas.width;
+    const h = canvas.height;
+    if (w === 0 || h === 0) return;
+
+    const step = state.lowResMode ? 2 : 1;
+    const maxIter = state.lowResMode ? Math.floor(state.maxIter * 0.5) : state.maxIter;
+    const escR2 = state.escapeRadius * state.escapeRadius;
+    const scale = 4 / state.zoom;
+    const numColors = currentColors.length;
+    const intColor = state.interiorColor;
+
+    const halfW = w / 2;
+    const halfH = h / 2;
+    const aspect = w / h;
+    const scaleX = scale * aspect;
+    const scaleY = scale;
+
+    for (let py = 0; py < h; py += step) {
+        const mappedImag = (py - halfH) / halfH * (scaleY / 2) + state.centerY;
+        for (let px = 0; px < w; px += step) {
+            const mappedReal = (px - halfW) / halfW * (scaleX / 2) + state.centerX;
+
+            let zReal, zImag, cReal, cImag;
+            if (state.mode === 'julia') {
+                zReal = mappedReal;
+                zImag = mappedImag;
+                cReal = state.c.real;
+                cImag = state.c.imag;
+            } else {
+                zReal = 0;
+                zImag = 0;
+                cReal = mappedReal;
+                cImag = mappedImag;
+            }
+
+            let iter = 0;
+            let zr2 = zReal * zReal;
+            let zi2 = zImag * zImag;
+
+            while (zr2 + zi2 <= escR2 && iter < maxIter) {
+                zImag = 2 * zReal * zImag + cImag;
+                zReal = zr2 - zi2 + cReal;
+                zr2 = zReal * zReal;
+                zi2 = zImag * zImag;
+                iter++;
+            }
+
+            let r, g, b;
+            if (iter === maxIter) {
+                r = intColor[0]; g = intColor[1]; b = intColor[2];
+            } else {
+                // Smooth coloring
+                const log_zn = Math.log(zr2 + zi2) / 2;
+                const nu = Math.log(log_zn / Math.log(2)) / Math.log(2);
+                const smoothed = iter + 1 - nu;
+                const idx = Math.abs(Math.floor(smoothed)) % numColors;
+                const c = currentColors[idx];
+                r = c[0]; g = c[1]; b = c[2];
+            }
+
+            // Fill pixel(s)
+            for (let dy = 0; dy < step && py + dy < h; dy++) {
+                for (let dx = 0; dx < step && px + dx < w; dx++) {
+                    const i = ((py + dy) * w + (px + dx)) * 4;
+                    pixels[i] = r;
+                    pixels[i+1] = g;
+                    pixels[i+2] = b;
+                    pixels[i+3] = 255;
+                }
+            }
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    const elapsed = (performance.now() - startTime).toFixed(0);
+    document.getElementById('renderTime').textContent = elapsed + 'ms';
+    document.getElementById('statusCenter').textContent =
+        `Center: ${state.centerX.toFixed(3)}, ${state.centerY.toFixed(3)}`;
+
+    const halfScaleX = scaleX / 2;
+    const halfScaleY = scaleY / 2;
+    document.getElementById('statusBounds').textContent =
+        `[${(state.centerX - halfScaleX).toFixed(2)}, ${(state.centerX + halfScaleX).toFixed(2)}] x [${(state.centerY - halfScaleY).toFixed(2)}, ${(state.centerY + halfScaleY).toFixed(2)}]`;
+}
+
+// ============================================================
+// SMOOTH ZOOM
+// ============================================================
+let targetZoom = 1;
+let zoomAnimating = false;
+
+function smoothZoom() {
+    const diff = targetZoom - state.zoom;
+    if (Math.abs(diff) < 0.001) {
+        state.zoom = targetZoom;
+        zoomAnimating = false;
+        state.lowResMode = false;
+        render();
+        updateZoomIndicator();
+        return;
+    }
+    state.zoom += diff * 0.15;
+    state.lowResMode = true;
+    render();
+    updateZoomIndicator();
+    if (zoomAnimating) requestAnimationFrame(smoothZoom);
+}
+
+function updateZoomIndicator() {
+    document.getElementById('zoomIndicator').textContent = `Zoom: ${state.zoom.toFixed(2)}x`;
+}
+
+// ============================================================
+// MOUSE INTERACTION
+// ============================================================
+let dragStartX, dragStartY, dragCenterX, dragCenterY;
+let lastDragTime = 0;
+
+canvas.addEventListener('mousedown', (e) => {
+    if (state.animation.playing) return;
+    state.isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragCenterX = state.centerX;
+    dragCenterY = state.centerY;
+    canvas.style.cursor = 'grabbing';
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    // Coord tooltip
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const aspect = canvas.width / canvas.height;
+    const scale = 4 / state.zoom;
+    const real = (px - canvas.width/2) / (canvas.width/2) * (scale * aspect / 2) + state.centerX;
+    const imag = (py - canvas.height/2) / (canvas.height/2) * (scale / 2) + state.centerY;
+
+    const tooltip = document.getElementById('coordTooltip');
+    tooltip.style.display = 'block';
+    tooltip.textContent = `${real.toFixed(4)} ${imag >= 0 ? '+' : '-'} ${Math.abs(imag).toFixed(4)}i`;
+
+    if (!state.isDragging) return;
+    const now = performance.now();
+    if (now - lastDragTime < 16) return;
+    lastDragTime = now;
+
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    const scaleF = scale / canvas.height;
+    state.centerX = dragCenterX - dx * scaleF * aspect;
+    state.centerY = dragCenterY - dy * scaleF;
+    state.lowResMode = true;
+    render();
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (state.isDragging) {
+        state.isDragging = false;
+        state.lowResMode = false;
+        canvas.style.cursor = 'crosshair';
+        render();
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    document.getElementById('coordTooltip').style.display = 'none';
+    if (state.isDragging) {
+        state.isDragging = false;
+        state.lowResMode = false;
+        canvas.style.cursor = 'crosshair';
+        render();
+    }
+});
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+    targetZoom *= factor;
+    targetZoom = Math.max(0.1, Math.min(targetZoom, 100000));
+    if (!zoomAnimating) {
+        zoomAnimating = true;
+        smoothZoom();
+    }
+}, { passive: false });
+
+canvas.addEventListener('click', (e) => {
+    if (state.mode !== 'mandelbrot') return;
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const aspect = canvas.width / canvas.height;
+    const scale = 4 / state.zoom;
+    const real = (px - canvas.width/2) / (canvas.width/2) * (scale * aspect / 2) + state.centerX;
+    const imag = (py - canvas.height/2) / (canvas.height/2) * (scale / 2) + state.centerY;
+
+    state.c.real = real;
+    state.c.imag = imag;
+    state.mode = 'julia';
+    state.zoom = 1;
+    targetZoom = 1;
+    state.centerX = 0;
+    state.centerY = 0;
+
+    document.getElementById('sliderReal').value = real;
+    document.getElementById('sliderImag').value = imag;
+    document.getElementById('valReal').textContent = real.toFixed(2);
+    document.getElementById('valImag').textContent = imag.toFixed(2);
+    document.getElementById('btnJulia').classList.add('active');
+    document.getElementById('btnMandelbrot').classList.remove('active');
+    updateModeUI();
+    updateZoomIndicator();
+    render();
+});
+
+// ============================================================
+// ZOOM BUTTONS
+// ============================================================
+document.getElementById('zoomIn').addEventListener('click', () => {
+    targetZoom *= 1.5;
+    if (!zoomAnimating) { zoomAnimating = true; smoothZoom(); }
+});
+
+document.getElementById('zoomOut').addEventListener('click', () => {
+    targetZoom /= 1.5;
+    targetZoom = Math.max(0.1, targetZoom);
+    if (!zoomAnimating) { zoomAnimating = true; smoothZoom(); }
+});
+
+document.getElementById('zoomReset').addEventListener('click', () => {
+    state.centerX = state.mode === 'mandelbrot' ? -0.5 : 0;
+    state.centerY = 0;
+    targetZoom = state.mode === 'mandelbrot' ? 0.8 : 1;
+    state.zoom = targetZoom;
+    zoomAnimating = false;
+    updateZoomIndicator();
+    render();
+});
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+// ============================================================
+// MODE CONTROLS
+// ============================================================
+function updateModeUI() {
+    const isJulia = state.mode === 'julia';
+    document.getElementById('juliaParams').style.display = isJulia ? 'block' : 'none';
+    document.getElementById('modeInfo').innerHTML = isJulia
+        ? '<strong>Julia Set Mode</strong><br>Each pixel z is iterated using z&sup2; + c where c is the complex parameter you control. Adjust c in the Params tab.'
+        : '<strong>Mandelbrot Set Mode</strong><br>Each point c in the complex plane is tested. The iconic cardioid shape emerges from this iteration.';
+    document.getElementById('modeTip').style.display = isJulia ? 'none' : 'block';
+}
+
+document.getElementById('btnJulia').addEventListener('click', () => {
+    state.mode = 'julia';
+    state.centerX = 0; state.centerY = 0;
+    state.zoom = 1; targetZoom = 1;
+    document.getElementById('btnJulia').classList.add('active');
+    document.getElementById('btnMandelbrot').classList.remove('active');
+    updateModeUI(); updateZoomIndicator(); render();
+});
+
+document.getElementById('btnMandelbrot').addEventListener('click', () => {
+    state.mode = 'mandelbrot';
+    state.centerX = -0.5; state.centerY = 0;
+    state.zoom = 0.8; targetZoom = 0.8;
+    document.getElementById('btnJulia').classList.remove('active');
+    document.getElementById('btnMandelbrot').classList.add('active');
+    updateModeUI(); updateZoomIndicator(); render();
+});
+
+// ============================================================
+// PARAMETER SLIDERS
+// ============================================================
+let sliderThrottle = 0;
+
+function handleSliderChange() {
+    const now = performance.now();
+    if (now - sliderThrottle < 16) return;
+    sliderThrottle = now;
+
+    state.c.real = parseFloat(document.getElementById('sliderReal').value);
+    state.c.imag = parseFloat(document.getElementById('sliderImag').value);
+    state.maxIter = parseInt(document.getElementById('sliderIter').value);
+    state.escapeRadius = parseFloat(document.getElementById('sliderEscape').value);
+
+    document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+    document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+    document.getElementById('valIter').textContent = state.maxIter;
+    document.getElementById('valEscape').textContent = state.escapeRadius;
+
+    updateColors();
+    render();
+}
+
+['sliderReal', 'sliderImag', 'sliderIter', 'sliderEscape'].forEach(id => {
+    document.getElementById(id).addEventListener('input', handleSliderChange);
+});
+
+document.getElementById('btnRandomize').addEventListener('click', () => {
+    state.c.real = (Math.random() * 4 - 2);
+    state.c.imag = (Math.random() * 4 - 2);
+    // Keep within interesting range
+    state.c.real = Math.round(state.c.real * 100) / 100;
+    state.c.imag = Math.round(state.c.imag * 100) / 100;
+    document.getElementById('sliderReal').value = state.c.real;
+    document.getElementById('sliderImag').value = state.c.imag;
+    document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+    document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+    render();
+});
+
+document.getElementById('btnResetParams').addEventListener('click', () => {
+    state.c.real = -0.4; state.c.imag = 0.6;
+    state.maxIter = 100; state.escapeRadius = 2;
+    document.getElementById('sliderReal').value = -0.4;
+    document.getElementById('sliderImag').value = 0.6;
+    document.getElementById('sliderIter').value = 100;
+    document.getElementById('sliderEscape').value = 2;
+    document.getElementById('valReal').textContent = '-0.40';
+    document.getElementById('valImag').textContent = '0.60';
+    document.getElementById('valIter').textContent = '100';
+    document.getElementById('valEscape').textContent = '2';
+    updateColors(); render();
+});
+
+// ============================================================
+// COLOR CONTROLS
+// ============================================================
+function buildPaletteGrid() {
+    const grid = document.getElementById('paletteGrid');
+    grid.innerHTML = '';
+    Object.keys(palettes).forEach(key => {
+        const div = document.createElement('div');
+        div.className = 'palette-item' + (state.currentPalette === key ? ' active' : '');
+        const colors = generatePaletteColors(palettes[key], 64);
+        const gradient = colors.map((c, i) =>
+            `rgb(${c[0]},${c[1]},${c[2]}) ${(i/63*100).toFixed(1)}%`
+        ).join(',');
+        div.style.background = `linear-gradient(90deg, ${gradient})`;
+        div.innerHTML = `<span>${key}</span>`;
+        div.addEventListener('click', () => {
+            state.currentPalette = key;
+            updateColors();
+            buildPaletteGrid();
+            render();
+        });
+        grid.appendChild(div);
+    });
+}
+
+document.getElementById('btnApplyCustom').addEventListener('click', () => {
+    state.currentPalette = 'custom';
+    updateColors();
+    buildPaletteGrid();
+    document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
+    render();
+});
+
+document.getElementById('colorInterior').addEventListener('input', (e) => {
+    state.interiorColor = hexToRgb(e.target.value);
+    render();
+});
+
+document.getElementById('sliderSteps').addEventListener('input', (e) => {
+    state.colorSteps = parseInt(e.target.value);
+    document.getElementById('valSteps').textContent = state.colorSteps;
+    updateColors(); render();
+});
+
+document.getElementById('chkReverse').addEventListener('change', (e) => {
+    state.reversePalette = e.target.checked;
+    updateColors(); render();
+});
+
+// ============================================================
+// PRESETS
+// ============================================================
+function buildPresetList() {
+    const list = document.getElementById('presetList');
+    list.innerHTML = '';
+    presets.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'preset-item';
+        div.innerHTML = `<div class="name">${p.name}</div><div class="desc">${p.desc} (c = ${p.real} ${p.imag >= 0 ? '+' : '-'} ${Math.abs(p.imag)}i)</div>`;
+        div.addEventListener('click', () => {
+            state.mode = 'julia';
+            state.c.real = p.real;
+            state.c.imag = p.imag;
+            state.maxIter = p.iter;
+            state.centerX = 0; state.centerY = 0;
+            state.zoom = 1; targetZoom = 1;
+
+            document.getElementById('sliderReal').value = p.real;
+            document.getElementById('sliderImag').value = p.imag;
+            document.getElementById('sliderIter').value = p.iter;
+            document.getElementById('valReal').textContent = p.real.toFixed(2);
+            document.getElementById('valImag').textContent = p.imag.toFixed(2);
+            document.getElementById('valIter').textContent = p.iter;
+
+            document.getElementById('btnJulia').classList.add('active');
+            document.getElementById('btnMandelbrot').classList.remove('active');
+            updateModeUI(); updateZoomIndicator(); updateColors(); render();
+        });
+        list.appendChild(div);
+    });
+}
+
+// ============================================================
+// ANIMATION SYSTEM
+// ============================================================
+function updateAnimUI() {
+    const type = document.getElementById('animType').value;
+    const isMorph = type === 'morph';
+    const isCustom = type === 'customMorph';
+    const isPath = !isMorph && !isCustom;
+
+    document.getElementById('morphControls').style.display = isMorph ? 'block' : 'none';
+    document.getElementById('customMorphControls').style.display = isCustom ? 'block' : 'none';
+    document.getElementById('pathControls').style.display = isPath ? 'block' : 'none';
+    document.getElementById('morphDurationControl').style.display = (isMorph || isCustom) ? 'block' : 'none';
+}
+
+function buildMorphSelects() {
+    ['morphFrom', 'morphTo'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        presets.forEach((p, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = p.name;
+            sel.appendChild(opt);
+        });
+    });
+    document.getElementById('morphTo').value = 4; // Spiral
+}
+
+document.getElementById('animType').addEventListener('change', updateAnimUI);
+
+document.getElementById('sliderSpeed').addEventListener('input', (e) => {
+    state.animation.speed = parseInt(e.target.value);
+    document.getElementById('valSpeed').textContent = e.target.value;
+});
+
+document.getElementById('sliderRadius').addEventListener('input', (e) => {
+    state.animation.radius = parseFloat(e.target.value);
+    document.getElementById('valRadius').textContent = parseFloat(e.target.value).toFixed(2);
+});
+
+document.getElementById('sliderDuration').addEventListener('input', (e) => {
+    state.animation.morphDuration = parseInt(e.target.value);
+    document.getElementById('valDuration').textContent = e.target.value;
+});
+
+document.getElementById('easingSelect').addEventListener('change', (e) => {
+    state.animation.easing = e.target.value;
+});
+
+document.getElementById('chkLoop').addEventListener('change', (e) => {
+    state.animation.loop = e.target.checked;
+});
+
+// Waypoints
+document.getElementById('btnAddWaypoint').addEventListener('click', () => {
+    state.animation.waypoints.push({ real: state.c.real, imag: state.c.imag });
+    renderWaypoints();
+});
+
+document.getElementById('btnClearWaypoints').addEventListener('click', () => {
+    state.animation.waypoints = [];
+    renderWaypoints();
+});
+
+function renderWaypoints() {
+    const list = document.getElementById('waypointList');
+    list.innerHTML = '';
+    state.animation.waypoints.forEach((wp, i) => {
+        const div = document.createElement('div');
+        div.className = 'waypoint-item';
+        div.innerHTML = `<span>${i+1}. ${wp.real.toFixed(3)} ${wp.imag >= 0 ? '+' : '-'} ${Math.abs(wp.imag).toFixed(3)}i</span><button data-i="${i}">&times;</button>`;
+        div.querySelector('button').addEventListener('click', () => {
+            state.animation.waypoints.splice(i, 1);
+            renderWaypoints();
+        });
+        list.appendChild(div);
+    });
+}
+
+// Play / Pause / Stop
+document.getElementById('btnPlay').addEventListener('click', startAnimation);
+document.getElementById('btnPause').addEventListener('click', pauseAnimation);
+document.getElementById('btnStop').addEventListener('click', stopAnimation);
+
+let animPauseTime = 0;
+let animElapsedBeforePause = 0;
+
+function startAnimation() {
+    const anim = state.animation;
+    const type = document.getElementById('animType').value;
+    anim.type = type;
+
+    if (!anim.playing) {
+        anim.playing = true;
+        anim.startC = { real: state.c.real, imag: state.c.imag };
+        anim.startTime = performance.now() - animElapsedBeforePause;
+        animationLoop();
+    }
+}
+
+function pauseAnimation() {
+    if (state.animation.playing) {
+        state.animation.playing = false;
+        animElapsedBeforePause = performance.now() - state.animation.startTime;
+        if (state.animation.animFrame) cancelAnimationFrame(state.animation.animFrame);
+    }
+}
+
+function stopAnimation() {
+    state.animation.playing = false;
+    animElapsedBeforePause = 0;
+    if (state.animation.animFrame) cancelAnimationFrame(state.animation.animFrame);
+    if (state.animation.startC) {
+        state.c.real = state.animation.startC.real;
+        state.c.imag = state.animation.startC.imag;
+        document.getElementById('sliderReal').value = state.c.real;
+        document.getElementById('sliderImag').value = state.c.imag;
+        document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+        document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+    }
+    state.lowResMode = false;
+    render();
+}
+
+function animationLoop() {
+    if (!state.animation.playing) return;
+    const anim = state.animation;
+    const elapsed = (performance.now() - anim.startTime) / 1000;
+    const type = anim.type;
+
+    // Reduce quality during animation
+    const origIter = state.maxIter;
+    state.maxIter = Math.max(50, Math.floor(origIter * 0.7));
+    state.lowResMode = true;
+
+    if (type === 'circular' || type === 'linear' || type === 'figure8') {
+        const speed = anim.speed / 60;
+        const t = elapsed * speed;
+        const r = anim.radius;
+        const base = anim.startC;
+
+        if (type === 'circular') {
+            state.c.real = base.real + r * Math.cos(t * Math.PI * 2);
+            state.c.imag = base.imag + r * Math.sin(t * Math.PI * 2);
+        } else if (type === 'linear') {
+            const ping = Math.abs(((t % 2) - 1));
+            const eased = easingFunctions[anim.easing](ping);
+            state.c.real = base.real - r + eased * r * 2;
+            state.c.imag = base.imag;
+        } else if (type === 'figure8') {
+            state.c.real = base.real + r * Math.sin(t * Math.PI * 2);
+            state.c.imag = base.imag + r * Math.sin(t * Math.PI * 4) / 2;
+        }
+    } else if (type === 'morph') {
+        const from = presets[parseInt(document.getElementById('morphFrom').value)];
+        const to = presets[parseInt(document.getElementById('morphTo').value)];
+        const dur = anim.morphDuration;
+        let t = elapsed / dur;
+
+        if (t >= 1) {
+            if (anim.loop) {
+                anim.startTime = performance.now();
+                t = 0;
+            } else {
+                t = 1;
+                anim.playing = false;
+            }
+        }
+
+        const eased = easingFunctions[anim.easing](t);
+        state.c.real = from.real + (to.real - from.real) * eased;
+        state.c.imag = from.imag + (to.imag - from.imag) * eased;
+    } else if (type === 'customMorph') {
+        const wps = anim.waypoints;
+        if (wps.length < 2) {
+            state.animation.playing = false;
+            state.maxIter = origIter;
+            state.lowResMode = false;
+            render();
+            return;
+        }
+        const dur = anim.morphDuration;
+        const totalDur = dur * (wps.length - 1);
+        let t = elapsed / totalDur;
+
+        if (t >= 1) {
+            if (anim.loop) {
+                anim.startTime = performance.now();
+                t = 0;
+            } else {
+                t = 1;
+                anim.playing = false;
+            }
+        }
+
+        const segFloat = t * (wps.length - 1);
+        const seg = Math.min(Math.floor(segFloat), wps.length - 2);
+        const localT = segFloat - seg;
+        const eased = easingFunctions[anim.easing](localT);
+
+        state.c.real = wps[seg].real + (wps[seg+1].real - wps[seg].real) * eased;
+        state.c.imag = wps[seg].imag + (wps[seg+1].imag - wps[seg].imag) * eased;
+    }
+
+    // Update sliders
+    document.getElementById('sliderReal').value = state.c.real;
+    document.getElementById('sliderImag').value = state.c.imag;
+    document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+    document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+
+    render();
+    state.maxIter = origIter;
+
+    if (state.animation.playing) {
+        anim.animFrame = requestAnimationFrame(animationLoop);
+    } else {
+        state.lowResMode = false;
+        render();
+    }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+document.getElementById('btnExportPNG').addEventListener('click', () => {
+    const scale = parseInt(document.getElementById('exportRes').value);
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = canvas.width * scale;
+    exportCanvas.height = canvas.height * scale;
+    const ectx = exportCanvas.getContext('2d');
+    const eid = ectx.createImageData(exportCanvas.width, exportCanvas.height);
+    const ep = eid.data;
+    const w = exportCanvas.width;
+    const h = exportCanvas.height;
+    const escR2 = state.escapeRadius * state.escapeRadius;
+    const scaleView = 4 / state.zoom;
+    const aspect = w / h;
+    const halfW = w/2, halfH = h/2;
+    const scaleX = scaleView * aspect;
+    const scaleY = scaleView;
+    const numColors = currentColors.length;
+
+    document.getElementById('statusText').textContent = 'Rendering...';
+    document.getElementById('statusText').className = '';
+
+    setTimeout(() => {
+        for (let py = 0; py < h; py++) {
+            const mi = (py - halfH) / halfH * (scaleY/2) + state.centerY;
+            for (let px = 0; px < w; px++) {
+                const mr = (px - halfW) / halfW * (scaleX/2) + state.centerX;
+                let zReal, zImag, cReal, cImag;
+                if (state.mode === 'julia') {
+                    zReal = mr; zImag = mi; cReal = state.c.real; cImag = state.c.imag;
+                } else {
+                    zReal = 0; zImag = 0; cReal = mr; cImag = mi;
+                }
+                let iter = 0;
+                let zr2 = zReal*zReal, zi2 = zImag*zImag;
+                while (zr2 + zi2 <= escR2 && iter < state.maxIter) {
+                    zImag = 2*zReal*zImag + cImag;
+                    zReal = zr2 - zi2 + cReal;
+                    zr2 = zReal*zReal; zi2 = zImag*zImag;
+                    iter++;
+                }
+                const i = (py * w + px) * 4;
+                if (iter === state.maxIter) {
+                    ep[i] = state.interiorColor[0]; ep[i+1] = state.interiorColor[1]; ep[i+2] = state.interiorColor[2];
+                } else {
+                    const log_zn = Math.log(zr2+zi2)/2;
+                    const nu = Math.log(log_zn/Math.log(2))/Math.log(2);
+                    const smoothed = iter+1-nu;
+                    const idx = Math.abs(Math.floor(smoothed)) % numColors;
+                    const c = currentColors[idx];
+                    ep[i] = c[0]; ep[i+1] = c[1]; ep[i+2] = c[2];
+                }
+                ep[i+3] = 255;
+            }
+        }
+        ectx.putImageData(eid, 0, 0);
+        const link = document.createElement('a');
+        link.download = `fractal-${Date.now()}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+        document.getElementById('statusText').textContent = 'Ready';
+        document.getElementById('statusText').className = 'status-ready';
+    }, 50);
+});
+
+document.getElementById('btnExportJSON').addEventListener('click', () => {
+    const data = {
+        mode: state.mode,
+        c: state.c,
+        maxIter: state.maxIter,
+        escapeRadius: state.escapeRadius,
+        zoom: state.zoom,
+        centerX: state.centerX,
+        centerY: state.centerY,
+        currentPalette: state.currentPalette,
+        colorSteps: state.colorSteps,
+        reversePalette: state.reversePalette
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `fractal-settings-${Date.now()}.json`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+});
+
+document.getElementById('btnImportJSON').addEventListener('click', () => {
+    document.getElementById('fileImport').click();
+});
+
+document.getElementById('fileImport').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (data.mode) state.mode = data.mode;
+            if (data.c) { state.c.real = data.c.real; state.c.imag = data.c.imag; }
+            if (data.maxIter) state.maxIter = data.maxIter;
+            if (data.escapeRadius) state.escapeRadius = data.escapeRadius;
+            if (data.zoom) { state.zoom = data.zoom; targetZoom = data.zoom; }
+            if (data.centerX !== undefined) state.centerX = data.centerX;
+            if (data.centerY !== undefined) state.centerY = data.centerY;
+            if (data.currentPalette) state.currentPalette = data.currentPalette;
+            if (data.colorSteps) state.colorSteps = data.colorSteps;
+            if (data.reversePalette !== undefined) state.reversePalette = data.reversePalette;
+
+            // Sync UI
+            document.getElementById('sliderReal').value = state.c.real;
+            document.getElementById('sliderImag').value = state.c.imag;
+            document.getElementById('sliderIter').value = state.maxIter;
+            document.getElementById('sliderEscape').value = state.escapeRadius;
+            document.getElementById('sliderSteps').value = state.colorSteps;
+            document.getElementById('chkReverse').checked = state.reversePalette;
+            document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+            document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+            document.getElementById('valIter').textContent = state.maxIter;
+            document.getElementById('valEscape').textContent = state.escapeRadius;
+            document.getElementById('valSteps').textContent = state.colorSteps;
+
+            const isJulia = state.mode === 'julia';
+            document.getElementById('btnJulia').classList.toggle('active', isJulia);
+            document.getElementById('btnMandelbrot').classList.toggle('active', !isJulia);
+
+            updateModeUI(); updateZoomIndicator(); updateColors(); buildPaletteGrid(); render();
+        } catch(err) {
+            alert('Invalid settings file');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
+
+document.getElementById('btnShareURL').addEventListener('click', () => {
+    const params = new URLSearchParams({
+        m: state.mode,
+        cr: state.c.real,
+        ci: state.c.imag,
+        it: state.maxIter,
+        er: state.escapeRadius,
+        z: state.zoom,
+        cx: state.centerX,
+        cy: state.centerY,
+        p: state.currentPalette,
+        cs: state.colorSteps,
+        rv: state.reversePalette ? 1 : 0
+    });
+    const url = window.location.origin + window.location.pathname + '?' + params.toString();
+    navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('statusText').textContent = 'URL copied!';
+        setTimeout(() => {
+            document.getElementById('statusText').textContent = 'Ready';
+            document.getElementById('statusText').className = 'status-ready';
+        }, 2000);
+    });
+});
+
+// ============================================================
+// URL PARAMS LOAD
+// ============================================================
+function loadFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('m')) state.mode = params.get('m');
+    if (params.has('cr')) state.c.real = parseFloat(params.get('cr'));
+    if (params.has('ci')) state.c.imag = parseFloat(params.get('ci'));
+    if (params.has('it')) state.maxIter = parseInt(params.get('it'));
+    if (params.has('er')) state.escapeRadius = parseFloat(params.get('er'));
+    if (params.has('z')) { state.zoom = parseFloat(params.get('z')); targetZoom = state.zoom; }
+    if (params.has('cx')) state.centerX = parseFloat(params.get('cx'));
+    if (params.has('cy')) state.centerY = parseFloat(params.get('cy'));
+    if (params.has('p')) state.currentPalette = params.get('p');
+    if (params.has('cs')) state.colorSteps = parseInt(params.get('cs'));
+    if (params.has('rv')) state.reversePalette = params.get('rv') === '1';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+    loadFromURL();
+
+    // Sync UI to state
+    document.getElementById('sliderReal').value = state.c.real;
+    document.getElementById('sliderImag').value = state.c.imag;
+    document.getElementById('sliderIter').value = state.maxIter;
+    document.getElementById('sliderEscape').value = state.escapeRadius;
+    document.getElementById('sliderSteps').value = state.colorSteps;
+    document.getElementById('chkReverse').checked = state.reversePalette;
+    document.getElementById('valReal').textContent = state.c.real.toFixed(2);
+    document.getElementById('valImag').textContent = state.c.imag.toFixed(2);
+    document.getElementById('valIter').textContent = state.maxIter;
+    document.getElementById('valEscape').textContent = state.escapeRadius;
+    document.getElementById('valSteps').textContent = state.colorSteps;
+
+    const isJulia = state.mode === 'julia';
+    document.getElementById('btnJulia').classList.toggle('active', isJulia);
+    document.getElementById('btnMandelbrot').classList.toggle('active', !isJulia);
+    if (!isJulia) { state.centerX = -0.5; }
+
+    updateModeUI();
+    updateColors();
+    buildPaletteGrid();
+    buildPresetList();
+    buildMorphSelects();
+    updateAnimUI();
+    updateZoomIndicator();
+    resizeCanvas();
+}
+
+window.addEventListener('resize', resizeCanvas);
+init();
+</script>
 </body>
 </html>
