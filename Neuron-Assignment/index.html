@@ -247,8 +247,10 @@ function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
 function calculateDecision() {
   const inp = getInputs();
   const n = getNormalized(inp);
-  const z = n.hoursSlept * weights.hoursSlept + n.timeOfDay * weights.timeOfDay + n.energyLevel * weights.energyLevel + n.comfiness * weights.comfiness + bias;
-  return { probability: sigmoid(z), z, normalized: n, inputs: inp };
+  const w = mode === 'train' ? trainWeights : weights;
+  const b = mode === 'train' ? trainBias : bias;
+  const z = n.hoursSlept * w.hoursSlept + n.timeOfDay * w.timeOfDay + n.energyLevel * w.energyLevel + n.comfiness * w.comfiness + b;
+  return { probability: sigmoid(z), z, normalized: n, inputs: inp, activeWeights: w, activeBias: b };
 }
 
 function predictWithInputs(norm, w, b) {
@@ -268,7 +270,7 @@ function formatTime(h) {
 }
 
 function updateDisplay() {
-  const { probability, z, normalized, inputs } = calculateDecision();
+  const { probability, z, normalized, inputs, activeWeights, activeBias } = calculateDecision();
   const pct = (probability * 100).toFixed(1);
 
   document.getElementById('sleepVal').textContent = inputs.hoursSlept.toFixed(1) + ' hours';
@@ -298,13 +300,13 @@ function updateDisplay() {
   let html = '<div class="math-line"><span class="hl">z</span> = Σ(xᵢ × wᵢ) + b</div>';
   let terms = [];
   keys.forEach((k, i) => {
-    const w = weights[k];
+    const w = activeWeights[k];
     const cls = w >= 0 ? 'pos' : 'neg';
     const contrib = (normalized[k] * w).toFixed(3);
     terms.push(`<div class="math-line">${labels[i]}: <span class="${cls}">${normalized[k].toFixed(3)} × ${w >= 0 ? '+' : ''}${w.toFixed(2)} = ${contrib}</span></div>`);
   });
   html += terms.join('');
-  html += `<div class="math-line">Bias: <span class="hl">${bias >= 0 ? '+' : ''}${bias.toFixed(2)}</span></div>`;
+  html += `<div class="math-line">Bias: <span class="hl">${activeBias >= 0 ? '+' : ''}${activeBias.toFixed(2)}</span></div>`;
   html += `<div class="math-line"><span class="hl">z = ${z.toFixed(3)}</span></div>`;
   html += `<div class="math-line"><span class="hl">σ(${z.toFixed(3)}) = ${pct}%</span></div>`;
   document.getElementById('mathBreakdown').innerHTML = html;
@@ -329,6 +331,7 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
       document.getElementById('vizDesc').textContent = 'Click to add points, then train the network';
     }
     probabilityCache.clear();
+    updateDisplay();
   });
 });
 
@@ -421,6 +424,7 @@ function doTrainStep() {
   document.getElementById('statSteps').textContent = stepCount;
   probabilityCache.clear();
   updateAccuracy();
+  updateDisplay();
 }
 
 function autoTrain() {
@@ -436,6 +440,7 @@ function resetTraining() {
   document.getElementById('statPoints').textContent = '0';
   document.getElementById('statAccuracy').textContent = '--';
   probabilityCache.clear();
+  updateDisplay();
 }
 
 function updateAccuracy() {
