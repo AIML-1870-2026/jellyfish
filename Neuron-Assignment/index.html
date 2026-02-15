@@ -6,7 +6,7 @@
 <title>Neural Decision System: Should I Take a Nap?</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#e4e4f0;min-height:100vh;overflow-x:hidden}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#e4e4f0;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 .stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
 @keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
@@ -14,12 +14,12 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 @keyframes floatCloud{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-30px) translateX(20px)}}
 .float-icon{position:fixed;opacity:.1;font-size:3em;animation:floatIcon 15s ease-in-out infinite;pointer-events:none;z-index:0}
 @keyframes floatIcon{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-40px) rotate(10deg)}}
-h1{text-align:center;font-size:2.5em;padding:20px 10px 5px;background:linear-gradient(90deg,#a78bfa,#ec4899,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;z-index:1}
-.subtitle{text-align:center;color:#9ca3af;margin-bottom:15px;position:relative;z-index:1}
-.container{display:grid;grid-template-columns:320px 1fr 320px;gap:15px;padding:0 15px 20px;max-width:1500px;margin:0 auto;position:relative;z-index:1}
-.panel{background:rgba(30,30,50,.6);backdrop-filter:blur(10px);border:1px solid #a78bfa;border-radius:12px;padding:18px}
+h1{text-align:center;font-size:2em;padding:10px 10px 2px;background:linear-gradient(90deg,#a78bfa,#ec4899,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;z-index:1;flex-shrink:0}
+.subtitle{text-align:center;color:#9ca3af;margin-bottom:8px;position:relative;z-index:1;flex-shrink:0}
+.container{display:grid;grid-template-columns:300px 1fr 300px;gap:12px;padding:0 12px 12px;max-width:1500px;margin:0 auto;position:relative;z-index:1;flex:1;min-height:0;width:100%}
+.panel{background:rgba(30,30,50,.6);backdrop-filter:blur(10px);border:1px solid #a78bfa;border-radius:12px;padding:14px;overflow-y:auto;min-height:0}
 .panel h2{font-size:1.3em;color:#c4b5fd;margin-bottom:12px;border-bottom:1px solid rgba(167,139,250,.3);padding-bottom:8px}
-.input-group{margin-bottom:16px}
+.input-group{margin-bottom:10px}
 .input-group label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:.9em}
 .input-group .value{font-size:1.1em;font-weight:700;color:#a78bfa}
 .weight-badge{display:inline-block;font-size:.75em;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace}
@@ -38,7 +38,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .mode-tab:hover{background:rgba(167,139,250,.3)}
 .viz-title{text-align:center;color:#c4b5fd;margin-bottom:4px;font-size:1.1em}
 .viz-desc{text-align:center;color:#9ca3af;font-size:.8em;margin-bottom:8px}
-canvas{display:block;width:100%;height:550px;border-radius:8px;background:rgba(10,10,30,.5)}
+canvas{display:block;width:100%;flex:1;min-height:200px;border-radius:8px;background:rgba(10,10,30,.5)}
 .axis-selector{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .axis-selector label{color:#9ca3af;font-size:.85em}
 .axis-selector select{background:#1a1a2e;color:#e4e4f0;border:1px solid #a78bfa;border-radius:6px;padding:4px 8px;font-size:.85em}
@@ -69,6 +69,7 @@ canvas{display:block;width:100%;height:550px;border-radius:8px;background:rgba(1
 .math-line .hl{color:#a78bfa}
 .math-line .pos{color:#22d3ee}
 .math-line .neg{color:#ec4899}
+.panel-center{display:flex;flex-direction:column}
 @media(max-width:1400px){.container{grid-template-columns:280px 1fr;}.panel:last-child{grid-column:1/-1}}
 @media(max-width:900px){.container{grid-template-columns:1fr}h1{font-size:1.8em}}
 </style>
@@ -122,7 +123,7 @@ canvas{display:block;width:100%;height:550px;border-radius:8px;background:rgba(1
   </div>
 
   <!-- CENTER PANEL -->
-  <div class="panel">
+  <div class="panel panel-center">
     <div class="mode-tabs">
       <button class="mode-tab active" data-mode="neuron">🧠 Neuron</button>
       <button class="mode-tab" data-mode="boundary">🗺️ Boundary</button>
@@ -146,7 +147,7 @@ canvas{display:block;width:100%;height:550px;border-radius:8px;background:rgba(1
         <option value="comfiness">Comfiness</option>
       </select>
     </div>
-    <canvas id="vizCanvas" width="800" height="550"></canvas>
+    <canvas id="vizCanvas"></canvas>
     <div id="trainControls" style="display:none">
       <div class="train-controls">
         <button class="train-btn btn-yes active" id="btnYes" onclick="setLabel('yes')">✅ YES</button>
