@@ -153,14 +153,14 @@ canvas{display:block;width:100%;flex:1;min-height:200px;border-radius:8px;backgr
         <button class="train-btn btn-yes active" id="btnYes" onclick="setLabel('yes')">✅ YES</button>
         <button class="train-btn btn-no" id="btnNo" onclick="setLabel('no')">❌ NO</button>
         <button class="train-btn btn-step" onclick="doTrainStep()">⏩ Step</button>
-        <button class="train-btn btn-auto" onclick="autoTrain()">🔄 Auto (×10)</button>
+        <button class="train-btn btn-auto" onclick="autoTrain()">🔄 Auto (×50)</button>
         <button class="train-btn btn-reset" onclick="resetTraining()">🗑️ Reset</button>
       </div>
       <div class="train-stats">
         <div class="stat-item"><div class="stat-val" id="statSteps">0</div><div class="stat-label">Steps</div></div>
         <div class="stat-item"><div class="stat-val" id="statPoints">0</div><div class="stat-label">Points</div></div>
         <div class="stat-item"><div class="stat-val" id="statAccuracy">--</div><div class="stat-label">Accuracy</div></div>
-        <div class="stat-item"><div class="stat-val">0.1</div><div class="stat-label">Learn Rate</div></div>
+        <div class="stat-item"><div class="stat-val">0.5</div><div class="stat-label">Learn Rate</div></div>
       </div>
     </div>
   </div>
@@ -188,7 +188,7 @@ let mode = 'neuron';
 let currentLabel = 'yes';
 let trainingData = [];
 let stepCount = 0;
-const learningRate = 0.1;
+const learningRate = 0.5;
 let xAxisInput = 'energyLevel';
 let yAxisInput = 'hoursSlept';
 const probabilityCache = new Map();
@@ -278,7 +278,7 @@ function updateDisplay() {
   document.getElementById('energyVal').textContent = inputs.energyLevel + ' / 10';
   document.getElementById('comfyVal').textContent = inputs.comfiness + ' / 10';
 
-  document.getElementById('probVal').textContent = Math.round(probability * 100) + '%';
+  document.getElementById('probVal').textContent = (probability * 100).toFixed(1) + '%';
   const circle = document.getElementById('probCircle');
   if (probability >= 0.7) {
     circle.style.background = `radial-gradient(circle, rgba(236,72,153,.4), rgba(167,139,250,.3))`;
@@ -428,7 +428,7 @@ function doTrainStep() {
 }
 
 function autoTrain() {
-  for (let i = 0; i < 10; i++) doTrainStep();
+  for (let i = 0; i < 50; i++) doTrainStep();
 }
 
 function resetTraining() {
@@ -579,7 +579,7 @@ function drawNeuronMode() {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(breathe, breathe);
-  ctx.fillText(Math.round(probability * 100) + '%', 0, 0);
+  ctx.fillText((probability * 100).toFixed(1) + '%', 0, 0);
   ctx.restore();
   ctx.textBaseline = 'alphabetic';
 }
@@ -833,6 +833,8 @@ function animate(timestamp) {
   if (mode === 'neuron') drawNeuronMode();
   else if (mode === 'boundary') drawBoundaryMode();
   else drawTrainingMode();
+
+  updateDisplay();
 }
 
 updateDisplay();
