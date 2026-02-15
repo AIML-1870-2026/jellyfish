@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Decision System: Should I Take a Nap?</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);color:#e4e4f0;min-height:100vh;overflow-x:hidden}
+.stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+.cloud{position:fixed;border-radius:50%;background:rgba(167,139,250,.1);filter:blur(20px);animation:floatCloud 20s ease-in-out infinite;pointer-events:none;z-index:0}
+@keyframes floatCloud{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-30px) translateX(20px)}}
+.float-icon{position:fixed;opacity:.1;font-size:3em;animation:floatIcon 15s ease-in-out infinite;pointer-events:none;z-index:0}
+@keyframes floatIcon{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-40px) rotate(10deg)}}
+h1{text-align:center;font-size:2.5em;padding:20px 10px 5px;background:linear-gradient(90deg,#a78bfa,#ec4899,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;z-index:1}
+.subtitle{text-align:center;color:#9ca3af;margin-bottom:15px;position:relative;z-index:1}
+.container{display:grid;grid-template-columns:320px 1fr 320px;gap:15px;padding:0 15px 20px;max-width:1500px;margin:0 auto;position:relative;z-index:1}
+.panel{background:rgba(30,30,50,.6);backdrop-filter:blur(10px);border:1px solid #a78bfa;border-radius:12px;padding:18px}
+.panel h2{font-size:1.3em;color:#c4b5fd;margin-bottom:12px;border-bottom:1px solid rgba(167,139,250,.3);padding-bottom:8px}
+.input-group{margin-bottom:16px}
+.input-group label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:.9em}
+.input-group .value{font-size:1.1em;font-weight:700;color:#a78bfa}
+.weight-badge{display:inline-block;font-size:.75em;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace}
+.weight-pos{background:rgba(34,211,238,.15);color:#22d3ee;border:1px solid rgba(34,211,238,.3)}
+.weight-neg{background:rgba(236,72,153,.15);color:#ec4899;border:1px solid rgba(236,72,153,.3)}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:linear-gradient(90deg,#f87171,#fbbf24,#4ade80);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#a78bfa;cursor:pointer;box-shadow:0 0 10px rgba(167,139,250,.5)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#a78bfa;cursor:pointer;border:none;box-shadow:0 0 10px rgba(167,139,250,.5)}
+.range-labels{display:flex;justify-content:space-between;font-size:.75em;color:#9ca3af}
+.bias-info{margin-top:12px;padding:10px;background:rgba(167,139,250,.1);border-radius:8px;font-size:.85em}
+.bias-info strong{color:#a78bfa}
+.sigmoid-info{margin-top:10px;padding:10px;background:rgba(34,211,238,.1);border-radius:8px;font-size:.85em;font-family:'Courier New',monospace;text-align:center;color:#22d3ee}
+.mode-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mode-tab{padding:8px 16px;border-radius:8px;border:1px solid #a78bfa;background:transparent;color:#c4b5fd;cursor:pointer;font-size:.9em;transition:all .2s}
+.mode-tab.active{background:#a78bfa;color:#1a1a2e;font-weight:700}
+.mode-tab:hover{background:rgba(167,139,250,.3)}
+.viz-title{text-align:center;color:#c4b5fd;margin-bottom:4px;font-size:1.1em}
+.viz-desc{text-align:center;color:#9ca3af;font-size:.8em;margin-bottom:8px}
+canvas{display:block;width:100%;border-radius:8px;background:rgba(10,10,30,.5)}
+.axis-selector{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.axis-selector label{color:#9ca3af;font-size:.85em}
+.axis-selector select{background:#1a1a2e;color:#e4e4f0;border:1px solid #a78bfa;border-radius:6px;padding:4px 8px;font-size:.85em}
+.train-controls{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.train-btn{padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-size:.85em;transition:all .2s}
+.btn-yes{background:rgba(74,222,128,.2);color:#4ade80;border-color:#4ade80}
+.btn-yes.active{background:#4ade80;color:#1a1a2e}
+.btn-no{background:rgba(248,113,113,.2);color:#f87171;border-color:#f87171}
+.btn-no.active{background:#f87171;color:#1a1a2e}
+.btn-step{background:rgba(167,139,250,.2);color:#a78bfa;border-color:#a78bfa}
+.btn-step:hover{background:rgba(167,139,250,.4)}
+.btn-auto{background:rgba(34,211,238,.2);color:#22d3ee;border-color:#22d3ee}
+.btn-auto:hover{background:rgba(34,211,238,.4)}
+.btn-reset{background:rgba(248,113,113,.2);color:#f87171;border-color:#f87171}
+.btn-reset:hover{background:rgba(248,113,113,.4)}
+.train-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;padding:10px;background:rgba(30,30,50,.5);border-radius:8px}
+.stat-item{text-align:center}
+.stat-item .stat-val{font-size:1.1em;font-weight:700;color:#a78bfa}
+.stat-item .stat-label{font-size:.7em;color:#9ca3af}
+.prob-circle-wrap{display:flex;justify-content:center;margin:10px 0}
+.prob-circle{width:180px;height:180px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:all .3s}
+.prob-circle .prob-val{font-size:2.5em;font-weight:700;color:#fff}
+.prob-circle .prob-label{font-size:.85em;color:rgba(255,255,255,.8)}
+.decision-text{text-align:center;font-size:1.3em;margin:10px 0;font-weight:700}
+.math-section{margin-top:14px;padding:12px;background:rgba(10,10,30,.4);border-radius:8px}
+.math-section h3{font-size:1em;color:#c4b5fd;margin-bottom:8px}
+.math-line{font-family:'Courier New',monospace;font-size:.8em;color:#9ca3af;margin:3px 0;line-height:1.4}
+.math-line .hl{color:#a78bfa}
+.math-line .pos{color:#22d3ee}
+.math-line .neg{color:#ec4899}
+@media(max-width:1400px){.container{grid-template-columns:280px 1fr;}.panel:last-child{grid-column:1/-1}}
+@media(max-width:900px){.container{grid-template-columns:1fr}h1{font-size:1.8em}}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="cloud" style="width:250px;height:250px;top:10%;left:5%;animation-delay:0s"></div>
+<div class="cloud" style="width:200px;height:200px;top:60%;right:10%;animation-delay:-7s"></div>
+<div class="cloud" style="width:300px;height:300px;top:30%;left:60%;animation-delay:-13s"></div>
+<div class="float-icon" style="top:15%;left:8%;animation-delay:0s">🛏️</div>
+<div class="float-icon" style="top:70%;right:12%;animation-delay:-5s">💤</div>
+<div class="float-icon" style="top:40%;left:80%;animation-delay:-10s">☁️</div>
+
+<h1>🧠 Neural Nap Advisor</h1>
+<p class="subtitle">Should you take a nap? Let a neural network decide.</p>
+
+<div class="container">
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <h2>Input Factors</h2>
+    <div class="input-group">
+      <label>Hours of Sleep (Last Night) <span class="weight-badge weight-neg">w = -0.40</span></label>
+      <label><span class="range-labels" style="display:inline">🥱</span> <span class="value" id="sleepVal">6.0 hours</span></label>
+      <input type="range" id="sleepSlider" min="1" max="12" step="0.5" value="6">
+      <div class="range-labels"><span>1 hr</span><span>12 hrs</span></div>
+    </div>
+    <div class="input-group">
+      <label>Time of Day <span class="weight-badge weight-pos">w = +0.50</span></label>
+      <label><span>🕐</span> <span class="value" id="timeVal">2:00 PM</span></label>
+      <input type="range" id="timeSlider" min="0" max="23" step="1" value="14">
+      <div class="range-labels"><span>12 AM</span><span>11 PM</span></div>
+    </div>
+    <div class="input-group">
+      <label>Energy Level <span class="weight-badge weight-neg">w = -0.60</span></label>
+      <label><span>⚡</span> <span class="value" id="energyVal">5 / 10</span></label>
+      <input type="range" id="energySlider" min="1" max="10" step="1" value="5">
+      <div class="range-labels"><span>Exhausted</span><span>Wired</span></div>
+    </div>
+    <div class="input-group">
+      <label>Comfiness <span class="weight-badge weight-pos">w = +0.30</span></label>
+      <label><span>🛋️</span> <span class="value" id="comfyVal">5 / 10</span></label>
+      <input type="range" id="comfySlider" min="1" max="10" step="1" value="5">
+      <div class="range-labels"><span>Hard bench</span><span>Cloud bed</span></div>
+    </div>
+    <div class="bias-info">
+      <strong>Bias:</strong> <span id="biasDisplay">+1.00</span><br>
+      <span style="color:#9ca3af;font-size:.8em">Base tendency toward napping</span>
+    </div>
+    <div class="sigmoid-info">σ(z) = 1 / (1 + e<sup>-z</sup>)</div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div class="panel">
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="neuron">🧠 Neuron</button>
+      <button class="mode-tab" data-mode="boundary">🗺️ Boundary</button>
+      <button class="mode-tab" data-mode="train">🎓 Training</button>
+    </div>
+    <div class="viz-title" id="vizTitle">Neuron Visualization</div>
+    <div class="viz-desc" id="vizDesc">See how each input influences the decision</div>
+    <div class="axis-selector" id="axisSelector" style="display:none">
+      <label>X Axis:</label>
+      <select id="xAxis">
+        <option value="hoursSlept">Hours of Sleep</option>
+        <option value="timeOfDay">Time of Day</option>
+        <option value="energyLevel" selected>Energy Level</option>
+        <option value="comfiness">Comfiness</option>
+      </select>
+      <label>Y Axis:</label>
+      <select id="yAxis">
+        <option value="hoursSlept" selected>Hours of Sleep</option>
+        <option value="timeOfDay">Time of Day</option>
+        <option value="energyLevel">Energy Level</option>
+        <option value="comfiness">Comfiness</option>
+      </select>
+    </div>
+    <canvas id="vizCanvas" width="800" height="550"></canvas>
+    <div id="trainControls" style="display:none">
+      <div class="train-controls">
+        <button class="train-btn btn-yes active" id="btnYes" onclick="setLabel('yes')">✅ YES</button>
+        <button class="train-btn btn-no" id="btnNo" onclick="setLabel('no')">❌ NO</button>
+        <button class="train-btn btn-step" onclick="doTrainStep()">⏩ Step</button>
+        <button class="train-btn btn-auto" onclick="autoTrain()">🔄 Auto (×10)</button>
+        <button class="train-btn btn-reset" onclick="resetTraining()">🗑️ Reset</button>
+      </div>
+      <div class="train-stats">
+        <div class="stat-item"><div class="stat-val" id="statSteps">0</div><div class="stat-label">Steps</div></div>
+        <div class="stat-item"><div class="stat-val" id="statPoints">0</div><div class="stat-label">Points</div></div>
+        <div class="stat-item"><div class="stat-val" id="statAccuracy">--</div><div class="stat-label">Accuracy</div></div>
+        <div class="stat-item"><div class="stat-val">0.1</div><div class="stat-label">Learn Rate</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <h2>Decision Output</h2>
+    <div class="prob-circle-wrap">
+      <div class="prob-circle" id="probCircle">
+        <div class="prob-val" id="probVal">50%</div>
+        <div class="prob-label">Nap Probability</div>
+      </div>
+    </div>
+    <div class="decision-text" id="decisionText">🤔 Maybe... your call!</div>
+    <div class="math-section">
+      <h3>Calculation Breakdown</h3>
+      <div id="mathBreakdown"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let mode = 'neuron';
+let currentLabel = 'yes';
+let trainingData = [];
+let stepCount = 0;
+const learningRate = 0.1;
+let xAxisInput = 'energyLevel';
+let yAxisInput = 'hoursSlept';
+const probabilityCache = new Map();
+
+const defaultWeights = { hoursSlept: -0.40, timeOfDay: 0.50, energyLevel: -0.60, comfiness: 0.30 };
+let weights = { ...defaultWeights };
+let bias = 1.0;
+
+// Training-specific weights
+let trainWeights = { ...defaultWeights };
+let trainBias = 1.0;
+
+const canvas = document.getElementById('vizCanvas');
+const ctx = canvas.getContext('2d');
+let animTime = 0;
+let lastFrame = 0;
+const FPS_INTERVAL = 1000 / 30;
+
+// ===== STARS =====
+(function createStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 100; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = 1 + Math.random() * 2;
+    s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s`;
+    container.appendChild(s);
+  }
+})();
+
+// ===== NORMALIZATION =====
+function normalizeHours(h) { return 1 - ((h - 1) / 11); }
+function normalizeTime(h) { return 1 - (Math.abs(h - 14) / 12); }
+function normalizeLinear(v) { return v / 10; }
+
+function getInputs() {
+  return {
+    hoursSlept: parseFloat(document.getElementById('sleepSlider').value),
+    timeOfDay: parseInt(document.getElementById('timeSlider').value),
+    energyLevel: parseInt(document.getElementById('energySlider').value),
+    comfiness: parseInt(document.getElementById('comfySlider').value)
+  };
+}
+
+function getNormalized(inp) {
+  return {
+    hoursSlept: normalizeHours(inp.hoursSlept),
+    timeOfDay: normalizeTime(inp.timeOfDay),
+    energyLevel: normalizeLinear(inp.energyLevel),
+    comfiness: normalizeLinear(inp.comfiness)
+  };
+}
+
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+
+function calculateDecision() {
+  const inp = getInputs();
+  const n = getNormalized(inp);
+  const z = n.hoursSlept * weights.hoursSlept + n.timeOfDay * weights.timeOfDay + n.energyLevel * weights.energyLevel + n.comfiness * weights.comfiness + bias;
+  return { probability: sigmoid(z), z, normalized: n, inputs: inp };
+}
+
+function predictWithInputs(norm, w, b) {
+  const key = `${norm.hoursSlept.toFixed(3)},${norm.timeOfDay.toFixed(3)},${norm.energyLevel.toFixed(3)},${norm.comfiness.toFixed(3)},${w.hoursSlept},${w.timeOfDay},${w.energyLevel},${w.comfiness},${b}`;
+  if (probabilityCache.has(key)) return probabilityCache.get(key);
+  const z = norm.hoursSlept * w.hoursSlept + norm.timeOfDay * w.timeOfDay + norm.energyLevel * w.energyLevel + norm.comfiness * w.comfiness + b;
+  const p = sigmoid(z);
+  probabilityCache.set(key, p);
+  if (probabilityCache.size > 5000) probabilityCache.clear();
+  return p;
+}
+
+// ===== DISPLAY UPDATE =====
+function formatTime(h) {
+  const hr = h % 12 || 12;
+  return `${hr}:00 ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+function updateDisplay() {
+  const { probability, z, normalized, inputs } = calculateDecision();
+  const pct = (probability * 100).toFixed(1);
+
+  document.getElementById('sleepVal').textContent = inputs.hoursSlept.toFixed(1) + ' hours';
+  document.getElementById('timeVal').textContent = formatTime(inputs.timeOfDay);
+  document.getElementById('energyVal').textContent = inputs.energyLevel + ' / 10';
+  document.getElementById('comfyVal').textContent = inputs.comfiness + ' / 10';
+
+  document.getElementById('probVal').textContent = Math.round(probability * 100) + '%';
+  const circle = document.getElementById('probCircle');
+  if (probability >= 0.7) {
+    circle.style.background = `radial-gradient(circle, rgba(236,72,153,.4), rgba(167,139,250,.3))`;
+    circle.style.boxShadow = '0 0 40px rgba(236,72,153,.4)';
+    document.getElementById('decisionText').innerHTML = '<span style="color:#4ade80">😴 Yes, take that nap!</span>';
+  } else if (probability <= 0.3) {
+    circle.style.background = `radial-gradient(circle, rgba(100,100,120,.4), rgba(60,60,80,.3))`;
+    circle.style.boxShadow = '0 0 20px rgba(100,100,120,.3)';
+    document.getElementById('decisionText').innerHTML = '<span style="color:#f87171">☀️ Stay awake!</span>';
+  } else {
+    circle.style.background = `radial-gradient(circle, rgba(251,191,36,.3), rgba(167,139,250,.2))`;
+    circle.style.boxShadow = '0 0 30px rgba(251,191,36,.3)';
+    document.getElementById('decisionText').innerHTML = '<span style="color:#fbbf24">🤔 Maybe... your call!</span>';
+  }
+
+  // Math breakdown
+  const keys = ['hoursSlept', 'timeOfDay', 'energyLevel', 'comfiness'];
+  const labels = ['Hours of Sleep', 'Time of Day', 'Energy Level', 'Comfiness'];
+  let html = '<div class="math-line"><span class="hl">z</span> = Σ(xᵢ × wᵢ) + b</div>';
+  let terms = [];
+  keys.forEach((k, i) => {
+    const w = weights[k];
+    const cls = w >= 0 ? 'pos' : 'neg';
+    const contrib = (normalized[k] * w).toFixed(3);
+    terms.push(`<div class="math-line">${labels[i]}: <span class="${cls}">${normalized[k].toFixed(3)} × ${w >= 0 ? '+' : ''}${w.toFixed(2)} = ${contrib}</span></div>`);
+  });
+  html += terms.join('');
+  html += `<div class="math-line">Bias: <span class="hl">${bias >= 0 ? '+' : ''}${bias.toFixed(2)}</span></div>`;
+  html += `<div class="math-line"><span class="hl">z = ${z.toFixed(3)}</span></div>`;
+  html += `<div class="math-line"><span class="hl">σ(${z.toFixed(3)}) = ${pct}%</span></div>`;
+  document.getElementById('mathBreakdown').innerHTML = html;
+}
+
+// ===== MODES =====
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    mode = tab.dataset.mode;
+    document.getElementById('axisSelector').style.display = mode === 'neuron' ? 'none' : 'flex';
+    document.getElementById('trainControls').style.display = mode === 'train' ? 'block' : 'none';
+    if (mode === 'neuron') {
+      document.getElementById('vizTitle').textContent = 'Neuron Visualization';
+      document.getElementById('vizDesc').textContent = 'See how each input influences the decision';
+    } else if (mode === 'boundary') {
+      document.getElementById('vizTitle').textContent = 'Decision Boundary Visualizer';
+      document.getElementById('vizDesc').textContent = 'Explore the 2D decision landscape';
+    } else {
+      document.getElementById('vizTitle').textContent = 'Training Mode';
+      document.getElementById('vizDesc').textContent = 'Click to add points, then train the network';
+    }
+    probabilityCache.clear();
+  });
+});
+
+// ===== AXIS SELECTION =====
+document.getElementById('xAxis').addEventListener('change', (e) => {
+  if (e.target.value === yAxisInput) {
+    document.getElementById('yAxis').value = xAxisInput;
+    yAxisInput = xAxisInput;
+  }
+  xAxisInput = e.target.value;
+  probabilityCache.clear();
+});
+document.getElementById('yAxis').addEventListener('change', (e) => {
+  if (e.target.value === xAxisInput) {
+    document.getElementById('xAxis').value = yAxisInput;
+    xAxisInput = yAxisInput;
+  }
+  yAxisInput = e.target.value;
+  probabilityCache.clear();
+});
+
+// ===== SLIDERS =====
+['sleepSlider', 'timeSlider', 'energySlider', 'comfySlider'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    probabilityCache.clear();
+    updateDisplay();
+  });
+});
+
+// ===== TRAINING =====
+function setLabel(l) {
+  currentLabel = l;
+  document.getElementById('btnYes').classList.toggle('active', l === 'yes');
+  document.getElementById('btnNo').classList.toggle('active', l === 'no');
+}
+
+function getRawRange(key) {
+  if (key === 'hoursSlept') return [1, 12];
+  if (key === 'timeOfDay') return [0, 23];
+  return [1, 10];
+}
+
+function normalizeByKey(key, val) {
+  if (key === 'hoursSlept') return normalizeHours(val);
+  if (key === 'timeOfDay') return normalizeTime(val);
+  return normalizeLinear(val);
+}
+
+canvas.addEventListener('click', (e) => {
+  if (mode !== 'train') return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+  const pad = 60;
+  const w = canvas.width - pad * 2;
+  const h = canvas.height - pad * 2;
+  if (px < pad || px > pad + w || py < pad || py > pad + h) return;
+  const xFrac = (px - pad) / w;
+  const yFrac = 1 - (py - pad) / h;
+  const [xMin, xMax] = getRawRange(xAxisInput);
+  const [yMin, yMax] = getRawRange(yAxisInput);
+  const xRaw = xMin + xFrac * (xMax - xMin);
+  const yRaw = yMin + yFrac * (yMax - yMin);
+  const inp = getInputs();
+  inp[xAxisInput] = xRaw;
+  inp[yAxisInput] = yRaw;
+  const n = getNormalized(inp);
+  trainingData.push({ norm: n, label: currentLabel, x: xFrac, y: yFrac });
+  document.getElementById('statPoints').textContent = trainingData.length;
+  updateAccuracy();
+});
+
+function doTrainStep() {
+  if (trainingData.length === 0) return;
+  const keys = ['hoursSlept', 'timeOfDay', 'energyLevel', 'comfiness'];
+  let gradW = {}; keys.forEach(k => gradW[k] = 0);
+  let gradB = 0;
+  trainingData.forEach(pt => {
+    const z = keys.reduce((s, k) => s + pt.norm[k] * trainWeights[k], 0) + trainBias;
+    const pred = sigmoid(z);
+    const target = pt.label === 'yes' ? 1 : 0;
+    const err = pred - target;
+    keys.forEach(k => { gradW[k] += err * pt.norm[k]; });
+    gradB += err;
+  });
+  const n = trainingData.length;
+  keys.forEach(k => { trainWeights[k] -= learningRate * (gradW[k] / n); });
+  trainBias -= learningRate * (gradB / n);
+  stepCount++;
+  document.getElementById('statSteps').textContent = stepCount;
+  probabilityCache.clear();
+  updateAccuracy();
+}
+
+function autoTrain() {
+  for (let i = 0; i < 10; i++) doTrainStep();
+}
+
+function resetTraining() {
+  trainingData = [];
+  stepCount = 0;
+  trainWeights = { ...defaultWeights };
+  trainBias = 1.0;
+  document.getElementById('statSteps').textContent = '0';
+  document.getElementById('statPoints').textContent = '0';
+  document.getElementById('statAccuracy').textContent = '--';
+  probabilityCache.clear();
+}
+
+function updateAccuracy() {
+  if (trainingData.length === 0) { document.getElementById('statAccuracy').textContent = '--'; return; }
+  const keys = ['hoursSlept', 'timeOfDay', 'energyLevel', 'comfiness'];
+  let correct = 0;
+  trainingData.forEach(pt => {
+    const z = keys.reduce((s, k) => s + pt.norm[k] * trainWeights[k], 0) + trainBias;
+    const pred = sigmoid(z) >= 0.5 ? 'yes' : 'no';
+    if (pred === pt.label) correct++;
+  });
+  document.getElementById('statAccuracy').textContent = ((correct / trainingData.length) * 100).toFixed(0) + '%';
+}
+
+// ===== DRAWING =====
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function colorForProb(p, isTraining) {
+  if (isTraining) {
+    if (p < 0.5) {
+      const t = p / 0.5;
+      return `rgb(${Math.round(lerp(248,255,t))},${Math.round(lerp(113,255,t))},${Math.round(lerp(113,255,t))})`;
+    } else {
+      const t = (p - 0.5) / 0.5;
+      return `rgb(${Math.round(lerp(255,74,t))},${Math.round(lerp(255,222,t))},${Math.round(lerp(255,128,t))})`;
+    }
+  }
+  if (p < 0.5) {
+    const t = p / 0.5;
+    return `rgb(${Math.round(lerp(34,255,t))},${Math.round(lerp(211,255,t))},${Math.round(lerp(238,255,t))})`;
+  } else {
+    const t = (p - 0.5) / 0.5;
+    return `rgb(${Math.round(lerp(255,236,t))},${Math.round(lerp(255,72,t))},${Math.round(lerp(255,153,t))})`;
+  }
+}
+
+function getAxisLabel(key) {
+  return { hoursSlept: 'Hours of Sleep', timeOfDay: 'Time of Day', energyLevel: 'Energy Level', comfiness: 'Comfiness' }[key];
+}
+
+function drawNeuronMode() {
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const { probability, normalized } = calculateDecision();
+  const keys = ['hoursSlept', 'timeOfDay', 'energyLevel', 'comfiness'];
+  const labels = ['Hours of Sleep', 'Time of Day', 'Energy Level', 'Comfiness'];
+  const angles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.25, Math.PI * 0.75];
+  const radius = Math.min(W, H) * 0.35;
+
+  // Draw lines and endpoints
+  keys.forEach((k, i) => {
+    const w = weights[k];
+    const contribution = normalized[k] * w;
+    const ex = cx + Math.cos(angles[i]) * radius;
+    const ey = cy + Math.sin(angles[i]) * radius;
+    const color = w >= 0 ? '#22d3ee' : '#ec4899';
+    const thick = 2 + Math.abs(contribution) * 6;
+
+    // Line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = thick;
+    ctx.globalAlpha = 0.4 + Math.abs(contribution) * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Flowing dots
+    const dotCount = 3;
+    for (let d = 0; d < dotCount; d++) {
+      const t = ((animTime * 0.5 + d / dotCount) % 1);
+      const dx = lerp(cx, ex, t);
+      const dy = lerp(cy, ey, t);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Endpoint circle
+    const pulse = 8 + Math.sin(animTime * Math.PI) * 2;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.arc(ex, ey, pulse + 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(ex, ey, pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = '#e4e4f0';
+    ctx.font = '13px Segoe UI';
+    ctx.textAlign = 'center';
+    const lx = cx + Math.cos(angles[i]) * (radius + 30);
+    const ly = cy + Math.sin(angles[i]) * (radius + 30);
+    ctx.fillText(labels[i], lx, ly - 8);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 12px Courier New';
+    ctx.fillText((contribution >= 0 ? '+' : '') + contribution.toFixed(3), lx, ly + 10);
+  });
+
+  // Center circle
+  const cPulse = 60 * (1 + Math.sin(animTime * Math.PI) * 0.05);
+  // Glow rings
+  for (let r = 3; r >= 1; r--) {
+    const gAlpha = 0.05 + Math.sin(animTime * Math.PI * (0.5 + r * 0.3)) * 0.03;
+    ctx.fillStyle = probability >= 0.5 ? `rgba(236,72,153,${gAlpha})` : `rgba(150,150,170,${gAlpha})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cPulse + r * 20, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cPulse);
+  if (probability >= 0.5) {
+    grad.addColorStop(0, 'rgba(236,72,153,.6)');
+    grad.addColorStop(1, 'rgba(167,139,250,.3)');
+  } else {
+    grad.addColorStop(0, 'rgba(120,120,140,.5)');
+    grad.addColorStop(1, 'rgba(80,80,100,.2)');
+  }
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, cPulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 28px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const breathe = 1 + Math.sin(animTime * Math.PI * 0.5) * 0.02;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(breathe, breathe);
+  ctx.fillText(Math.round(probability * 100) + '%', 0, 0);
+  ctx.restore();
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawHeatmap(gridSize, useWeights, useBias, isTraining) {
+  const pad = 60;
+  const W = canvas.width - pad * 2;
+  const H = canvas.height - pad * 2;
+  const cellW = W / gridSize;
+  const cellH = H / gridSize;
+  const inp = getInputs();
+  const baseNorm = getNormalized(inp);
+  const [xMin, xMax] = getRawRange(xAxisInput);
+  const [yMin, yMax] = getRawRange(yAxisInput);
+
+  for (let xi = 0; xi < gridSize; xi++) {
+    for (let yi = 0; yi < gridSize; yi++) {
+      const xFrac = xi / (gridSize - 1);
+      const yFrac = yi / (gridSize - 1);
+      const xRaw = xMin + xFrac * (xMax - xMin);
+      const yRaw = yMin + (1 - yFrac / (gridSize - 1) * (gridSize - 1)) * (yMax - yMin);
+      const yRawCorrected = yMin + (1 - yi / (gridSize - 1)) * (yMax - yMin);
+      const norm = { ...baseNorm };
+      norm[xAxisInput] = normalizeByKey(xAxisInput, xRaw);
+      norm[yAxisInput] = normalizeByKey(yAxisInput, yRawCorrected);
+      const p = predictWithInputs(norm, useWeights, useBias);
+      ctx.fillStyle = colorForProb(p, isTraining);
+      ctx.fillRect(pad + xi * cellW, pad + yi * cellH, cellW + 1, cellH + 1);
+    }
+  }
+
+  // Axes labels
+  ctx.fillStyle = '#1a1a2e';
+  ctx.font = 'bold 13px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(getAxisLabel(xAxisInput), pad + W / 2, pad + H + 40);
+  ctx.save();
+  ctx.translate(pad - 40, pad + H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(getAxisLabel(yAxisInput), 0, 0);
+  ctx.restore();
+
+  // Tick labels
+  ctx.font = '11px Segoe UI';
+  ctx.fillStyle = '#9ca3af';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const t = i / 4;
+    const xr = xMin + t * (xMax - xMin);
+    const yr = yMin + t * (yMax - yMin);
+    ctx.fillText(xAxisInput === 'timeOfDay' ? formatTime(Math.round(xr)) : xr.toFixed(1), pad + t * W, pad + H + 20);
+    ctx.textAlign = 'right';
+    ctx.fillText(yAxisInput === 'timeOfDay' ? formatTime(Math.round(yr)) : yr.toFixed(1), pad - 8, pad + H - t * H + 4);
+    ctx.textAlign = 'center';
+  }
+}
+
+function drawContourLine(gridSize, step, useWeights, useBias) {
+  const pad = 60;
+  const W = canvas.width - pad * 2;
+  const H = canvas.height - pad * 2;
+  const inp = getInputs();
+  const baseNorm = getNormalized(inp);
+  const [xMin, xMax] = getRawRange(xAxisInput);
+  const [yMin, yMax] = getRawRange(yAxisInput);
+
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 3 + Math.sin(animTime * Math.PI) * 1;
+  ctx.setLineDash([10, 6]);
+  ctx.lineDashOffset = -animTime * 20;
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 15 + Math.sin(animTime * Math.PI * 0.7) * 10;
+
+  for (let xi = 0; xi < gridSize; xi += step) {
+    for (let yi = 0; yi < gridSize; yi += step) {
+      const xFrac = xi / (gridSize - 1);
+      const yFrac = yi / (gridSize - 1);
+      const xRaw = xMin + xFrac * (xMax - xMin);
+      const yRaw = yMin + (1 - yFrac / (gridSize - 1) * (gridSize - 1)) * (yMax - yMin);
+      const yRawC = yMin + (1 - yi / (gridSize - 1)) * (yMax - yMin);
+      const norm = { ...baseNorm };
+      norm[xAxisInput] = normalizeByKey(xAxisInput, xRaw);
+      norm[yAxisInput] = normalizeByKey(yAxisInput, yRawC);
+      const p = predictWithInputs(norm, useWeights, useBias);
+
+      // Check neighbors
+      if (xi + step < gridSize) {
+        const xRaw2 = xMin + (xi + step) / (gridSize - 1) * (xMax - xMin);
+        const norm2 = { ...baseNorm };
+        norm2[xAxisInput] = normalizeByKey(xAxisInput, xRaw2);
+        norm2[yAxisInput] = normalizeByKey(yAxisInput, yRawC);
+        const p2 = predictWithInputs(norm2, useWeights, useBias);
+        if ((p - 0.5) * (p2 - 0.5) < 0) {
+          const t = (0.5 - p) / (p2 - p);
+          const px = pad + (xi + t * step) / (gridSize - 1) * W;
+          const py = pad + yi / (gridSize - 1) * H;
+          ctx.beginPath();
+          ctx.arc(px, py, 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      if (yi + step < gridSize) {
+        const yRawC2 = yMin + (1 - (yi + step) / (gridSize - 1)) * (yMax - yMin);
+        const norm2 = { ...baseNorm };
+        norm2[xAxisInput] = normalizeByKey(xAxisInput, xRaw);
+        norm2[yAxisInput] = normalizeByKey(yAxisInput, yRawC2);
+        const p2 = predictWithInputs(norm2, useWeights, useBias);
+        if ((p - 0.5) * (p2 - 0.5) < 0) {
+          const t = (0.5 - p) / (p2 - p);
+          const px = pad + xi / (gridSize - 1) * W;
+          const py = pad + (yi + t * step) / (gridSize - 1) * H;
+          ctx.beginPath();
+          ctx.arc(px, py, 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+}
+
+function drawCrosshair() {
+  const pad = 60;
+  const W = canvas.width - pad * 2;
+  const H = canvas.height - pad * 2;
+  const inp = getInputs();
+  const [xMin, xMax] = getRawRange(xAxisInput);
+  const [yMin, yMax] = getRawRange(yAxisInput);
+  const xFrac = (inp[xAxisInput] - xMin) / (xMax - xMin);
+  const yFrac = 1 - (inp[yAxisInput] - yMin) / (yMax - yMin);
+  const px = pad + xFrac * W;
+  const py = pad + yFrac * H;
+
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px, pad); ctx.lineTo(px, pad + H);
+  ctx.moveTo(pad, py); ctx.lineTo(pad + W, py);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const pulse = 10 + Math.sin(animTime * Math.PI * 0.67) * 3;
+  const glow = ctx.createRadialGradient(px, py, 0, px, py, 50);
+  glow.addColorStop(0, 'rgba(255,255,255,0.3)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(px - 50, py - 50, 100, 100);
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px, py, pulse, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawLegend(isTraining) {
+  const x = canvas.width - 50;
+  const y = 30;
+  const h = 150;
+  const w = 20;
+  for (let i = 0; i < h; i++) {
+    const p = 1 - i / h;
+    ctx.fillStyle = colorForProb(p, isTraining);
+    ctx.fillRect(x, y + i, w, 2);
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.strokeRect(x, y, w, h);
+  ctx.font = 'bold 11px Segoe UI';
+  ctx.textAlign = 'left';
+  const labels = [['100%', 0], ['50%', 0.5], ['0%', 1]];
+  labels.forEach(([text, frac]) => {
+    const ly = y + frac * h;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillRect(x + w + 3, ly - 7, 32, 14);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillText(text, x + w + 5, ly + 4);
+  });
+}
+
+function drawBoundaryMode() {
+  drawHeatmap(40, weights, bias, false);
+  drawContourLine(60, 2, weights, bias);
+  drawCrosshair();
+  drawLegend(false);
+}
+
+function drawTrainingMode() {
+  drawHeatmap(30, trainWeights, trainBias, true);
+  drawContourLine(50, 2, trainWeights, trainBias);
+  drawCrosshair();
+  drawLegend(true);
+
+  // Training points
+  const pad = 60;
+  const W = canvas.width - pad * 2;
+  const H = canvas.height - pad * 2;
+  trainingData.forEach((pt, i) => {
+    const [xMin, xMax] = getRawRange(xAxisInput);
+    const [yMin, yMax] = getRawRange(yAxisInput);
+    const px = pad + pt.x * W;
+    const py = pad + (1 - pt.y) * H;
+    const pulse = 8 + Math.sin((animTime + i * 0.3) * Math.PI) * 2;
+    const color = pt.label === 'yes' ? '#4ade80' : '#f87171';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(px, py, pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+}
+
+// ===== ANIMATION LOOP =====
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+  const delta = timestamp - lastFrame;
+  if (delta < FPS_INTERVAL) return;
+  lastFrame = timestamp - (delta % FPS_INTERVAL);
+  animTime = timestamp / 1000;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+  }
+  // Use CSS size for drawing
+  const cssW = rect.width;
+  const cssH = rect.height;
+  // Reset transform and clear
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // Temporarily override canvas.width/height for drawing functions
+  const origW = canvas.width;
+  const origH = canvas.height;
+  canvas.drawWidth = cssW;
+  canvas.drawHeight = cssH;
+
+  // Patch for draw functions to use CSS dimensions
+  const savedW = canvas.width;
+  const savedH = canvas.height;
+  Object.defineProperty(canvas, '_cssW', { value: cssW, writable: true });
+  Object.defineProperty(canvas, '_cssH', { value: cssH, writable: true });
+
+  if (mode === 'neuron') drawNeuronMode();
+  else if (mode === 'boundary') drawBoundaryMode();
+  else drawTrainingMode();
+}
+
+// Fix: override width/height access in draw functions to use CSS size
+// Simpler approach: just set canvas to fixed size
+(function initCanvas() {
+  canvas.width = 800;
+  canvas.height = 550;
+})();
+
+updateDisplay();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
