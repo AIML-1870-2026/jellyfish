@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #FFF8F0;
+    font-family: 'DM Sans', sans-serif;
+    color: #2A1F1A;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Ambient background blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #FFD43B, #A8E063);
+    top: -150px; left: -150px;
+  }
+  body::after {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #FF6B2B, #FFD43B);
+    bottom: -150px; right: -150px;
+  }
+
+  .page-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Nav */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .app-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.6rem;
+    color: #2A1F1A;
+  }
+  .mode-pills {
+    display: flex;
+    gap: 8px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    padding: 4px;
+    backdrop-filter: blur(8px);
+  }
+  .mode-pill {
+    background: none;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #6B5B52;
+    transition: all 0.2s;
+  }
+  .mode-pill.active {
+    background: #2A1F1A;
+    color: #FFF8F0;
+  }
+
+  /* Panels */
+  .panel {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 24px;
+    box-shadow: 0 8px 40px rgba(42,31,26,0.10);
+    backdrop-filter: blur(8px);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .panel-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: #2A1F1A;
+    margin-bottom: 18px;
+  }
+
+  /* Mode containers */
+  .mode-view { display: none; }
+  .mode-view.active { display: block; }
+
+  /* Explorer panel layout */
+  .explorer-inner {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .canvases-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .canvas-wrap {
+    position: relative;
+    width: 260px;
+    height: 260px;
+  }
+  .canvas-wrap canvas {
+    border-radius: 50%;
+    cursor: crosshair;
+    display: block;
+  }
+  .canvas-label {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6B5B52;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Pulse ring */
+  @keyframes citrusPulse {
+    0%   { opacity: 0.85; transform: scale(1); }
+    60%  { opacity: 0.3;  transform: scale(1.18); }
+    100% { opacity: 0;    transform: scale(1.35); }
+  }
+  .pulse-ring {
+    position: absolute;
+    top: 0; left: 0;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    border: 4px solid #FF6B2B;
+    pointer-events: none;
+    animation: citrusPulse 0.6s ease-out forwards;
+  }
+
+  /* Controls column */
+  .explorer-controls {
+    flex: 1;
+    min-width: 200px;
+  }
+  .color-swatch-large {
+    width: 100%;
+    height: 70px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 12px rgba(42,31,26,0.12);
+    transition: background 0.1s;
+  }
+  .hex-display {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2A1F1A;
+    letter-spacing: 0.02em;
+  }
+  .color-name-display {
+    font-size: 0.85rem;
+    color: #6B5B52;
+    font-weight: 300;
+    margin: 2px 0 4px;
+  }
+  .rgb-text-display {
+    font-size: 0.8rem;
+    color: #6B5B52;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .copy-btn {
+    background: #2A1F1A;
+    color: #FFF8F0;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 18px;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: #FF6B2B; transform: translateY(-1px); }
+  .copy-btn:active { transform: scale(0.97); }
+
+  /* Sliders */
+  .slider-group { margin-bottom: 14px; }
+  .slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .slider-label { letter-spacing: 0.08em; text-transform: uppercase; }
+  .slider-val { font-variant-numeric: tabular-nums; color: #6B5B52; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    border: 2px solid rgba(0,0,0,0.15);
+    cursor: grab;
+  }
+  .slider-r { background: linear-gradient(to right, #1a0000, #ff0000); }
+  .slider-g { background: linear-gradient(to right, #001a00, #00ff00); }
+  .slider-b { background: linear-gradient(to right, #00001a, #0000ff); }
+
+  /* Palette panel */
+  .harmony-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .harmony-tab {
+    background: none;
+    border: 1.5px solid #2A1F1A;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #2A1F1A;
+    transition: all 0.18s;
+  }
+  .harmony-tab.active {
+    background: #2A1F1A;
+    color: #FFF8F0;
+  }
+  .harmony-tab:hover:not(.active) { background: rgba(42,31,26,0.07); }
+
+  .palette-base-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .palette-swatch-small {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(42,31,26,0.12);
+    flex-shrink: 0;
+  }
+  .palette-sliders { flex: 1; min-width: 180px; }
+  .palette-sliders .slider-group { margin-bottom: 8px; }
+
+  .random-btn {
+    background: linear-gradient(135deg, #FFD43B, #FF6B2B);
+    border: none;
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #2A1F1A;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .random-btn:hover { transform: rotate(5deg) scale(1.05); }
+  .random-btn:active { transform: scale(0.97); }
+
+  .swatches-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .swatch-card {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.18s;
+    box-shadow: 0 2px 10px rgba(42,31,26,0.08);
+    min-width: 100px;
+    flex: 1;
+  }
+  .swatch-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 24px rgba(42,31,26,0.15); }
+  .swatch-block { height: 90px; width: 100%; }
+  .swatch-info { padding: 8px 10px; }
+  .swatch-hex {
+    font-family: 'Fraunces', serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2A1F1A;
+  }
+  .swatch-name {
+    font-size: 0.72rem;
+    color: #6B5B52;
+    font-style: italic;
+    margin-bottom: 2px;
+  }
+  .swatch-role {
+    font-size: 0.7rem;
+    color: #6B5B52;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Simulator */
+  .sim-intro {
+    margin-bottom: 16px;
+  }
+  .sim-intro h2 {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+  }
+  .sim-intro p { font-size: 0.85rem; color: #6B5B52; }
+  .harmony-tag {
+    display: inline-block;
+    background: #2A1F1A;
+    color: #FFF8F0;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+
+  .sim-explorer-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .sim-swatch-preview {
+    width: 54px; height: 54px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 8px rgba(42,31,26,0.12);
+  }
+  .sim-color-info { flex: 1; min-width: 120px; }
+  .sim-color-info .hex-display { font-size: 1.1rem; }
+  .sim-sliders { flex: 2; min-width: 200px; }
+  .sim-sliders .slider-group { margin-bottom: 8px; }
+
+  .sim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .sim-grid { grid-template-columns: 1fr; } }
+
+  .sim-card {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 18px;
+    box-shadow: 0 4px 20px rgba(42,31,26,0.08);
+    padding: 16px;
+    backdrop-filter: blur(8px);
+  }
+  .sim-card-title {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: #2A1F1A;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .sim-canvases-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .sim-canvas-wrap canvas { border-radius: 50%; }
+  .sim-color-block {
+    flex: 1;
+    min-height: 60px;
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 8px rgba(42,31,26,0.1);
+    min-width: 60px;
+  }
+  .sim-palette-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .sim-swatch-card {
+    flex: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s;
+    min-width: 40px;
+    box-shadow: 0 1px 6px rgba(42,31,26,0.1);
+  }
+  .sim-swatch-card:hover { transform: scale(1.05); }
+  .sim-swatch-block { height: 40px; width: 100%; }
+  .sim-swatch-hex {
+    font-family: 'Fraunces', serif;
+    font-size: 0.65rem;
+    padding: 3px 4px;
+    background: rgba(255,255,255,0.85);
+    text-align: center;
+  }
+  .sim-strip {
+    height: 10px;
+    border-radius: 5px;
+    width: 100%;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #2A1F1A;
+    color: #FFF8F0;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 780px) {
+    .explorer-inner { flex-direction: column; }
+    .palette-base-row { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+  <!-- Nav -->
+  <div class="top-nav">
+    <div class="app-title">Color Studio</div>
+    <div class="mode-pills">
+      <button class="mode-pill active" onclick="switchMode('studio')">🎨 Color Studio</button>
+      <button class="mode-pill" onclick="switchMode('sim')">👁 Color Blindness Simulator</button>
+    </div>
+  </div>
+
+  <!-- STUDIO MODE -->
+  <div class="mode-view active" id="view-studio">
+
+    <!-- Explorer Panel -->
+    <div class="panel">
+      <div class="panel-title">Color Explorer</div>
+      <div class="explorer-inner">
+        <div class="canvases-row">
+          <div>
+            <div class="canvas-wrap" id="explorer-wrap">
+              <canvas id="explorerCanvas" width="260" height="260"></canvas>
+            </div>
+            <div class="canvas-label">Explorer</div>
+          </div>
+          <div>
+            <div class="canvas-wrap">
+              <canvas id="wheelCanvas" width="260" height="260"></canvas>
+            </div>
+            <div class="canvas-label">Color Wheel</div>
+          </div>
+        </div>
+        <div class="explorer-controls">
+          <div class="color-swatch-large" id="explorerSwatch"></div>
+          <div class="hex-display" id="explorerHex">#FF6B2B</div>
+          <div class="color-name-display" id="explorerName">Vivid Orange</div>
+          <div class="rgb-text-display" id="explorerRgbText">rgb(255, 107, 43)</div>
+          <button class="copy-btn" onclick="copyExplorerHex()">Copy</button>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#cc2200">R</span>
+              <span class="slider-val" id="rVal">255</span>
+            </div>
+            <input type="range" min="0" max="255" value="255" class="slider-r" id="sliderR" oninput="onExplorerSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#007a00">G</span>
+              <span class="slider-val" id="gVal">107</span>
+            </div>
+            <input type="range" min="0" max="255" value="107" class="slider-g" id="sliderG" oninput="onExplorerSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#0044cc">B</span>
+              <span class="slider-val" id="bVal">43</span>
+            </div>
+            <input type="range" min="0" max="255" value="43" class="slider-b" id="sliderB" oninput="onExplorerSlider()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Palette Panel -->
+    <div class="panel">
+      <div class="panel-title">Palette Generator</div>
+      <div class="harmony-tabs" id="harmonyTabs"></div>
+      <div class="palette-base-row">
+        <div class="palette-swatch-small" id="paletteSwatch"></div>
+        <div class="palette-sliders">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#cc2200">R</span>
+              <span class="slider-val" id="prVal">255</span>
+            </div>
+            <input type="range" min="0" max="255" value="255" class="slider-r" id="pSliderR" oninput="onPaletteSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#007a00">G</span>
+              <span class="slider-val" id="pgVal">107</span>
+            </div>
+            <input type="range" min="0" max="255" value="107" class="slider-g" id="pSliderG" oninput="onPaletteSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#0044cc">B</span>
+              <span class="slider-val" id="pbVal">43</span>
+            </div>
+            <input type="range" min="0" max="255" value="43" class="slider-b" id="pSliderB" oninput="onPaletteSlider()">
+          </div>
+        </div>
+        <button class="random-btn" onclick="randomPalette()">✦ Random</button>
+      </div>
+      <div class="swatches-row" id="swatchesRow"></div>
+    </div>
+  </div>
+
+  <!-- SIMULATOR MODE -->
+  <div class="mode-view" id="view-sim">
+    <div class="panel">
+      <div class="sim-intro">
+        <h2>Color Blindness Simulator</h2>
+        <p>See how your palette appears to people with different types of color vision deficiency.</p>
+        <span class="harmony-tag" id="simHarmonyTag">Complementary</span>
+      </div>
+      <div class="sim-explorer-bar">
+        <div class="sim-swatch-preview" id="simSwatchPreview"></div>
+        <div class="sim-color-info">
+          <div class="hex-display" id="simHex">#FF6B2B</div>
+          <div class="color-name-display" id="simName">Vivid Orange</div>
+        </div>
+        <div class="sim-sliders">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#cc2200">R</span>
+              <span class="slider-val" id="simRVal">255</span>
+            </div>
+            <input type="range" min="0" max="255" value="255" class="slider-r" id="simSliderR" oninput="onSimSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#007a00">G</span>
+              <span class="slider-val" id="simGVal">107</span>
+            </div>
+            <input type="range" min="0" max="255" value="107" class="slider-g" id="simSliderG" oninput="onSimSlider()">
+          </div>
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span class="slider-label" style="color:#0044cc">B</span>
+              <span class="slider-val" id="simBVal">43</span>
+            </div>
+            <input type="range" min="0" max="255" value="43" class="slider-b" id="simSliderB" oninput="onSimSlider()">
+          </div>
+        </div>
+      </div>
+      <div class="sim-grid" id="simGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =====================
+// STATE
+// =====================
+let explorerR = 255, explorerG = 107, explorerB = 43;
+let paletteR = 255, paletteG = 107, paletteB = 43;
+let currentHarmony = 'complementary';
+let animFrame = 0;
+let paletteColors = [];
+let simDebounce = null;
+let currentMode = 'studio';
+
+// =====================
+// COLOR MATH
+// =====================
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch(max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return [h * 360, s * 100, l * 100];
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0').toUpperCase()).join('');
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return [r, g, b];
+}
+
+// =====================
+// COLOR NAMING
+// =====================
+function colorName(r, g, b) {
+  const [h, s, l] = rgbToHsl(r, g, b);
+  if (s < 10) {
+    if (l < 15) return 'Near Black';
+    if (l < 35) return 'Dark Gray';
+    if (l < 55) return 'Gray';
+    if (l < 75) return 'Light Gray';
+    return 'Near White';
+  }
+  const hueNames = [
+    [8,'Red'],[18,'Vermillion'],[30,'Orange'],[45,'Amber'],[60,'Yellow'],
+    [80,'Lime'],[105,'Green'],[140,'Emerald'],[160,'Teal'],[185,'Cyan'],
+    [200,'Sky Blue'],[215,'Azure'],[240,'Blue'],[265,'Violet'],[285,'Purple'],
+    [310,'Magenta'],[330,'Pink'],[350,'Rose'],[360,'Red']
+  ];
+  let hueName = 'Red';
+  for (let [cutoff, name] of hueNames) { if (h <= cutoff) { hueName = name; break; } }
+  const sat = s < 30 ? 'Muted ' : s < 65 ? 'Soft ' : 'Vivid ';
+  const lit = l < 25 ? 'Dark ' : l > 75 ? 'Pale ' : '';
+  return (lit + sat + hueName).trim();
+}
+
+// =====================
+// HARMONY GENERATION
+// =====================
+const HARMONIES = {
+  complementary: {
+    label: 'Complementary',
+    gen(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      const c = hslToRgb((h + 180) % 360, s, l);
+      return [
+        { rgb:[r,g,b], role:'Base' },
+        { rgb:c, role:'Complement' },
+        { rgb:hslToRgb(h, s, Math.min(l+20,95)), role:'Light Base' },
+        { rgb:hslToRgb((h+180)%360, s, Math.min(l+20,95)), role:'Light Complement' }
+      ];
+    }
+  },
+  split: {
+    label: 'Split-Complementary',
+    gen(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      return [
+        { rgb:[r,g,b], role:'Base' },
+        { rgb:hslToRgb((h+150)%360, s, l), role:'Split 1' },
+        { rgb:hslToRgb((h+210)%360, s, l), role:'Split 2' },
+        { rgb:hslToRgb(h, s, Math.min(l+22,95)), role:'Tint' }
+      ];
+    }
+  },
+  triadic: {
+    label: 'Triadic',
+    gen(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      return [
+        { rgb:[r,g,b], role:'Triad 1' },
+        { rgb:hslToRgb((h+120)%360, s, l), role:'Triad 2' },
+        { rgb:hslToRgb((h+240)%360, s, l), role:'Triad 3' }
+      ];
+    }
+  },
+  tetradic: {
+    label: 'Tetradic',
+    gen(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      return [0,90,180,270].map((offset,i) => ({
+        rgb: hslToRgb((h+offset)%360, s, l),
+        role: ['Base','Tetrad 2','Tetrad 3','Tetrad 4'][i]
+      }));
+    }
+  },
+  analogous: {
+    label: 'Analogous',
+    gen(r, g, b) {
+      const [h, s, l] = rgbToHsl(r, g, b);
+      return [-40,-20,0,20,40].map((offset,i) => ({
+        rgb: hslToRgb((h+offset+360)%360, s, l),
+        role: ['Analog -40','Analog -20','Base','Analog +20','Analog +40'][i]
+      }));
+    }
+  },
+  monochromatic: {
+    label: 'Monochromatic',
+    gen(r, g, b) {
+      const [h, s] = rgbToHsl(r, g, b);
+      return [15,30,50,70,85].map((li,i) => ({
+        rgb: hslToRgb(h, s, li),
+        role: ['Dark Shade','Shade','Base','Tint','Light Tint'][i]
+      }));
+    }
+  }
+};
+
+// =====================
+// CVD SIMULATION (Machado 2009)
+// =====================
+const CVD_MATRICES = {
+  protanopia: [
+    0.152286, 1.052583, -0.204868,
+    0.114503, 0.786281,  0.099216,
+   -0.003882,-0.048116,  1.051998
+  ],
+  deuteranopia: [
+    0.367322, 0.860646,-0.227968,
+    0.280085, 0.672501, 0.047413,
+   -0.011820, 0.042940, 0.968881
+  ],
+  tritanopia: [
+    1.255528,-0.076749,-0.178779,
+   -0.078411, 0.930809, 0.147602,
+    0.004733, 0.691367, 0.303900
+  ]
+};
+
+function srgbToLinear(v) {
+  v /= 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+function linearToSrgb(v) {
+  v = Math.max(0, Math.min(1, v));
+  return Math.round((v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1/2.4) - 0.055) * 255);
+}
+function simulateCVD(r, g, b, type) {
+  if (type === 'normal') return [r, g, b];
+  const m = CVD_MATRICES[type];
+  const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
+  return [
+    linearToSrgb(m[0]*lr + m[1]*lg + m[2]*lb),
+    linearToSrgb(m[3]*lr + m[4]*lg + m[5]*lb),
+    linearToSrgb(m[6]*lr + m[7]*lg + m[8]*lb)
+  ];
+}
+
+// =====================
+// CITRUS CANVAS DRAWING
+// =====================
+function drawCitrusOnCtx(ctx, size, r, g, b, af) {
+  const cx = size / 2, cy = size / 2, R = size / 2;
+  ctx.clearRect(0, 0, size, size);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Background fill
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, size, size);
+
+  // 8 segments
+  const nSeg = 8;
+  for (let i = 0; i < nSeg; i++) {
+    const a0 = (i / nSeg) * Math.PI * 2 + (af || 0);
+    const a1 = ((i + 1) / nSeg) * Math.PI * 2 + (af || 0);
+    const aMid = (a0 + a1) / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R * 0.88, a0, a1);
+    ctx.closePath();
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.88);
+    const lf = Math.max(0, Math.min(255, l => l));
+    const lighten = (v, amt) => Math.min(255, Math.round(v + (255 - v) * amt));
+    const darken  = (v, amt) => Math.round(v * (1 - amt));
+    grd.addColorStop(0,   `rgba(${lighten(r,0.55)},${lighten(g,0.55)},${lighten(b,0.55)},1)`);
+    grd.addColorStop(0.75,`rgb(${r},${g},${b})`);
+    grd.addColorStop(1,   `rgba(${darken(r,0.25)},${darken(g,0.25)},${darken(b,0.25)},1)`);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.restore();
+
+    // Divider lines
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a0) * R * 0.88, cy + Math.sin(a0) * R * 0.88);
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = size > 200 ? 2 : 1;
+    ctx.stroke();
+    ctx.restore();
+
+    // Juice cells
+    const nCells = Math.floor(size / 26);
+    for (let j = 0; j < nCells; j++) {
+      const d = R * (0.3 + j * 0.08);
+      const angle = aMid + (j % 2 === 0 ? 0.05 : -0.05);
+      const cellX = cx + Math.cos(angle) * d;
+      const cellY = cy + Math.sin(angle) * d;
+      const pulse = (af !== undefined)
+        ? Math.sin(af * 1.5 + i * 0.8 + j * 10) * 1.5 + 3
+        : 3;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(cellX, cellY, pulse * (size/260), pulse * 0.65 * (size/260), angle, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Pith
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.12, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fill();
+
+  // Rind
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.86, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = size * 0.06;
+  ctx.stroke();
+
+  // Specular highlight
+  const hl = ctx.createRadialGradient(cx * 0.55, cy * 0.55, 0, cx * 0.55, cy * 0.55, R * 0.75);
+  hl.addColorStop(0, 'rgba(255,255,255,0.30)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, size, size);
+
+  // Outer border
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// =====================
+// COLOR WHEEL DRAWING
+// =====================
+let wheelImageData = null;
+function drawColorWheel() {
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  const size = 260, cx = size/2, cy = size/2, R = size/2;
+
+  ctx.clearRect(0,0,size,size);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R-1, 0, Math.PI*2);
+  ctx.clip();
+
+  // Draw hue wheel
+  const [,, curL] = rgbToHsl(explorerR, explorerG, explorerB);
+  for (let deg = 0; deg < 360; deg++) {
+    const a0 = (deg - 0.5) * Math.PI / 180;
+    const a1 = (deg + 0.5) * Math.PI / 180;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R * 0.88, a0, a1);
+    ctx.closePath();
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.88);
+    const [ir,ig,ib] = hslToRgb(deg, 10, curL);
+    const [or,og,ob] = hslToRgb(deg, 100, curL);
+    grd.addColorStop(0, `rgb(${ir},${ig},${ib})`);
+    grd.addColorStop(1, `rgb(${or},${og},${ob})`);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // Divider every 45°
+    if (deg % 45 === 0) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a0)*R*0.88, cy + Math.sin(a0)*R*0.88);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // Pith
+  ctx.beginPath();
+  ctx.arc(cx, cy, R*0.12, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fill();
+
+  // Rind
+  ctx.beginPath();
+  ctx.arc(cx, cy, R*0.86, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = size*0.06;
+  ctx.stroke();
+
+  // Specular
+  const hl = ctx.createRadialGradient(cx*0.55, cy*0.55, 0, cx*0.55, cy*0.55, R*0.75);
+  hl.addColorStop(0,'rgba(255,255,255,0.28)');
+  hl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, size, size);
+
+  // Outer border
+  ctx.beginPath();
+  ctx.arc(cx, cy, R-1, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Marker
+  const [h, s] = rgbToHsl(explorerR, explorerG, explorerB);
+  const markerAngle = (h - 0) * Math.PI / 180;
+  const markerR = (s / 100) * R * 0.80;
+  const mx = cx + Math.cos(markerAngle) * markerR;
+  const my = cy + Math.sin(markerAngle) * markerR;
+  ctx.restore();
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.25)';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  const mw = 16, mh = 12, mr = 4;
+  const mlx = mx - mw/2, mly = my - mh/2;
+  ctx.roundRect(mlx, mly, mw, mh, mr);
+  ctx.fillStyle = `rgb(${explorerR},${explorerG},${explorerB})`;
+  ctx.fill();
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// =====================
+// ANIMATION LOOP
+// =====================
+function animate() {
+  animFrame += 0.012;
+  const canvas = document.getElementById('explorerCanvas');
+  const ctx = canvas.getContext('2d');
+  drawCitrusOnCtx(ctx, 260, explorerR, explorerG, explorerB, animFrame);
+  if (currentMode === 'sim') renderSimCards();
+  requestAnimationFrame(animate);
+}
+
+// =====================
+// SET EXPLORER COLOR (canonical)
+// =====================
+function setExplorerRGB(r, g, b, skipSliders) {
+  explorerR = Math.max(0, Math.min(255, Math.round(r)));
+  explorerG = Math.max(0, Math.min(255, Math.round(g)));
+  explorerB = Math.max(0, Math.min(255, Math.round(b)));
+
+  if (!skipSliders) {
+    document.getElementById('sliderR').value = explorerR;
+    document.getElementById('sliderG').value = explorerG;
+    document.getElementById('sliderB').value = explorerB;
+    document.getElementById('simSliderR').value = explorerR;
+    document.getElementById('simSliderG').value = explorerG;
+    document.getElementById('simSliderB').value = explorerB;
+  }
+  document.getElementById('rVal').textContent  = explorerR;
+  document.getElementById('gVal').textContent  = explorerG;
+  document.getElementById('bVal').textContent  = explorerB;
+  document.getElementById('simRVal').textContent = explorerR;
+  document.getElementById('simGVal').textContent = explorerG;
+  document.getElementById('simBVal').textContent = explorerB;
+
+  const hex = rgbToHex(explorerR, explorerG, explorerB);
+  const name = colorName(explorerR, explorerG, explorerB);
+
+  document.getElementById('explorerSwatch').style.background = hex;
+  document.getElementById('explorerHex').textContent = hex;
+  document.getElementById('explorerName').textContent = name;
+  document.getElementById('explorerRgbText').textContent = `rgb(${explorerR}, ${explorerG}, ${explorerB})`;
+
+  document.getElementById('simSwatchPreview').style.background = hex;
+  document.getElementById('simHex').textContent = hex;
+  document.getElementById('simName').textContent = name;
+
+  drawColorWheel();
+  if (currentMode === 'sim') renderSimCards();
+}
+
+// =====================
+// EXPLORER CANVAS CLICK
+// =====================
+document.getElementById('explorerCanvas').addEventListener('click', e => {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = 130, cy = 130;
+  const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
+  if (dist > 128) return;
+  const r = Math.round((x / 260) * 255);
+  const g = Math.round((y / 260) * 255);
+  const b = Math.round((dist / 128) * 255);
+  setExplorerRGB(r, g, b);
+});
+
+// =====================
+// COLOR WHEEL CLICK
+// =====================
+document.getElementById('wheelCanvas').addEventListener('click', e => {
+  const rect = e.target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const cx = 130, cy = 130;
+  const dx = x - cx, dy = y - cy;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > 128) return;
+  const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+  const sat = Math.min(100, (dist / (128 * 0.80)) * 100);
+  const [,, curL] = rgbToHsl(explorerR, explorerG, explorerB);
+  const [r,g,b] = hslToRgb(angle, sat, curL);
+  setExplorerRGB(r, g, b);
+});
+
+// =====================
+// SLIDERS
+// =====================
+function onExplorerSlider() {
+  const r = +document.getElementById('sliderR').value;
+  const g = +document.getElementById('sliderG').value;
+  const b = +document.getElementById('sliderB').value;
+  setExplorerRGB(r, g, b, true);
+}
+
+function onPaletteSlider() {
+  paletteR = +document.getElementById('pSliderR').value;
+  paletteG = +document.getElementById('pSliderG').value;
+  paletteB = +document.getElementById('pSliderB').value;
+  document.getElementById('prVal').textContent = paletteR;
+  document.getElementById('pgVal').textContent = paletteG;
+  document.getElementById('pbVal').textContent = paletteB;
+  document.getElementById('paletteSwatch').style.background = rgbToHex(paletteR, paletteG, paletteB);
+  renderPalette();
+}
+
+let simDebounceTimer = null;
+function onSimSlider() {
+  const r = +document.getElementById('simSliderR').value;
+  const g = +document.getElementById('simSliderG').value;
+  const b = +document.getElementById('simSliderB').value;
+  document.getElementById('simRVal').textContent = r;
+  document.getElementById('simGVal').textContent = g;
+  document.getElementById('simBVal').textContent = b;
+  clearTimeout(simDebounceTimer);
+  simDebounceTimer = setTimeout(() => setExplorerRGB(r, g, b, true), 80);
+}
+
+// =====================
+// PALETTE RENDERING
+// =====================
+function renderPalette() {
+  const harmony = HARMONIES[currentHarmony];
+  paletteColors = harmony.gen(paletteR, paletteG, paletteB);
+  const row = document.getElementById('swatchesRow');
+  row.innerHTML = '';
+  paletteColors.forEach(item => {
+    const [r,g,b] = item.rgb;
+    const hex = rgbToHex(r,g,b);
+    const name = colorName(r,g,b);
+    const card = document.createElement('div');
+    card.className = 'swatch-card';
+    card.innerHTML = `
+      <div class="swatch-block" style="background:${hex}"></div>
+      <div class="swatch-info">
+        <div class="swatch-hex">${hex}</div>
+        <div class="swatch-name">· ${name}</div>
+        <div class="swatch-role">${item.role}</div>
+      </div>`;
+    card.addEventListener('click', () => {
+      navigator.clipboard.writeText(hex).catch(()=>{});
+      setExplorerRGB(r, g, b);
+      showPulse();
+      showToast(`Copied ${hex} · sent to Explorer ✓`);
+    });
+    row.appendChild(card);
+  });
+  if (currentMode === 'sim') renderSimCards();
+}
+
+function randomPalette() {
+  paletteR = Math.floor(Math.random()*256);
+  paletteG = Math.floor(Math.random()*256);
+  paletteB = Math.floor(Math.random()*256);
+  document.getElementById('pSliderR').value = paletteR;
+  document.getElementById('pSliderG').value = paletteG;
+  document.getElementById('pSliderB').value = paletteB;
+  document.getElementById('prVal').textContent = paletteR;
+  document.getElementById('pgVal').textContent = paletteG;
+  document.getElementById('pbVal').textContent = paletteB;
+  document.getElementById('paletteSwatch').style.background = rgbToHex(paletteR, paletteG, paletteB);
+  renderPalette();
+}
+
+// =====================
+// HARMONY TABS
+// =====================
+function buildHarmonyTabs() {
+  const container = document.getElementById('harmonyTabs');
+  Object.entries(HARMONIES).forEach(([key, h]) => {
+    const btn = document.createElement('button');
+    btn.className = 'harmony-tab' + (key === currentHarmony ? ' active' : '');
+    btn.textContent = h.label;
+    btn.onclick = () => {
+      currentHarmony = key;
+      document.querySelectorAll('.harmony-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('simHarmonyTag').textContent = h.label;
+      renderPalette();
+    };
+    container.appendChild(btn);
+  });
+}
+
+// =====================
+// SIMULATOR RENDERING
+// =====================
+const SIM_TYPES = [
+  { key:'normal', label:'Normal Vision' },
+  { key:'protanopia', label:'Protanopia' },
+  { key:'deuteranopia', label:'Deuteranopia' },
+  { key:'tritanopia', label:'Tritanopia' }
+];
+
+function renderSimCards() {
+  const grid = document.getElementById('simGrid');
+  // If cards already built, just update canvases and swatches
+  if (grid.children.length === 4) {
+    SIM_TYPES.forEach((type, idx) => {
+      const card = grid.children[idx];
+      // Update main color block
+      const [sr, sg, sb] = simulateCVD(explorerR, explorerG, explorerB, type.key);
+      card.querySelector('.sim-color-block').style.background = rgbToHex(sr, sg, sb);
+      // Update citrus canvas
+      const canvas = card.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      drawCitrusOnCtx(ctx, 160, sr, sg, sb, animFrame);
+      // Update palette swatches
+      const swatchRow = card.querySelector('.sim-palette-row');
+      const swatchItems = swatchRow.querySelectorAll('.sim-swatch-card');
+      paletteColors.forEach((item, i) => {
+        if (!swatchItems[i]) return;
+        const [r2,g2,b2] = simulateCVD(...item.rgb, type.key);
+        const simHex2 = rgbToHex(r2,g2,b2);
+        swatchItems[i].querySelector('.sim-swatch-block').style.background = simHex2;
+        swatchItems[i].querySelector('.sim-swatch-hex').textContent = simHex2;
+      });
+      // Update strip
+      const colors = paletteColors.map(item => rgbToHex(...simulateCVD(...item.rgb, type.key)));
+      card.querySelector('.sim-strip').style.background =
+        `linear-gradient(to right, ${colors.join(',')})`;
+    });
+    return;
+  }
+
+  grid.innerHTML = '';
+  SIM_TYPES.forEach(type => {
+    const [sr,sg,sb] = simulateCVD(explorerR, explorerG, explorerB, type.key);
+    const card = document.createElement('div');
+    card.className = 'sim-card';
+
+    const simPaletteHtml = paletteColors.map((item, i) => {
+      const [r2,g2,b2] = simulateCVD(...item.rgb, type.key);
+      const simHex2 = rgbToHex(r2,g2,b2);
+      return `<div class="sim-swatch-card" data-orig-idx="${i}">
+        <div class="sim-swatch-block" style="background:${simHex2}"></div>
+        <div class="sim-swatch-hex">${simHex2}</div>
+      </div>`;
+    }).join('');
+
+    const stripColors = paletteColors.map(item => rgbToHex(...simulateCVD(...item.rgb, type.key)));
+
+    card.innerHTML = `
+      <div class="sim-card-title">${type.label}</div>
+      <div class="sim-canvases-row">
+        <div class="sim-canvas-wrap"><canvas width="160" height="160"></canvas></div>
+        <div class="sim-color-block" style="background:${rgbToHex(sr,sg,sb)}"></div>
+      </div>
+      <div class="sim-palette-row">${simPaletteHtml}</div>
+      <div class="sim-strip" style="background:linear-gradient(to right, ${stripColors.join(',')})"></div>`;
+
+    // Draw canvas
+    const canvas = card.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    drawCitrusOnCtx(ctx, 160, sr, sg, sb, animFrame);
+
+    // Swatch click
+    card.querySelectorAll('.sim-swatch-card').forEach(sw => {
+      const idx = +sw.dataset.origIdx;
+      sw.addEventListener('click', () => {
+        const [r2,g2,b2] = paletteColors[idx].rgb;
+        setExplorerRGB(r2,g2,b2);
+        showPulse();
+        showToast(`Sent ${rgbToHex(r2,g2,b2)} to Explorer ✓`);
+      });
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+// =====================
+// MODE SWITCHING
+// =====================
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('view-' + mode).classList.add('active');
+  document.querySelectorAll('.mode-pill')[mode === 'studio' ? 0 : 1].classList.add('active');
+  if (mode === 'sim') {
+    document.getElementById('simGrid').innerHTML = '';
+    renderSimCards();
+  }
+}
+
+// =====================
+// PULSE ANIMATION
+// =====================
+function showPulse() {
+  const wrap = document.getElementById('explorer-wrap');
+  const existing = wrap.querySelector('.pulse-ring');
+  if (existing) existing.remove();
+  const ring = document.createElement('div');
+  ring.className = 'pulse-ring';
+  wrap.appendChild(ring);
+  ring.addEventListener('animationend', () => ring.remove());
+}
+
+// =====================
+// TOAST
+// =====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// =====================
+// COPY
+// =====================
+function copyExplorerHex() {
+  const hex = rgbToHex(explorerR, explorerG, explorerB);
+  navigator.clipboard.writeText(hex).catch(()=>{});
+  showToast(`Copied ${hex} ✓`);
+}
+
+// =====================
+// INIT
+// =====================
+buildHarmonyTabs();
+setExplorerRGB(255, 107, 43);
+document.getElementById('paletteSwatch').style.background = rgbToHex(paletteR, paletteG, paletteB);
+renderPalette();
+animate();
+</script>
+</body>
+</html>
