@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Readable — Color Accessibility Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --surface: #ede7d9;
+    --surface2: #e4dccb;
+    --border: #cfc6b0;
+    --accent: #3a6b45;
+    --accent-light: #4e8f5e;
+    --accent-pale: #d4e8d8;
+    --text: #2c2416;
+    --muted: #7a6e5a;
+    --pass-aaa: #2d6a3f;
+    --pass-aa: #8a6a00;
+    --fail: #b83232;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-stripe {
+    height: 4px;
+    background: linear-gradient(to right, #1a4025, #3a6b45, #7ecba0);
+  }
+
+  .header-inner {
+    padding: 14px 24px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .header-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    position: relative;
+    line-height: 1;
+  }
+
+  .header-logo::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  .header-tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 1px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .app-body {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+  }
+
+  /* ── CONTROLS PANEL ── */
+  .controls {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 0 0 24px;
+  }
+
+  .controls::-webkit-scrollbar { width: 6px; }
+  .controls::-webkit-scrollbar-track { background: var(--surface); }
+  .controls::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .section {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  /* ── SELECT / DROPDOWN ── */
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a6e5a'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ── COLOR SECTION ── */
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: background-color 0.1s;
+  }
+
+  .color-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .color-hex {
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+
+  .color-lum {
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .channel-row {
+    display: grid;
+    grid-template-columns: 14px 1fr 50px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .channel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  /* ── SLIDERS ── */
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--accent);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--accent);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .slider-r { background: linear-gradient(to right, #ffcccc, #ff0000); }
+  .slider-g { background: linear-gradient(to right, #ccffcc, #00cc00); }
+  .slider-b { background: linear-gradient(to right, #cce0ff, #0055ff); }
+  .slider-size { background: linear-gradient(to right, var(--border), var(--accent)); }
+
+  /* ── NUMBER INPUTS ── */
+  input[type=number] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    text-align: center;
+    -moz-appearance: textfield;
+  }
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type=number]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* ── FONT SIZE ── */
+  .size-row {
+    display: grid;
+    grid-template-columns: 1fr 54px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .unit-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── RADIO BUTTONS ── */
+  .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+  }
+
+  .radio-item:hover {
+    background: var(--accent-pale);
+    border-color: var(--accent);
+  }
+
+  .radio-item input[type=radio] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .radio-item input[type=radio]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .radio-item.active {
+    background: var(--accent-pale);
+    border-color: var(--accent);
+  }
+
+  .radio-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .radio-sub {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  /* ── PREVIEW PANEL ── */
+  .preview {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 16px;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  /* ── CONTRAST BAR ── */
+  .contrast-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .ratio-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 100px;
+  }
+
+  .ratio-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .ratio-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .lum-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .lum-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .lum-item span {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1.5px solid;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .badge.pass {
+    color: var(--pass-aaa);
+    border-color: var(--pass-aaa);
+    background: #e8f4eb;
+  }
+
+  .badge.fail {
+    color: var(--fail);
+    border-color: var(--fail);
+    background: #faeaea;
+  }
+
+  /* ── TEXT DISPLAY AREA ── */
+  .text-display-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 300px;
+  }
+
+  .text-display {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(58, 107, 69, 0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+    padding: 36px 40px;
+    overflow: auto;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .vision-indicator {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-pale);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 3px 8px;
+    display: none;
+  }
+
+  .vision-indicator.visible { display: block; }
+
+  .sample-heading {
+    font-weight: bold;
+    line-height: 1.3;
+    margin-bottom: 1em;
+  }
+
+  .sample-body {
+    font-weight: normal;
+    line-height: 1.6;
+    margin-bottom: 1.2em;
+  }
+
+  .sample-footnote {
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  /* ── SCROLLBAR for preview ── */
+  .preview::-webkit-scrollbar { width: 6px; }
+  .preview::-webkit-scrollbar-track { background: var(--bg); }
+  .preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-stripe"></div>
+  <div class="header-inner">
+    <span class="header-logo">Readable</span>
+    <span class="header-tagline">Color Accessibility Explorer</span>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- ── CONTROLS PANEL ── -->
+  <aside class="controls" aria-label="Color controls">
+
+    <!-- 1. Load Preset -->
+    <div class="section">
+      <div class="section-label">Load Preset</div>
+      <select id="preset-select" aria-label="Load a color preset">
+        <option value="" disabled selected>— choose a preset —</option>
+        <optgroup label="High Contrast">
+          <option value="255,255,255|0,0,0">Black on White</option>
+          <option value="0,0,0|255,255,255">White on Black</option>
+          <option value="0,0,0|255,255,0">Yellow on Black</option>
+        </optgroup>
+        <optgroup label="Low Contrast">
+          <option value="255,255,255|170,170,170">Light Gray on White</option>
+          <option value="200,200,200|170,170,170">Light Gray on Gray</option>
+          <option value="255,255,255|220,200,170">Beige on White</option>
+        </optgroup>
+        <optgroup label="Common Website">
+          <option value="13,17,23|201,209,217">GitHub Dark</option>
+          <option value="255,255,255|32,33,36">Google Body Text</option>
+          <option value="21,32,43|255,255,255">Twitter/X Dark</option>
+          <option value="255,255,255|55,53,47">Notion Light</option>
+        </optgroup>
+        <optgroup label="Problematic">
+          <option value="0,180,0|200,0,0">Red on Green</option>
+          <option value="128,0,128|0,0,200">Blue on Purple</option>
+          <option value="255,255,255|255,220,0">Yellow on White</option>
+          <option value="200,0,0|255,140,0">Orange on Red</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <!-- 2. Background Color -->
+    <div class="section">
+      <div class="section-label">Background Color</div>
+      <div class="color-row">
+        <div class="color-swatch" id="bg-swatch" aria-hidden="true"></div>
+        <div class="color-meta">
+          <div class="color-hex" id="bg-hex">#ffffff</div>
+          <div class="color-lum" id="bg-lum">L = 1.0000</div>
+        </div>
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">R</span>
+        <input type="range" id="bg-r-slider" class="slider-r" min="0" max="255" value="255" aria-label="Background red channel">
+        <input type="number" id="bg-r-num" min="0" max="255" value="255" aria-label="Background red value">
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">G</span>
+        <input type="range" id="bg-g-slider" class="slider-g" min="0" max="255" value="255" aria-label="Background green channel">
+        <input type="number" id="bg-g-num" min="0" max="255" value="255" aria-label="Background green value">
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">B</span>
+        <input type="range" id="bg-b-slider" class="slider-b" min="0" max="255" value="255" aria-label="Background blue channel">
+        <input type="number" id="bg-b-num" min="0" max="255" value="255" aria-label="Background blue value">
+      </div>
+    </div>
+
+    <!-- 3. Text Color -->
+    <div class="section">
+      <div class="section-label">Text Color</div>
+      <div class="color-row">
+        <div class="color-swatch" id="text-swatch" aria-hidden="true"></div>
+        <div class="color-meta">
+          <div class="color-hex" id="text-hex">#000000</div>
+          <div class="color-lum" id="text-lum">L = 0.0000</div>
+        </div>
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">R</span>
+        <input type="range" id="text-r-slider" class="slider-r" min="0" max="255" value="0" aria-label="Text red channel">
+        <input type="number" id="text-r-num" min="0" max="255" value="0" aria-label="Text red value">
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">G</span>
+        <input type="range" id="text-g-slider" class="slider-g" min="0" max="255" value="0" aria-label="Text green channel">
+        <input type="number" id="text-g-num" min="0" max="255" value="0" aria-label="Text green value">
+      </div>
+      <div class="channel-row">
+        <span class="channel-label">B</span>
+        <input type="range" id="text-b-slider" class="slider-b" min="0" max="255" value="0" aria-label="Text blue channel">
+        <input type="number" id="text-b-num" min="0" max="255" value="0" aria-label="Text blue value">
+      </div>
+    </div>
+
+    <!-- 4. Font Size -->
+    <div class="section">
+      <div class="section-label">Font Size</div>
+      <div class="size-row">
+        <input type="range" id="size-slider" class="slider-size" min="8" max="72" value="16" aria-label="Font size slider">
+        <input type="number" id="size-num" min="8" max="72" value="16" aria-label="Font size in pixels">
+      </div>
+      <div class="unit-label">pixels</div>
+    </div>
+
+    <!-- 5. Font Family -->
+    <div class="section">
+      <div class="section-label">Font Family</div>
+      <select id="font-select" aria-label="Select font family">
+        <option value="'Georgia', serif">Georgia — Easy</option>
+        <option value="'DM Mono', monospace">DM Mono — Easy</option>
+        <option value="'Arial', sans-serif">Arial — Easy</option>
+        <option value="'Times New Roman', serif">Times New Roman — Moderate</option>
+        <option value="'Courier New', monospace">Courier New — Moderate</option>
+        <option value="'Comic Sans MS', cursive">Comic Sans MS — Informal</option>
+        <option value="'Impact', fantasy">Impact — Hard</option>
+        <option value="'Brush Script MT', cursive">Brush Script MT — Hard</option>
+        <option value="'Papyrus', fantasy">Papyrus — Hard</option>
+      </select>
+    </div>
+
+    <!-- 6. Color Vision -->
+    <div class="section">
+      <div class="section-label">Color Vision Simulation</div>
+      <div class="radio-group" role="radiogroup" aria-label="Color vision simulation">
+
+        <label class="radio-item active" id="radio-item-normal">
+          <input type="radio" name="vision" value="normal" checked>
+          <div>
+            <div class="radio-label">Normal Vision</div>
+            <div class="radio-sub">No simulation</div>
+          </div>
+        </label>
+
+        <label class="radio-item" id="radio-item-protanopia">
+          <input type="radio" name="vision" value="protanopia">
+          <div>
+            <div class="radio-label">Protanopia</div>
+            <div class="radio-sub">Red-blind</div>
+          </div>
+        </label>
+
+        <label class="radio-item" id="radio-item-deuteranopia">
+          <input type="radio" name="vision" value="deuteranopia">
+          <div>
+            <div class="radio-label">Deuteranopia</div>
+            <div class="radio-sub">Green-blind</div>
+          </div>
+        </label>
+
+        <label class="radio-item" id="radio-item-tritanopia">
+          <input type="radio" name="vision" value="tritanopia">
+          <div>
+            <div class="radio-label">Tritanopia</div>
+            <div class="radio-sub">Blue-blind</div>
+          </div>
+        </label>
+
+        <label class="radio-item" id="radio-item-monochromacy">
+          <input type="radio" name="vision" value="monochromacy">
+          <div>
+            <div class="radio-label">Monochromacy</div>
+            <div class="radio-sub">Full grayscale</div>
+          </div>
+        </label>
+
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── PREVIEW PANEL ── -->
+  <main class="preview" aria-label="Preview panel">
+
+    <!-- Contrast Bar -->
+    <div class="contrast-bar" role="region" aria-label="Contrast metrics">
+      <div class="ratio-display">
+        <div class="ratio-value" id="ratio-value">21.00:1</div>
+        <div class="ratio-label">Contrast Ratio</div>
+      </div>
+      <div class="lum-block">
+        <div class="lum-item">BG &nbsp;L = <span id="lum-bg">1.0000</span></div>
+        <div class="lum-item">Text L = <span id="lum-text">0.0000</span></div>
+      </div>
+      <div class="badges" aria-label="WCAG compliance badges">
+        <div class="badge pass" id="badge-aa-normal">AA Normal</div>
+        <div class="badge pass" id="badge-aa-large">AA Large</div>
+        <div class="badge pass" id="badge-aaa-normal">AAA Normal</div>
+        <div class="badge pass" id="badge-aaa-large">AAA Large</div>
+      </div>
+    </div>
+
+    <!-- Text Display Area -->
+    <div class="text-display-wrap">
+      <div class="text-display" id="text-display" aria-live="polite">
+        <p class="sample-heading" id="sample-heading">The quick brown fox jumps over the lazy dog</p>
+        <p class="sample-body" id="sample-body">Typography is the art and craft of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line spacing, and letter spacing — choices that shape how clearly a message reaches its audience.</p>
+        <p class="sample-footnote" id="sample-footnote">WCAG 2.1 — Success Criterion 1.4.3 (Contrast, Minimum): The visual presentation of text and images of text must have a contrast ratio of at least 4.5:1, except for large-scale text (3:1), incidental text, or logotypes.</p>
+      </div>
+      <div class="vision-indicator" id="vision-indicator" aria-live="polite"></div>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+// ── STATE ──
+const state = {
+  bg:     { r: 255, g: 255, b: 255 },
+  text:   { r: 0,   g: 0,   b: 0   },
+  size:   16,
+  font:   "'Georgia', serif",
+  vision: 'normal'
+};
+
+// ── VISION SIMULATION MATRICES ──
+const MATRICES = {
+  protanopia: [
+    [0.567, 0.433, 0    ],
+    [0.558, 0.442, 0    ],
+    [0,     0.242, 0.758]
+  ],
+  deuteranopia: [
+    [0.625, 0.375, 0  ],
+    [0.7,   0.3,   0  ],
+    [0,     0.3,   0.7]
+  ],
+  tritanopia: [
+    [0.95,  0.05,  0    ],
+    [0,     0.433, 0.567],
+    [0,     0.475, 0.525]
+  ]
+};
+
+const VISION_LABELS = {
+  protanopia:   'Protanopia',
+  deuteranopia: 'Deuteranopia',
+  tritanopia:   'Tritanopia',
+  monochromacy: 'Monochromacy'
+};
+
+// ── WCAG MATH ──
+function toLinear(c) {
+  const s = c / 255;
+  return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance(r, g, b) {
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+function contrastRatio(l1, l2) {
+  const lighter = Math.max(l1, l2);
+  const darker  = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// ── COLOR SIMULATION ──
+function simulateVision(r, g, b, vision) {
+  if (vision === 'normal') return { r, g, b };
+
+  if (vision === 'monochromacy') {
+    const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+    return { r: gray, g: gray, b: gray };
+  }
+
+  const m = MATRICES[vision];
+  const sr = Math.round(Math.min(255, Math.max(0, m[0][0]*r + m[0][1]*g + m[0][2]*b)));
+  const sg = Math.round(Math.min(255, Math.max(0, m[1][0]*r + m[1][1]*g + m[1][2]*b)));
+  const sb = Math.round(Math.min(255, Math.max(0, m[2][0]*r + m[2][1]*g + m[2][2]*b)));
+  return { r: sr, g: sg, b: sb };
+}
+
+// ── HELPERS ──
+function toHex(r, g, b) {
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+// ── ELEMENTS ──
+const els = {
+  bgSwatch:      document.getElementById('bg-swatch'),
+  bgHex:         document.getElementById('bg-hex'),
+  bgLum:         document.getElementById('bg-lum'),
+  bgRSlider:     document.getElementById('bg-r-slider'),
+  bgGSlider:     document.getElementById('bg-g-slider'),
+  bgBSlider:     document.getElementById('bg-b-slider'),
+  bgRNum:        document.getElementById('bg-r-num'),
+  bgGNum:        document.getElementById('bg-g-num'),
+  bgBNum:        document.getElementById('bg-b-num'),
+
+  textSwatch:    document.getElementById('text-swatch'),
+  textHex:       document.getElementById('text-hex'),
+  textLum:       document.getElementById('text-lum'),
+  textRSlider:   document.getElementById('text-r-slider'),
+  textGSlider:   document.getElementById('text-g-slider'),
+  textBSlider:   document.getElementById('text-b-slider'),
+  textRNum:      document.getElementById('text-r-num'),
+  textGNum:      document.getElementById('text-g-num'),
+  textBNum:      document.getElementById('text-b-num'),
+
+  sizeSlider:    document.getElementById('size-slider'),
+  sizeNum:       document.getElementById('size-num'),
+  fontSelect:    document.getElementById('font-select'),
+  presetSelect:  document.getElementById('preset-select'),
+
+  ratioValue:    document.getElementById('ratio-value'),
+  lumBg:         document.getElementById('lum-bg'),
+  lumText:       document.getElementById('lum-text'),
+  badgeAANormal: document.getElementById('badge-aa-normal'),
+  badgeAALarge:  document.getElementById('badge-aa-large'),
+  badgeAAANormal:document.getElementById('badge-aaa-normal'),
+  badgeAAALarge: document.getElementById('badge-aaa-large'),
+
+  textDisplay:   document.getElementById('text-display'),
+  sampleHeading: document.getElementById('sample-heading'),
+  sampleBody:    document.getElementById('sample-body'),
+  sampleFoot:    document.getElementById('sample-footnote'),
+  visionIndicator: document.getElementById('vision-indicator')
+};
+
+// ── RENDER ──
+function render() {
+  const { bg, text, size, font, vision } = state;
+
+  // Raw colors
+  const rawBgHex  = toHex(bg.r, bg.g, bg.b);
+  const rawTextHex = toHex(text.r, text.g, text.b);
+
+  // Simulated colors
+  const simBg   = simulateVision(bg.r, bg.g, bg.b, vision);
+  const simText  = simulateVision(text.r, text.g, text.b, vision);
+
+  // Luminance (of simulated colors, per spec)
+  const lumBg   = relativeLuminance(simBg.r, simBg.g, simBg.b);
+  const lumText = relativeLuminance(simText.r, simText.g, simText.b);
+  const ratio   = contrastRatio(lumBg, lumText);
+
+  // ── Swatches & meta (raw colors) ──
+  els.bgSwatch.style.backgroundColor = rawBgHex;
+  els.bgHex.textContent  = rawBgHex;
+  els.bgLum.textContent  = 'L = ' + relativeLuminance(bg.r, bg.g, bg.b).toFixed(4);
+
+  els.textSwatch.style.backgroundColor = rawTextHex;
+  els.textHex.textContent  = rawTextHex;
+  els.textLum.textContent  = 'L = ' + relativeLuminance(text.r, text.g, text.b).toFixed(4);
+
+  // ── Contrast bar ──
+  els.lumBg.textContent   = lumBg.toFixed(4);
+  els.lumText.textContent = lumText.toFixed(4);
+
+  const ratioStr = ratio.toFixed(2) + ':1';
+  els.ratioValue.textContent = ratioStr;
+  els.ratioValue.style.color =
+    ratio >= 7   ? '#2d6a3f' :
+    ratio >= 4.5 ? '#8a6a00' : '#b83232';
+
+  // ── WCAG badges ──
+  setBadge(els.badgeAANormal,  ratio >= 4.5);
+  setBadge(els.badgeAALarge,   ratio >= 3.0);
+  setBadge(els.badgeAAANormal, ratio >= 7.0);
+  setBadge(els.badgeAAALarge,  ratio >= 4.5);
+
+  // ── Text display (simulated colors) ──
+  const simBgHex   = toHex(simBg.r, simBg.g, simBg.b);
+  const simTextHex = toHex(simText.r, simText.g, simText.b);
+
+  els.textDisplay.style.backgroundColor = simBgHex;
+  els.textDisplay.style.color           = simTextHex;
+  els.textDisplay.style.fontFamily      = font;
+
+  els.sampleHeading.style.fontSize = size + 'px';
+  els.sampleBody.style.fontSize    = size + 'px';
+  els.sampleFoot.style.fontSize    = (size * 0.75) + 'px';
+
+  // ── Vision indicator ──
+  if (vision === 'normal') {
+    els.visionIndicator.classList.remove('visible');
+    els.visionIndicator.textContent = '';
+  } else {
+    els.visionIndicator.textContent = VISION_LABELS[vision];
+    els.visionIndicator.classList.add('visible');
+  }
+
+  // ── Sync sliders & inputs ──
+  els.bgRSlider.value = bg.r;  els.bgRNum.value = bg.r;
+  els.bgGSlider.value = bg.g;  els.bgGNum.value = bg.g;
+  els.bgBSlider.value = bg.b;  els.bgBNum.value = bg.b;
+
+  els.textRSlider.value = text.r;  els.textRNum.value = text.r;
+  els.textGSlider.value = text.g;  els.textGNum.value = text.g;
+  els.textBSlider.value = text.b;  els.textBNum.value = text.b;
+
+  els.sizeSlider.value = size;
+  els.sizeNum.value    = size;
+}
+
+function setBadge(el, pass) {
+  el.className = 'badge ' + (pass ? 'pass' : 'fail');
+}
+
+// ── EVENT WIRING ──
+
+// Background sliders ↔ inputs
+function wirePair(slider, num, stateKey, channel) {
+  slider.addEventListener('input', () => {
+    state[stateKey][channel] = parseInt(slider.value, 10);
+    num.value = slider.value;
+    render();
+  });
+  num.addEventListener('input', () => {
+    const v = clamp(parseFloat(num.value) || 0, parseInt(num.min), parseInt(num.max));
+    state[stateKey][channel] = v;
+    num.value = v;
+    slider.value = v;
+    render();
+  });
+}
+
+wirePair(els.bgRSlider, els.bgRNum, 'bg', 'r');
+wirePair(els.bgGSlider, els.bgGNum, 'bg', 'g');
+wirePair(els.bgBSlider, els.bgBNum, 'bg', 'b');
+
+wirePair(els.textRSlider, els.textRNum, 'text', 'r');
+wirePair(els.textGSlider, els.textGNum, 'text', 'g');
+wirePair(els.textBSlider, els.textBNum, 'text', 'b');
+
+// Font size
+els.sizeSlider.addEventListener('input', () => {
+  state.size = parseInt(els.sizeSlider.value, 10);
+  els.sizeNum.value = state.size;
+  render();
+});
+els.sizeNum.addEventListener('input', () => {
+  const v = clamp(parseFloat(els.sizeNum.value) || 8, 8, 72);
+  state.size = v;
+  els.sizeNum.value = v;
+  els.sizeSlider.value = v;
+  render();
+});
+
+// Font family
+els.fontSelect.addEventListener('change', () => {
+  state.font = els.fontSelect.value;
+  render();
+});
+
+// Preset
+els.presetSelect.addEventListener('change', () => {
+  const val = els.presetSelect.value;
+  if (!val) return;
+  const [bgPart, textPart] = val.split('|');
+  const [br, bg, bb] = bgPart.split(',').map(Number);
+  const [tr, tg, tb] = textPart.split(',').map(Number);
+  state.bg   = { r: br, g: bg, b: bb };
+  state.text = { r: tr, g: tg, b: tb };
+  els.presetSelect.value = '';
+  render();
+});
+
+// Vision radio
+document.querySelectorAll('input[name=vision]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    state.vision = radio.value;
+    document.querySelectorAll('.radio-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    radio.closest('.radio-item').classList.add('active');
+    render();
+  });
+});
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>
