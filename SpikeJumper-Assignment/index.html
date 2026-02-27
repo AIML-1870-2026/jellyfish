@@ -495,6 +495,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let gameState = 'title'; // 'title' | 'playing' | 'dead'
+let loopRunning = false;
 let scrollX = 0;
 let distance = 0;
 let gameSpeed = 6;
@@ -687,7 +688,7 @@ function drawAppleTree(ctx, x, y, colored, depth) {
   ctx.fillRect(x - trunkW/2, y - trunkH, trunkW, trunkH);
   // Foliage
   const fc = colored ? '#2a7020' : '#333';
-  [[0,-trunkH-20],[−15,-trunkH],[15,-trunkH],[-8,-trunkH+15],[8,-trunkH+15]].forEach(([dx,dy]) => {
+  [[0,-trunkH-20],[-15,-trunkH],[15,-trunkH],[-8,-trunkH+15],[8,-trunkH+15]].forEach(([dx,dy]) => {
     ctx.fillStyle = fc;
     ctx.beginPath(); ctx.arc(x+dx*s, y+dy*s, 25*s, 0, Math.PI*2); ctx.fill();
   });
@@ -782,7 +783,7 @@ function drawCastle(ctx, x, y, colored) {
   });
   // Flags
   if (colored) {
-    [[-35+x,-178],[65+x,-126],[-65+x,-126]].forEach(([fx,fy]) => {
+    [[-35+x,y-178],[65+x,y-126],[-65+x,y-126]].forEach(([fx,fy]) => {
       ctx.fillStyle = rc;
       ctx.fillRect(fx, fy, 22, 14);
       ctx.strokeStyle='#888'; ctx.lineWidth=2;
@@ -1216,7 +1217,7 @@ function startGame() {
   gameState = 'playing';
   document.getElementById('titleScreen').style.display = 'none';
   canvas.style.display = 'block';
-  requestAnimationFrame(gameLoop);
+  if (!loopRunning) { loopRunning = true; requestAnimationFrame(gameLoop); }
 }
 
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -1232,7 +1233,7 @@ function gameLoop() {
 }
 
 function update() {
-  if (gameState !== 'playing') return;
+  if (gameState === 'title') return;
 
   gameSpeed = 6 + distance / 2200;
 
@@ -1265,7 +1266,7 @@ function update() {
       const sr = { x: p.wx - scrollX, y: p.y, w: p.w, h: p.h };
       if (ponyVY >= 0 && pr.y + pr.h > sr.y && pr.y + pr.h < sr.y + sr.h + 12 &&
           pr.x + pr.w > sr.x + 8 && pr.x < sr.x + sr.w - 8) {
-        ponyY = p.y - pr.h + pr.h/2 + 6;
+        ponyY = p.y - 40;
         ponyVY = 0;
         jumpsLeft = MAX_JUMPS;
       }
@@ -1392,7 +1393,7 @@ function render() {
 
   // Pony
   const pony = PONIES[selectedPony];
-  drawPonyPortrait(ctx, pony, PONY_X, ponyY + 40, 1, time * 60, isDead, rainbowMode > 0);
+  drawPonyPortrait(ctx, pony, PONY_X, ponyY + 40, 1, time, isDead, rainbowMode > 0);
 
   // Particles
   drawParticles();
