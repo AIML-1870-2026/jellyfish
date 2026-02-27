@@ -697,6 +697,7 @@ function drawPony(x, y, pony, dying, rainbowMode, t) {
   const { body, mane, mane2, tail } = pony;
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(-1, 1);
 
   const bW = 40, bH = 24, legH = 18;
   const legSwing = dying ? 0 : Math.sin(t * 11) * 6;
@@ -1071,6 +1072,7 @@ PONIES.forEach((pony, i) => {
   const mc = c.getContext('2d');
   mc.clearRect(0,0,96,80);
   mc.save(); mc.translate(48, 52);
+  mc.scale(-1, 1);
   // mini draw (simplified)
   const { body, mane, mane2, tail } = pony;
   // tail
