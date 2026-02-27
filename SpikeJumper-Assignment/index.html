@@ -697,6 +697,7 @@ function drawPony(x, y, pony, dying, rainbowMode, t) {
   const { body, mane, mane2, tail } = pony;
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(-1, 1);
 
   const bW = 40, bH = 24, legH = 18;
   const legSwing = dying ? 0 : Math.sin(t * 11) * 6;
@@ -1071,6 +1072,7 @@ PONIES.forEach((pony, i) => {
   const mc = c.getContext('2d');
   mc.clearRect(0,0,96,80);
   mc.save(); mc.translate(48, 52);
+  mc.scale(-1, 1);
   // mini draw (simplified)
   const { body, mane, mane2, tail } = pony;
   // tail
@@ -1174,9 +1176,23 @@ function loop(ts) {
   ctx.translate(shakeX, shakeY);
 
   // --- UPDATE ---
-  if (!dying) {
-    const speed = gameSpeed * dt * (rainbowMode ? 1.65 : 1);
+  const speed = gameSpeed * dt * (rainbowMode ? 1.65 : 1);
 
+  // Move world (always, so the game keeps scrolling during death animation)
+  obstacles.forEach(o => o.x -= speed);
+  platforms.forEach(p => p.x -= speed);
+  powerups.forEach(pu => { pu.x -= speed; pu.angle += 0.04*dt; });
+  scrollX += speed;
+
+  obstacles = obstacles.filter(o => o.x > -120);
+  platforms = platforms.filter(p => p.x > -220);
+  powerups = powerups.filter(pu => pu.x > -60);
+
+  // Particles always animate so death explosion plays out
+  particles.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.18*dt; p.life-=0.028*dt; });
+  particles = particles.filter(p => p.life > 0);
+
+  if (!dying) {
     // Physics
     ponyVY += GRAVITY * dt;
     ponyY += ponyVY * dt;
@@ -1192,20 +1208,6 @@ function loop(ts) {
     // Trail: store world-x so points spread out horizontally as pony runs
     trailPoints.push({ wx: scrollX + PONY_X - 22, y: ponyY });
     if (trailPoints.length > 120) trailPoints.shift();
-
-    // Move world
-    obstacles.forEach(o => o.x -= speed);
-    platforms.forEach(p => p.x -= speed);
-    powerups.forEach(pu => { pu.x -= speed; pu.angle += 0.04*dt; });
-    scrollX += speed;
-
-    obstacles = obstacles.filter(o => o.x > -120);
-    platforms = platforms.filter(p => p.x > -220);
-    powerups = powerups.filter(pu => pu.x > -60);
-
-    // Particles
-    particles.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.18*dt; p.life-=0.028*dt; });
-    particles = particles.filter(p => p.life > 0);
 
     // Spawn
     spawnTimer -= dt; if (spawnTimer <= 0) { spawnObstacle(); spawnTimer = 55 + Math.random()*75; }
