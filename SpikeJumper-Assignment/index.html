@@ -4,1035 +4,1000 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rainbow Runners</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #0a0814;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  font-family: 'Nunito', sans-serif;
-  overflow: hidden;
-}
-#titleScreen {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0a0814 0%, #12082a 50%, #0a1020 100%);
-  z-index: 10;
-}
-.title-inner {
-  display: flex;
-  gap: 40px;
-  max-width: 1140px;
-  width: 100%;
-  padding: 20px;
-}
-.title-left {
-  flex: 1.1;
-  color: #e8e0ff;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.game-title {
-  font-family: 'Fredoka One', cursive;
-  font-size: 3.2rem;
-  background: linear-gradient(90deg, #ff6b6b, #ffd700, #7fff00, #00cfff, #9b59ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.1;
-  text-shadow: none;
-  filter: drop-shadow(0 0 20px rgba(155,89,255,0.4));
-}
-.panel {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 14px;
-  padding: 14px 18px;
-}
-.panel h3 {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.05rem;
-  color: #ffd700;
-  margin-bottom: 8px;
-}
-.panel p, .panel li {
-  font-size: 0.82rem;
-  color: #c8c0e0;
-  line-height: 1.5;
-}
-.panel ul { list-style: none; }
-.panel ul li { padding: 2px 0; }
-.zone-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 0.8rem; }
-.zone-icon { font-size: 1rem; }
-.title-right {
-  flex: 0.9;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-.chooser-title {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.4rem;
-  color: #ffd700;
-}
-.pony-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  width: 100%;
-}
-.pony-card {
-  background: rgba(255,255,255,0.06);
-  border: 2px solid rgba(255,255,255,0.15);
-  border-radius: 12px;
-  padding: 10px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.pony-card:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-.pony-card.selected {
-  border-color: #ffd700;
-  background: rgba(255,215,0,0.12);
-  box-shadow: 0 0 16px rgba(255,215,0,0.3);
-}
-.pony-card canvas { border-radius: 8px; }
-.pony-name {
-  font-family: 'Fredoka One', cursive;
-  font-size: 0.85rem;
-  color: #e8e0ff;
-}
-.start-btn {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.4rem;
-  padding: 14px 44px;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  background: linear-gradient(90deg, #ff6b6b, #ffd700, #7fff00, #00cfff, #9b59ff, #ff6b6b);
-  background-size: 200% auto;
-  color: #1a0a2e;
-  animation: rainbowShift 3s linear infinite;
-  box-shadow: 0 4px 24px rgba(155,89,255,0.4);
-  transition: transform 0.15s;
-}
-.start-btn:hover { transform: scale(1.06); }
-@keyframes rainbowShift { to { background-position: 200% center; } }
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0d0010;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; font-family: 'Nunito', sans-serif; overflow: hidden;
+  }
+  #app { position: relative; width: 1100px; height: 620px; }
+  canvas { display: block; border-radius: 14px; box-shadow: 0 0 80px rgba(120,0,180,0.5); }
+  #ui { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  #score-display {
+    position:absolute; top:16px; right:20px;
+    font-family:'Fredoka One',cursive; font-size:28px; color:white;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.6);
+  }
+  #powerup-bar { position:absolute; top:16px; left:20px; display:flex; gap:10px; align-items:center; }
+  .powerup-indicator {
+    padding:4px 14px; border-radius:20px; font-size:13px; font-weight:900; color:white;
+    opacity:0; transition:opacity 0.3s;
+  }
+  .powerup-indicator.active { opacity:1; }
+  #rainbow-indicator {
+    background:linear-gradient(90deg,#f00,#ff7700,#ff0,#0f0,#00f,#8b00ff);
+    animation:hue-shift 1s linear infinite; background-size:200%;
+  }
+  @keyframes hue-shift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+  #shield-indicator { background:rgba(80,180,255,0.85); border:2px solid #fff; }
 
-#gameCanvas {
-  display: none;
-  border-radius: 8px;
-  box-shadow: 0 0 60px rgba(100,50,255,0.3);
-}
+  .screen {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    pointer-events:all; border-radius:14px;
+  }
+  #select-screen { background:linear-gradient(160deg,#0a0020 0%,#1a0535 50%,#0a1530 100%); }
+  #select-screen h1 {
+    font-family:'Fredoka One',cursive; font-size:56px;
+    background:linear-gradient(90deg,#f00,#ff7700,#ff0,#0f0,#00f,#8b00ff,#f00);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    margin-bottom:10px; animation:rbg 3s linear infinite; background-size:300%;
+    filter:drop-shadow(0 0 20px rgba(200,100,255,0.5));
+  }
+  @keyframes rbg { 0%{background-position:0%} 100%{background-position:300%} }
+  #select-screen .subtitle { color:#998aaa; margin-bottom:14px; font-size:15px; letter-spacing:1px; text-align:center; }
+  #title-layout { display:flex; gap:24px; align-items:flex-start; width:100%; max-width:1060px; padding:0 16px; }
+  #story-panel { flex:1; display:flex; flex-direction:column; gap:10px; max-width:520px; }
+  #story-box, #zones-box, #controls-box {
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px; padding:12px 16px;
+  }
+  #story-box h3, #zones-box h3, #controls-box h3 {
+    font-family:'Fredoka One',cursive; font-size:15px; color:#ddbbff;
+    margin-bottom:7px; letter-spacing:1px;
+  }
+  #story-box p, #controls-box p { color:#bbb; font-size:12px; line-height:1.55; margin-bottom:4px; }
+  .zone-entry { display:flex; gap:10px; align-items:flex-start; margin-bottom:7px; }
+  .zone-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .zone-entry div { color:#bbb; font-size:11.5px; line-height:1.5; }
+  .zone-entry strong { color:#eeddff; font-size:12px; }
+  kbd { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:4px; padding:1px 5px; font-size:11px; color:#fff; }
+  .rb { color:#ffcc44; font-weight:700; }
+  .sh { color:#88ddff; font-weight:700; }
+  #pony-chooser { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+  .pony-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+  .pony-card {
+    width:120px; background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.1);
+    border-radius:16px; padding:14px 10px; cursor:pointer; transition:all 0.2s;
+    text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .pony-card:hover { border-color:rgba(255,255,255,0.4); transform:translateY(-4px); background:rgba(255,255,255,0.08); }
+  .pony-card.selected { border-color:gold; background:rgba(255,215,0,0.12); box-shadow:0 0 24px rgba(255,215,0,0.25); }
+  .pony-card canvas { border-radius:8px; box-shadow:none; }
+  .pony-card span { font-size:12px; font-weight:700; color:#ccc; }
+  #start-btn {
+    font-family:'Fredoka One',cursive; font-size:26px; padding:14px 52px;
+    border:none; border-radius:40px;
+    background:linear-gradient(90deg,#f00,#ff7700,#ff0,#0f0,#00f,#8b00ff,#f00);
+    background-size:300%; color:white; cursor:pointer;
+    animation:rbg 2s linear infinite; transition:transform 0.15s,box-shadow 0.15s;
+    text-shadow:1px 1px 2px rgba(0,0,0,0.4);
+  }
+  #start-btn:hover { transform:scale(1.07); box-shadow:0 8px 32px rgba(180,80,255,0.5); }
+  #gameover-screen { background:rgba(0,0,0,0.88); display:none; }
+  #gameover-screen h2 { font-family:'Fredoka One',cursive; font-size:68px; color:#fff; margin-bottom:10px; }
+  #gameover-screen p { color:#aaa; font-size:20px; margin-bottom:28px; }
+  #restart-btn {
+    font-family:'Fredoka One',cursive; font-size:22px; padding:12px 42px;
+    border:2px solid white; border-radius:40px; background:transparent; color:white;
+    cursor:pointer; transition:all 0.2s;
+  }
+  #restart-btn:hover { background:white; color:#111; }
+  #zone-label {
+    position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    font-family:'Fredoka One',cursive; font-size:17px; color:rgba(255,255,255,0.65);
+    text-shadow:1px 1px 6px rgba(0,0,0,0.9); letter-spacing:3px; text-transform:uppercase;
+  }
 </style>
 </head>
 <body>
+<div id="app">
+  <canvas id="gameCanvas" width="1100" height="620"></canvas>
+  <div id="ui">
+    <div id="score-display">Score: <span id="score">0</span></div>
+    <div id="powerup-bar">
+      <div class="powerup-indicator" id="rainbow-indicator">⚡ RAINBOW MODE</div>
+      <div class="powerup-indicator" id="shield-indicator">🛡 SHIELD</div>
+    </div>
+    <div id="zone-label"></div>
+  </div>
+  <div class="screen" id="select-screen">
+    <h1>Rainbow Runners</h1>
 
-<div id="titleScreen">
-  <div class="title-inner">
-    <div class="title-left">
-      <div class="game-title">Rainbow Runners</div>
-      <div class="panel">
-        <h3>✨ A World Without Color</h3>
-        <p>A mysterious shadow has drained all color from the land, leaving only cold grey silence. You are a magical pony — and everywhere you run, your rainbow trail restores life, light, and color to the world. The faster you run, the more vibrant the world becomes.</p>
+    <div id="title-layout">
+      <div id="story-panel">
+        <div id="story-box">
+          <h3>✨ A World Without Color</h3>
+          <p>Once, the land was vibrant and full of life — but a mysterious shadow drained every last drop of color from the world, leaving it cold and grey.</p>
+          <p>Only a magical pony and her rainbow trail can bring it back. Run through each zone, and watch the world bloom with color in your wake!</p>
+        </div>
+        <div id="zones-box">
+          <h3>🗺 The Journey</h3>
+          <div class="zone-entry"><span class="zone-icon">🍎</span><div><strong>Apple Orchard</strong><br>A once-lush grove of apple trees, now still and grey. Leap the thorny overgrowth!</div></div>
+          <div class="zone-entry"><span class="zone-icon">🌑</span><div><strong>Spooky Forest</strong><br>Dead trees and swooping bats lurk in the dark. Stay sharp!</div></div>
+          <div class="zone-entry"><span class="zone-icon">🏰</span><div><strong>Castle Fields</strong><br>Rolling hills lead to a grand castle. Jump high to reach the platforms!</div></div>
+          <div class="zone-entry"><span class="zone-icon">💎</span><div><strong>Crystal Caves</strong><br>Glittering crystals line the cavern walls — the deepest, hardest stage.</div></div>
+        </div>
+        <div id="controls-box">
+          <h3>🎮 How to Play</h3>
+          <p><kbd>Space</kbd> or <strong>click</strong> to jump — up to 3 times in the air!</p>
+          <p>Collect <span class="rb">⚡ Rainbow Circles</span> for speed &amp; infinite flight.</p>
+          <p>Collect <span class="sh">🛡 Shields</span> for 7 seconds of invincibility.</p>
+        </div>
       </div>
-      <div class="panel">
-        <h3>🗺 The Journey</h3>
-        <div class="zone-row"><span class="zone-icon">🍎</span><span><b>Apple Orchard</b> — Golden sun, warm greens, ripe apples</span></div>
-        <div class="zone-row"><span class="zone-icon">🌑</span><span><b>Spooky Forest</b> — Dead trees, pale moon, swooping bats</span></div>
-        <div class="zone-row"><span class="zone-icon">🏰</span><span><b>Castle Fields</b> — Rolling hills, grand castle, twilight blue</span></div>
-        <div class="zone-row"><span class="zone-icon">💎</span><span><b>Crystal Caves</b> — Indigo depths, dense glowing crystals</span></div>
-      </div>
-      <div class="panel">
-        <h3>🎮 How to Play</h3>
-        <ul>
-          <li>⬆ <b>Space / Click / Tap</b> — Jump (up to 3 times!)</li>
-          <li>🌈 <b>Rainbow Circle</b> — Speed boost + unlimited jumps for 5s</li>
-          <li>🛡 <b>Shield</b> — 7 seconds of invincibility</li>
-          <li>🌿 Dodge the thorny bushes — they're the only hazard</li>
-          <li>🪵 Land on floating platforms to reset your jumps</li>
-        </ul>
+
+      <div id="pony-chooser">
+        <p class="subtitle">Choose your pony</p>
+        <div class="pony-grid" id="pony-grid"></div>
+        <button id="start-btn">Let's Run! 🌈</button>
       </div>
     </div>
-    <div class="title-right">
-      <div class="chooser-title">Choose Your Pony</div>
-      <div class="pony-grid" id="ponyGrid"></div>
-      <button class="start-btn" id="startBtn">Let's Run! 🌈</button>
-    </div>
+  </div>
+  <div class="screen" id="gameover-screen">
+    <h2>Game Over</h2>
+    <p id="final-score">Score: 0</p>
+    <button id="restart-btn">Try Again</button>
   </div>
 </div>
 
-<canvas id="gameCanvas" width="1100" height="620"></canvas>
-
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
-const W = 1100, H = 620;
-const GROUND_Y = 510;
-const PONY_X = 160;
-const GRAVITY = 0.55;
-const JUMP_FORCE = -13.5;
-const MAX_JUMPS = 3;
-const CYCLE_DIST = 5300;
 
-const ZONES = [
-  { name: "🍎 APPLE ORCHARD",  start: 0,    skyTop: '#1a3a08', skyBot: '#2a5010', ground: '#3a5a18' },
-  { name: "🌑 SPOOKY FOREST",  start: 900,  skyTop: '#0a0820', skyBot: '#180830', ground: '#1a1018' },
-  { name: "🏰 CASTLE FIELDS",  start: 2200, skyTop: '#082040', skyBot: '#103060', ground: '#204030' },
-  { name: "💎 CRYSTAL CAVES",  start: 3800, skyTop: '#080520', skyBot: '#100a30', ground: '#141028' },
-];
-const GREY_SKY_TOP = '#1a1a22', GREY_SKY_BOT = '#252530', GREY_GROUND = '#2a2a32';
-
-const PONIES = [
-  { name: 'Twilight',   body: '#7b3f9e', mane: '#4a1878', tail: '#4a1878', inner: '#c090f0' },
-  { name: 'Pinkie',     body: '#f06fa0', mane: '#d03060', tail: '#d03060', inner: '#ffc0d8' },
-  { name: 'Fluttershy', body: '#f8f0b0', mane: '#f0a0b8', tail: '#f0a0b8', inner: '#fff8d0' },
-  { name: 'Applejack',  body: '#e8a832', mane: '#c04820', tail: '#c04820', inner: '#ffe090' },
-  { name: 'Rainbow',    body: '#60b0ff', mane: '#ff4400', tail: '#ff4400', inner: '#c0e8ff' },
-  { name: 'Rarity',     body: '#f0ecff', mane: '#8844cc', tail: '#8844cc', inner: '#ffffff' },
-];
-
-const RAINBOW_COLORS = ['#ff0000','#ff7700','#ffee00','#00cc44','#0088ff','#9900ff'];
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  AUDIO
-// ─────────────────────────────────────────────────────────────────────────────
-let audioCtx = null;
-function getAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-function playJump() {
-  try {
-    const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(280, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(560, ctx.currentTime + 0.22);
-    gain.gain.setValueAtTime(0.18, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-    osc.start(); osc.stop(ctx.currentTime + 0.22);
-  } catch(e){}
-}
-function playRainbowPickup() {
-  try {
-    const ctx = getAudio();
-    const freqs = [300, 500, 700, 900, 1100, 1400];
-    freqs.forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = f;
-      const t = ctx.currentTime + i * 0.07;
-      gain.gain.setValueAtTime(0.15, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      osc.start(t); osc.stop(t + 0.2);
-    });
-  } catch(e){}
-}
-function playShieldPickup() {
-  try {
-    const ctx = getAudio();
-    [500, 750, 600, 900].forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine'; osc.frequency.value = f;
-      const t = ctx.currentTime + i * 0.09;
-      gain.gain.setValueAtTime(0.12, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.start(t); osc.stop(t + 0.18);
-    });
-  } catch(e){}
-}
-function playDeath() {
-  try {
-    const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(350, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.7);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
-    osc.start(); osc.stop(ctx.currentTime + 0.7);
-  } catch(e){}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  UTILITY
-// ─────────────────────────────────────────────────────────────────────────────
-function lerp(a, b, t) { return a + (b - a) * t; }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-function randBetween(a, b) { return a + Math.random() * (b - a); }
-function randInt(a, b) { return Math.floor(randBetween(a, b + 1)); }
-
-function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1,3),16);
-  const g = parseInt(hex.slice(3,5),16);
-  const b = parseInt(hex.slice(5,7),16);
-  return [r,g,b];
-}
-function rgbToGrey(r,g,b) {
-  const v = Math.round(0.299*r + 0.587*g + 0.114*b);
-  return `rgb(${v},${v},${v})`;
-}
-function lerpColor(hexA, hexB, t) {
-  const [ar,ag,ab] = hexToRgb(hexA);
-  const [br,bg,bb] = hexToRgb(hexB);
-  const r = Math.round(lerp(ar,br,t));
-  const g = Math.round(lerp(ag,bg,t));
-  const b_c = Math.round(lerp(ab,bb,t));
-  return `rgb(${r},${g},${b_c})`;
-}
-function greyOf(hex) {
-  const [r,g,b] = hexToRgb(hex);
-  return rgbToGrey(r,g,b);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  PONY DRAWING
-// ─────────────────────────────────────────────────────────────────────────────
-function drawPonyPortrait(ctx, pony, x, y, scale, time, isDead, isRainbow) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scale, scale);
-
-  const legSwing = isDead ? 0 : Math.sin(time * 11) * 6;
-  const bodyColor = isDead ? greyOf(pony.body) : pony.body;
-  const maneColor = isDead ? '#555' : pony.mane;
-  const innerColor = isDead ? '#888' : pony.inner;
-
-  // Shadow
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.ellipse(0, 26, 28, 7, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
-  // Legs
-  const legPairs = [[-14, 14], [6, 30]];
-  legPairs.forEach(([lx, rx]) => {
-    const swing1 = legSwing * (lx < 0 ? 1 : -1);
-    const swing2 = -swing1;
-    ctx.fillStyle = bodyColor;
-    ctx.save();
-    ctx.translate(lx, 14);
-    ctx.rotate(swing1 * Math.PI / 180);
-    ctx.beginPath();
-    ctx.roundRect(-4, 0, 8, 18, 3);
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    ctx.translate(rx, 14);
-    ctx.rotate(swing2 * Math.PI / 180);
-    ctx.beginPath();
-    ctx.roundRect(-4, 0, 8, 18, 3);
-    ctx.fill();
-    ctx.restore();
-  });
-
-  // Body
-  ctx.fillStyle = bodyColor;
-  ctx.beginPath();
-  ctx.roundRect(-28, -14, 56, 32, 12);
-  ctx.fill();
-
-  // Head
-  ctx.fillStyle = bodyColor;
-  ctx.beginPath();
-  ctx.roundRect(-44, -28, 28, 26, 10);
-  ctx.fill();
-
-  // Snout
-  ctx.fillStyle = innerColor;
-  ctx.beginPath();
-  ctx.ellipse(-48, -16, 9, 7, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = isDead ? '#666' : '#c87060';
-  ctx.beginPath();
-  ctx.ellipse(-50, -17, 2, 1.5, -0.3, 0, Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(-45, -17, 2, 1.5, 0.3, 0, Math.PI*2);
-  ctx.fill();
-
-  // Eye
-  if (isDead) {
-    ctx.strokeStyle = '#cc0000';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-39, -22); ctx.lineTo(-35, -18); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-35, -22); ctx.lineTo(-39, -18); ctx.stroke();
-    // Tear
-    ctx.fillStyle = '#88bbff';
-    ctx.beginPath(); ctx.ellipse(-40, -14, 2, 4, 0, 0, Math.PI*2); ctx.fill();
-  } else {
-    ctx.fillStyle = '#1a0a30';
-    ctx.beginPath(); ctx.ellipse(-38, -20, 5, 5.5, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.ellipse(-36, -22, 1.5, 1.5, 0, 0, Math.PI*2); ctx.fill();
-    // Lashes
-    ctx.strokeStyle = '#1a0a30'; ctx.lineWidth = 1.2;
-    [[-42,-24],[-40,-25],[-38,-25],[-35,-24]].forEach(([ex,ey]) => {
-      ctx.beginPath(); ctx.moveTo(ex+2, -18); ctx.lineTo(ex, ey); ctx.stroke();
-    });
-  }
-
-  // Ear
-  const earTip = isDead ? -5 : -2;
-  ctx.fillStyle = bodyColor;
-  ctx.beginPath();
-  ctx.moveTo(-36, -26); ctx.lineTo(-28, -36 + (isDead ? 8 : 0)); ctx.lineTo(-22, -26);
-  ctx.fill();
-  ctx.fillStyle = innerColor;
-  ctx.beginPath();
-  ctx.moveTo(-34, -26); ctx.lineTo(-28, -32 + (isDead ? 6 : 0)); ctx.lineTo(-24, -26);
-  ctx.fill();
-
-  // Mane / tail
-  if (isRainbow && !isDead) {
-    RAINBOW_COLORS.forEach((rc, ri) => {
-      const off = ri * 2.5;
-      // Mane
-      ctx.strokeStyle = rc; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-26 + Math.sin(time*3+ri)*2, -30);
-      ctx.bezierCurveTo(-10+off, -42+Math.sin(time*4+ri)*3, 10+off, -30, 14+off, -8+Math.sin(time*5+ri)*3);
-      ctx.stroke();
-      // Tail
-      ctx.beginPath();
-      ctx.moveTo(28, 0 + ri*2);
-      ctx.bezierCurveTo(40+off, 8+Math.sin(time*4+ri*1.3)*3, 46+off, 20, 44+off, 32+Math.sin(time*3+ri)*4);
-      ctx.stroke();
-    });
-  } else {
-    ctx.strokeStyle = maneColor; ctx.lineWidth = 6; ctx.lineCap = 'round';
-    // Mane strand 1
-    ctx.beginPath();
-    ctx.moveTo(-26, -28);
-    ctx.bezierCurveTo(-8, -40, 10, -28, 14, -6);
-    ctx.stroke();
-    // Mane strand 2
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-22, -26);
-    ctx.bezierCurveTo(-4, -44, 16, -30, 18, -4);
-    ctx.stroke();
-    // Tail
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(28, 2);
-    ctx.bezierCurveTo(40, 10, 46, 24, 44, 36);
-    ctx.stroke();
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(28, 6);
-    ctx.bezierCurveTo(44, 14, 48, 28, 46, 38);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  TITLE SCREEN — PONY GRID
-// ─────────────────────────────────────────────────────────────────────────────
-let selectedPony = 0;
-function buildPonyGrid() {
-  const grid = document.getElementById('ponyGrid');
-  grid.innerHTML = '';
-  PONIES.forEach((pony, i) => {
-    const card = document.createElement('div');
-    card.className = 'pony-card' + (i === selectedPony ? ' selected' : '');
-    const cvs = document.createElement('canvas');
-    cvs.width = 90; cvs.height = 80;
-    const ctx2 = cvs.getContext('2d');
-    // Dark bg
-    ctx2.fillStyle = '#12082a';
-    ctx2.fillRect(0, 0, 90, 80);
-    drawPonyPortrait(ctx2, pony, 50, 58, 0.9, 0, false, false);
-    const nameEl = document.createElement('div');
-    nameEl.className = 'pony-name';
-    nameEl.textContent = pony.name;
-    card.appendChild(cvs);
-    card.appendChild(nameEl);
-    card.addEventListener('click', () => {
-      selectedPony = i;
-      document.querySelectorAll('.pony-card').forEach((c, ci) => {
-        c.classList.toggle('selected', ci === i);
-      });
-    });
-    grid.appendChild(card);
-  });
-}
-buildPonyGrid();
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  GAME STATE
-// ─────────────────────────────────────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-let gameState = 'title'; // 'title' | 'playing' | 'dead'
-let loopRunning = false;
-let scrollX = 0;
-let distance = 0;
-let gameSpeed = 6;
-let time = 0;
-let shake = 0;
-
-// Pony
-let ponyY = GROUND_Y - 40;
-let ponyVY = 0;
-let jumpsLeft = MAX_JUMPS;
-let isDead = false;
-let deathTimer = 0;
-let overlayAlpha = 0;
-let rainbowMode = 0; // frames remaining
-let shieldTimer = 0;
-
-// Entities
-let obstacles = [];
-let platforms = [];
-let powerups = [];
-let particles = [];
-let trailPoints = [];
-
-// Spawn timers
-let obstacleTimer = 80;
-let platformTimer = 150;
-let powerupTimer = 250;
-
-// Background objects (seeded procedurally)
-let bgObjects = [];
-
-// HUD
-let zoneLabel = ZONES[0].name;
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  BACKGROUND GENERATION
-// ─────────────────────────────────────────────────────────────────────────────
-function buildBgObjects() {
-  bgObjects = [];
-  const TOTAL = CYCLE_DIST;
-
-  // ZONE 0: Apple Orchard — apple trees + sun
-  for (let wx = 200; wx < 900; wx += 280 + Math.random()*120) {
-    bgObjects.push({ type:'appleTree', wx, depth: 0.3 + Math.random()*0.15 });
-  }
-  bgObjects.push({ type:'sun', wx: 400, depth: 0.05 });
-
-  // ZONE 1: Spooky Forest — dead trees, bats, moon
-  for (let wx = 950; wx < 2150; wx += 180 + Math.random()*100) {
-    bgObjects.push({ type:'deadTree', wx, depth: 0.25 + Math.random()*0.2 });
-  }
-  bgObjects.push({ type:'moon', wx: 1400, depth: 0.05 });
-  for (let wx = 1050; wx < 2100; wx += 220 + Math.random()*80) {
-    bgObjects.push({ type:'bat', wx, depth: 0.7 + Math.random()*0.15 });
-  }
-
-  // ZONE 2: Castle Fields — hills, castle
-  for (let wx = 2300; wx < 3750; wx += 350 + Math.random()*150) {
-    bgObjects.push({ type:'hill', wx, depth: 0.1 + Math.random()*0.1, size: 0.8 + Math.random()*0.5 });
-  }
-  bgObjects.push({ type:'castle', wx: 3000, depth: 0.08 });
-
-  // ZONE 3: Crystal Caves — crystals
-  for (let wx = 3850; wx < 5250; wx += 90 + Math.random()*40) {
-    bgObjects.push({ type:'crystal', wx, depth: 0.1 + Math.random()*0.55, size: 0.5 + Math.random()*1.2, color: RAINBOW_COLORS[Math.floor(Math.random()*6)] });
-  }
-  for (let wx = 3870; wx < 5250; wx += 240 + Math.random()*80) {
-    bgObjects.push({ type:'crystal', wx, depth: 0.6 + Math.random()*0.3, size: 1.0 + Math.random()*1.5, color: RAINBOW_COLORS[Math.floor(Math.random()*6)] });
-  }
-  for (let wx = 3900; wx < 5250; wx += 130 + Math.random()*60) {
-    bgObjects.push({ type:'crystal', wx, depth: 0.05 + Math.random()*0.08, size: 0.3 + Math.random()*0.5, color: '#8888ff' });
-  }
-  // Stalactites
-  for (let wx = 3860; wx < 5250; wx += 110 + Math.random()*70) {
-    bgObjects.push({ type:'stalactite', wx, depth: 0.2 + Math.random()*0.4, size: 0.6 + Math.random()*1.2 });
-  }
-}
-buildBgObjects();
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ZONE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-function getZoneProgress(dist) {
-  const d = dist % CYCLE_DIST;
-  let zi = 0;
-  for (let i = ZONES.length - 1; i >= 0; i--) {
-    if (d >= ZONES[i].start) { zi = i; break; }
-  }
-  const nextZi = (zi + 1) % ZONES.length;
-  const zStart = ZONES[zi].start;
-  const zEnd = nextZi === 0 ? CYCLE_DIST : ZONES[nextZi].start;
-  const subT = clamp((d - zStart) / (zEnd - zStart), 0, 1);
-  return { zi, nextZi, subT };
-}
-
-function getZoneColors(dist) {
-  const { zi, nextZi, subT } = getZoneProgress(dist);
-  const curr = ZONES[zi], next = ZONES[nextZi];
-  return {
-    skyTop: lerpColor(curr.skyTop, next.skyTop, subT),
-    skyBot: lerpColor(curr.skyBot, next.skyBot, subT),
-    ground: lerpColor(curr.ground, next.ground, subT),
-    zi, subT
+// ===================== POLYFILLS =====================
+// roundRect polyfill for browsers that don't support it (Safari < 15.4, older Chrome, GitHub Pages)
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'object') {
+      // Handle array form [tl, tr, br, bl]
+      var tl = r[0]||0, tr = r[1]||0, br = r[2]||0, bl = r[3]||0;
+    } else {
+      var tl = r||0, tr = r||0, br = r||0, bl = r||0;
+    }
+    tl = Math.min(tl, w/2, h/2);
+    tr = Math.min(tr, w/2, h/2);
+    br = Math.min(br, w/2, h/2);
+    bl = Math.min(bl, w/2, h/2);
+    this.moveTo(x + tl, y);
+    this.lineTo(x + w - tr, y);
+    this.arcTo(x + w, y, x + w, y + tr, tr);
+    this.lineTo(x + w, y + h - br);
+    this.arcTo(x + w, y + h, x + w - br, y + h, br);
+    this.lineTo(x + bl, y + h);
+    this.arcTo(x, y + h, x, y + h - bl, bl);
+    this.lineTo(x, y + tl);
+    this.arcTo(x, y, x + tl, y, tl);
+    this.closePath();
+    return this;
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  BACKGROUND DRAW
-// ─────────────────────────────────────────────────────────────────────────────
-function drawBackground(splitX) {
-  const colors = getZoneColors(distance);
-  const cyCnt = Math.floor(scrollX / CYCLE_DIST);
+// ===================== AUDIO =====================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
 
-  // Sky - left (colored), right (grey)
-  const skyGradL = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  skyGradL.addColorStop(0, colors.skyTop);
-  skyGradL.addColorStop(1, colors.skyBot);
-  ctx.fillStyle = skyGradL;
-  ctx.fillRect(0, 0, splitX, GROUND_Y);
+function playJump() {
+  try {
+    const ac = getAudio(), o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.frequency.setValueAtTime(280, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(560, ac.currentTime + 0.12);
+    g.gain.setValueAtTime(0.25, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.22);
+    o.start(); o.stop(ac.currentTime + 0.22);
+  } catch(e){}
+}
 
-  const skyGradR = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  skyGradR.addColorStop(0, GREY_SKY_TOP);
-  skyGradR.addColorStop(1, GREY_SKY_BOT);
-  ctx.fillStyle = skyGradR;
-  ctx.fillRect(splitX, 0, W - splitX, GROUND_Y);
-
-  // Ground - left colored, right grey
-  ctx.fillStyle = colors.ground;
-  ctx.fillRect(0, GROUND_Y, splitX, H - GROUND_Y);
-  ctx.fillStyle = GREY_GROUND;
-  ctx.fillRect(splitX, GROUND_Y, W - splitX, H - GROUND_Y);
-
-  // Ground line highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.fillRect(0, GROUND_Y, W, 2);
-
-  // Background objects — draw sorted by depth (far first)
-  const sorted = [...bgObjects].sort((a, b) => a.depth - b.depth);
-  for (let cycle = 0; cycle <= cyCnt + 1; cycle++) {
-    const baseScroll = cycle * CYCLE_DIST;
-    sorted.forEach(obj => {
-      const worldX = obj.wx + baseScroll;
-      const screenX = worldX - scrollX * obj.depth;
-      if (screenX < -300 || screenX > W + 300) return;
-      const colored = screenX < splitX;
-      drawBgObject(ctx, obj, screenX, colored, colors.zi, time);
+function playPowerup() {
+  try {
+    const ac = getAudio();
+    [300,500,700,900,1100,1400].forEach((f,i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination); o.frequency.value = f; o.type = 'sine';
+      const t = ac.currentTime + i*0.07;
+      g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+      o.start(t); o.stop(t+0.18);
     });
+  } catch(e){}
+}
+
+function playDie() {
+  try {
+    const ac = getAudio(), o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(350, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(70, ac.currentTime + 0.7);
+    g.gain.setValueAtTime(0.4, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.7);
+    o.start(); o.stop(ac.currentTime + 0.7);
+  } catch(e){}
+}
+
+function playShield() {
+  try {
+    const ac = getAudio();
+    [500,750,600,900].forEach((f,i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination); o.frequency.value = f; o.type = 'sine';
+      const t = ac.currentTime + i*0.08;
+      g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t+0.15);
+      o.start(t); o.stop(t+0.15);
+    });
+  } catch(e){}
+}
+
+// ===================== PONIES =====================
+const PONIES = [
+  { name: 'Twilight',   body: '#7b3f9e', mane: '#4a0080', mane2: '#9933ff', tail: '#6a2dcc' },
+  { name: 'Pinkie',     body: '#f06fa0', mane: '#e03880', mane2: '#ff66aa', tail: '#ff99cc' },
+  { name: 'Fluttershy', body: '#f8f0b0', mane: '#ffb3b3', mane2: '#ffd0d0', tail: '#ffe0a0' },
+  { name: 'Applejack',  body: '#e8a832', mane: '#ff6b35', mane2: '#ffaa55', tail: '#f0c060' },
+  { name: 'Rainbow',    body: '#60b0ff', mane: '#ff3344', mane2: '#ff7722', tail: '#44dd44' },
+  { name: 'Rarity',     body: '#f0ecff', mane: '#9933dd', mane2: '#cc77ff', tail: '#bb66ee' },
+];
+
+// ===================== CONSTANTS =====================
+const W = 1100, H = 620, GROUND_Y = 510, PONY_X = 160;
+const GRAVITY = 0.55, JUMP_FORCE = -13.5, MAX_JUMPS = 3;
+const RAINBOW_COLORS = ['#ff0000','#ff7700','#ffee00','#00dd00','#0088ff','#aa00ff'];
+
+// ===================== CANVAS =====================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ===================== ZONES =====================
+const ZONES = [
+  {
+    name: 'APPLE ORCHARD',
+    skyTop: '#1a3a08', skyBot: '#2a5010',   // warm green dawn
+    groundMain: '#3a5a18', groundLine: '#2a4010',
+    dist: 0,
+  },
+  {
+    name: 'SPOOKY FOREST',
+    skyTop: '#0a0820', skyBot: '#180830',   // deep purple night
+    groundMain: '#1a1018', groundLine: '#100810',
+    dist: 900,
+  },
+  {
+    name: 'CASTLE FIELDS',
+    skyTop: '#082040', skyBot: '#103060',   // rich blue twilight
+    groundMain: '#204030', groundLine: '#183828',
+    dist: 2200,
+  },
+  {
+    name: 'CRYSTAL CAVES',
+    skyTop: '#080520', skyBot: '#100a30',   // deep indigo cave
+    groundMain: '#141028', groundLine: '#0c0820',
+    dist: 3800,
+  },
+];
+
+// ===================== GAME STATE =====================
+let gameState = 'select';
+let selectedPony = 0;
+let score = 0, distance = 0, gameSpeed = 6;
+let ponyY = GROUND_Y, ponyVY = 0, onGround = true, jumpCount = 0;
+let dying = false, deathTimer = 0;
+let rainbowMode = false, rainbowTimer = 0;
+let shieldMode = false, shieldTimer = 0;
+let shake = 0, shakeX = 0, shakeY = 0;
+let time = 0, scrollX = 0;
+let currentZone = 0;
+
+let trailPoints = []; // horizontal dress trail
+let particles = [];
+let obstacles = [], platforms = [], powerups = [];
+let bgObjects = [];
+let colorRevealX = 0; // world-x behind which color has been revealed
+
+let spawnTimer = 60, platformTimer = 120, powerupTimer = 220;
+
+// ===================== BG OBJECTS =====================
+function initBgObjects() {
+  bgObjects = [];
+  // scrollX grows at roughly 2x distance (speed=6, distance+=speed*0.5 per frame at dt=1)
+  // Zone scrollX boundaries: zone0=0, zone1=1800, zone2=4400, zone3=7600
+  // bg bx = wx - scrollX * depth. We want objects to appear when zone is active.
+  // wx_start for zone N ≈ zone_scrollX_start * depth_avg
+  // Use fixed depth=0.35 for placement math, actual depth varies per object.
+
+  // Zone 0: APPLE ORCHARD — scrollX 0 to 1800
+  // wx range: 0 to 1800*0.35 + W = 0 to 1730
+  for (let i = 0; i < 24; i++) {
+    const depth = 0.25 + Math.random() * 0.4;
+    bgObjects.push({ type:'appletree', wx: 100 + i * 160 + Math.random()*60, depth, size: 60 + Math.random()*45 });
+  }
+
+  // Zone 1: SPOOKY FOREST — scrollX 1800 to 4400
+  // wx start ≈ 1800*0.35 = 630, end ≈ 4400*0.45 + W = 3080
+  for (let i = 0; i < 20; i++) {
+    const depth = 0.25 + Math.random() * 0.45;
+    bgObjects.push({ type:'deadtree', wx: 700 + i * 200 + Math.random()*80, depth, size: 80 + Math.random()*60 });
+  }
+  for (let i = 0; i < 9; i++) {
+    bgObjects.push({ type:'bat', wx: 750 + i * 270 + Math.random()*120, depth: 0.55 + Math.random()*0.3, size: 14 + Math.random()*10 });
+  }
+
+  // Zone 2: CASTLE FIELDS — scrollX 4400 to 7600
+  // wx start ≈ 4400*0.35 = 1540, end ≈ 7600*0.45 + W = 4520
+  // Castle at very low depth so it's huge and far back
+  bgObjects.push({ type:'castle', wx: 1700, depth: 0.08, size: 1 });
+  for (let i = 0; i < 10; i++) {
+    const depth = 0.15 + Math.random() * 0.22;
+    bgObjects.push({ type:'hill', wx: 1540 + i * 300 + Math.random()*100, depth, size: 120 + Math.random()*80 });
+  }
+
+  // Zone 3: CRYSTAL CAVES — scrollX 7600+
+  // wx start ≈ 7600*0.35 = 2660  — dense layered crystals at multiple depths
+  for (let i = 0; i < 50; i++) {
+    const depth = 0.1 + Math.random() * 0.55;
+    bgObjects.push({ type:'crystal', wx: 2600 + i * 90 + Math.random()*60, depth, size: 35 + Math.random()*100 });
+  }
+  // Extra foreground crystals (bigger, closer)
+  for (let i = 0; i < 18; i++) {
+    bgObjects.push({ type:'crystal', wx: 2650 + i * 240 + Math.random()*80, depth: 0.6 + Math.random()*0.3, size: 70 + Math.random()*60 });
+  }
+  // Tiny background crystals for depth
+  for (let i = 0; i < 30; i++) {
+    bgObjects.push({ type:'crystal', wx: 2620 + i * 130 + Math.random()*50, depth: 0.05 + Math.random()*0.08, size: 20 + Math.random()*40 });
   }
 }
 
-function drawBgObject(ctx, obj, sx, colored, zi, t) {
+// ===================== HELPER: colorize =====================
+function isColorized(worldX) {
+  // The pony at PONY_X has world coordinate = scrollX + PONY_X
+  // We reveal color behind the pony's current world position
+  return (scrollX + PONY_X) > worldX;
+}
+
+function zoneColor(hex, worldX, satBoost) {
+  // Returns color or gray depending on whether the world position has been colorized
+  if (isColorized(worldX)) return hex;
+  // Convert to grayscale
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const avg = Math.round(r*0.299 + g*0.587 + b*0.114);
+  const v = Math.min(255, avg + 10);
+  return `rgb(${v},${v},${v})`;
+}
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+function lerpHex(c1,c2,t){
+  const p=hex=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+  const a=p(c1),b=p(c2);
+  return `rgb(${Math.round(lerp(a[0],b[0],t))},${Math.round(lerp(a[1],b[1],t))},${Math.round(lerp(a[2],b[2],t))})`;
+}
+
+// ===================== DRAW BG =====================
+function drawBackground() {
+  const zone = currentZone;
+  const z = ZONES[zone], zn = ZONES[Math.min(zone+1, ZONES.length-1)];
+  const nextDist = zone < ZONES.length-1 ? ZONES[zone+1].dist : Infinity;
+  const subT = Math.min((distance - z.dist) / Math.max(1, nextDist - z.dist), 1);
+
+  // Sky — always a bit colored (atmosphere), grayscale for areas ahead
+  // We draw sky in two halves: left=passed (color), right=ahead (gray)
+  const ponyScreenX = PONY_X;
+
+  // Left (revealed) sky
+  const skyTopCol = zone < ZONES.length-1 ? lerpHex(z.skyTop, zn.skyTop, subT) : z.skyTop;
+  const skyBotCol = zone < ZONES.length-1 ? lerpHex(z.skyBot, zn.skyBot, subT) : z.skyBot;
+
+  // Draw full sky first in grayscale
+  const grayTop = '#111', grayBot = '#222';
+  const g1 = ctx.createLinearGradient(0,0,0,GROUND_Y);
+  g1.addColorStop(0, grayTop); g1.addColorStop(1, grayBot);
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, W, GROUND_Y);
+
+  // Then overlay colorized sky on left half (pony has passed)
+  if (ponyScreenX > 0) {
+    const g2 = ctx.createLinearGradient(0,0,0,GROUND_Y);
+    g2.addColorStop(0, skyTopCol); g2.addColorStop(1, skyBotCol);
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, ponyScreenX, GROUND_Y);
+  }
+
+  // Background elements — use looped scroll so zones repeat each cycle
+  const CYCLE_SCROLL = 5300 * 2; // scrollX equivalent of one full distance cycle
+  const loopedScrollX = scrollX % CYCLE_SCROLL;
+  bgObjects.forEach(obj => {
+    // Try the object in the current cycle and the previous cycle for seamless wrap
+    for (const sc of [loopedScrollX, loopedScrollX - CYCLE_SCROLL]) {
+      const bx = obj.wx - sc * obj.depth;
+      if (bx < -200 || bx > W + 200) continue;
+      // Color reveal based on screen position: colored if the object is LEFT of the pony
+      const colored = bx < PONY_X;
+
+      if (obj.type === 'appletree') drawAppleTree(bx, GROUND_Y, obj.size, colored);
+      if (obj.type === 'deadtree') drawDeadTree(bx, GROUND_Y, obj.size, colored, time + obj.wx);
+      if (obj.type === 'castle') drawCastle(bx, GROUND_Y, colored);
+      if (obj.type === 'hill') drawHill(bx, GROUND_Y, obj.size, colored);
+      if (obj.type === 'crystal') drawBgCrystal(bx, GROUND_Y, obj.size, colored, time + obj.wx);
+      if (obj.type === 'bat') drawBat(bx, 80 + Math.sin(time*2 + obj.wx)*30, obj.size, colored, time + obj.wx*0.01);
+      break; // only draw once per object
+    }
+  });
+
+  // Moon/sun
+  drawAtmosphere(zone, colored_sky_x=ponyScreenX, subT);
+}
+
+function drawAtmosphere(zone, revealX, subT) {
+  // Zone 0: daytime sun (right side gray, left colorized)
+  if (zone === 0) {
+    const sunX = 800, sunY = 80;
+    const col = isColorized(scrollX + sunX) ? '#ffe060' : '#aaa';
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // Zone 1: moon
+  if (zone === 1) {
+    const mx = 750, my = 70;
+    const col = isColorized(scrollX + mx) ? '#eeeeff' : '#888';
+    ctx.save(); ctx.globalAlpha = 0.7;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(mx, my, 30, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // Zone 3: glowing ceiling stalactites hint
+  if (zone === 3) {
+    for (let i = 0; i < 8; i++) {
+      const sx = ((i * 130 - scrollX * 0.05) % W + W) % W;
+      const col = isColorized(scrollX + sx) ? `hsl(${i*40+200},80%,60%)` : '#444';
+      ctx.save(); ctx.globalAlpha = 0.3;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx-12, 40); ctx.lineTo(sx+12, 40); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawAppleTree(x, groundY, size, colored) {
+  const trunkH = size * 0.55, trunkW = size * 0.09;
+  const foliageR = size * 0.42;
   ctx.save();
-  switch (obj.type) {
-    case 'sun': drawSun(ctx, sx, 80, colored); break;
-    case 'moon': drawMoon(ctx, sx, 90, colored); break;
-    case 'appleTree': drawAppleTree(ctx, sx, GROUND_Y, colored, obj.depth); break;
-    case 'deadTree': drawDeadTree(ctx, sx, GROUND_Y, colored, obj.depth, t); break;
-    case 'bat': drawBat(ctx, sx, GROUND_Y - 120 - obj.depth*80, colored, t); break;
-    case 'hill': drawHill(ctx, sx, GROUND_Y, colored, obj.size); break;
-    case 'castle': drawCastle(ctx, sx, GROUND_Y, colored); break;
-    case 'crystal': drawCrystal(ctx, sx, GROUND_Y, colored, obj.size, obj.color, t); break;
-    case 'stalactite': drawStalactite(ctx, sx, 0, colored, obj.size); break;
-  }
-  ctx.restore();
-}
-
-function drawSun(ctx, x, y, colored) {
-  ctx.globalAlpha = 0.9;
-  if (colored) {
-    const g = ctx.createRadialGradient(x,y,0,x,y,60);
-    g.addColorStop(0,'#ffffc0'); g.addColorStop(0.3,'#ffd700'); g.addColorStop(1,'rgba(255,200,0,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,60,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#ffffa0'; ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2); ctx.fill();
-  } else {
-    ctx.fillStyle = '#444'; ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2); ctx.fill();
-  }
-}
-function drawMoon(ctx, x, y, colored) {
-  ctx.globalAlpha = 0.85;
-  const c = colored ? '#e8e0c0' : '#444';
-  ctx.fillStyle = c;
-  ctx.beginPath(); ctx.arc(x,y,28,0,Math.PI*2); ctx.fill();
-  if (colored) { ctx.fillStyle='#c8c090'; } else { ctx.fillStyle='#333'; }
-  ctx.beginPath(); ctx.arc(x+8,y-6,22,0,Math.PI*2); ctx.fill();
-}
-function drawAppleTree(ctx, x, y, colored, depth) {
-  const s = clamp(depth * 2, 0.4, 1.2);
-  const trunkH = 60 * s, trunkW = 10 * s;
-  ctx.fillStyle = colored ? '#5a3010' : '#333';
-  ctx.fillRect(x - trunkW/2, y - trunkH, trunkW, trunkH);
-  // Foliage
-  const fc = colored ? '#2a7020' : '#333';
-  [[0,-trunkH-20],[-15,-trunkH],[15,-trunkH],[-8,-trunkH+15],[8,-trunkH+15]].forEach(([dx,dy]) => {
-    ctx.fillStyle = fc;
-    ctx.beginPath(); ctx.arc(x+dx*s, y+dy*s, 25*s, 0, Math.PI*2); ctx.fill();
+  // Trunk
+  ctx.fillStyle = colored ? '#5c3010' : '#444';
+  ctx.beginPath();
+  ctx.roundRect(x - trunkW/2, groundY - trunkH, trunkW, trunkH, 3);
+  ctx.fill();
+  // Foliage (3 circles)
+  const fc = colored ? '#2d8a18' : '#333';
+  const fc2 = colored ? '#3aac22' : '#3a3a3a';
+  [[0,-trunkH],[foliageR*0.5,-trunkH+foliageR*0.2],[-foliageR*0.5,-trunkH+foliageR*0.2]].forEach(([dx,dy],i) => {
+    ctx.fillStyle = i===0 ? fc2 : fc;
+    ctx.beginPath(); ctx.arc(x+dx, groundY+dy, foliageR * (i===0 ? 1 : 0.75), 0, Math.PI*2); ctx.fill();
   });
   // Apples
   if (colored) {
-    [[-12,-trunkH-8],[10,-trunkH-5],[-5,-trunkH+12],[14,-trunkH+8]].forEach(([dx,dy]) => {
-      ctx.fillStyle = '#dd2222';
-      ctx.beginPath(); ctx.arc(x+dx*s, y+dy*s, 5*s, 0, Math.PI*2); ctx.fill();
-    });
-  }
-}
-function drawDeadTree(ctx, x, y, colored, depth, t) {
-  const s = clamp(depth * 2, 0.5, 1.2);
-  const h = 90 * s;
-  ctx.strokeStyle = colored ? '#4a3020' : '#333';
-  ctx.lineWidth = 7 * s; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - h); ctx.stroke();
-  // Branches
-  const branches = [[-28,-0.6],[22,-0.55],[-18,-0.75],[16,-0.7],[-12,-0.85],[10,-0.88]];
-  ctx.lineWidth = 3.5 * s;
-  branches.forEach(([dx, frac]) => {
-    const bx = x + dx*s, by = y + frac * h;
-    ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(bx, by - 22*s); ctx.stroke();
-  });
-  if (colored) {
-    // Eerie glow
-    ctx.globalAlpha = 0.12 + Math.sin(t*1.5)*0.06;
-    const g = ctx.createRadialGradient(x, y-h/2, 0, x, y-h/2, 50*s);
-    g.addColorStop(0,'#88ff88'); g.addColorStop(1,'transparent');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y-h/2, 50*s, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-function drawBat(ctx, x, y, colored, t) {
-  const flap = Math.sin(t * 8) * 0.5;
-  const bc = colored ? '#2a1040' : '#333';
-  ctx.fillStyle = bc;
-  // Wings
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.bezierCurveTo(x-24, y-18+flap*10, x-36, y-4, x-28, y+8);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.bezierCurveTo(x+24, y-18+flap*10, x+36, y-4, x+28, y+8);
-  ctx.fill();
-  // Body
-  ctx.beginPath(); ctx.ellipse(x, y, 6, 7, 0, 0, Math.PI*2); ctx.fill();
-  // Eyes
-  if (colored) { ctx.fillStyle='#ff3300'; } else { ctx.fillStyle='#555'; }
-  ctx.beginPath(); ctx.arc(x-3, y-2, 2, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+3, y-2, 2, 0, Math.PI*2); ctx.fill();
-}
-function drawHill(ctx, x, y, colored, size) {
-  const hw = 180 * size, hh = 90 * size;
-  const hc = colored ? '#2a5020' : '#333';
-  ctx.fillStyle = hc;
-  ctx.beginPath();
-  ctx.moveTo(x - hw, y);
-  ctx.bezierCurveTo(x - hw/2, y - hh, x + hw/2, y - hh, x + hw, y);
-  ctx.fill();
-}
-function drawCastle(ctx, x, y, colored) {
-  const cc = colored ? '#3a3060' : '#2a2a2a';
-  const wc = colored ? '#a0c0ff' : '#444';
-  const rc = colored ? '#aa2020' : '#333';
-  // Main tower
-  ctx.fillStyle = cc;
-  ctx.fillRect(x-35, y-180, 70, 180);
-  // Battlements
-  [-30,-18,-6,6,18,28].forEach(bx => {
-    ctx.fillRect(x+bx, y-200, 10, 22);
-  });
-  // Side towers
-  [[-65,0.85],[65,0.85]].forEach(([dx,sc]) => {
-    ctx.fillRect(x+dx-20*sc, y-140*sc, 40*sc, 140*sc);
-    [-16,-6,4,14].forEach(bx => ctx.fillRect(x+dx+bx*sc, y-155*sc, 8*sc, 17*sc));
-  });
-  // Gate
-  ctx.fillStyle = colored ? '#1a0a10' : '#111';
-  ctx.beginPath();
-  ctx.arc(x, y-20, 18, Math.PI, 0);
-  ctx.rect(x-18, y-20, 36, 20);
-  ctx.fill();
-  // Windows
-  ctx.fillStyle = wc;
-  [[-18,-110],[18,-110],[0,-140],[-40,-90],[40,-90]].forEach(([dx,dy]) => {
-    ctx.beginPath();
-    ctx.arc(x+dx, y+dy, 7, Math.PI, 0);
-    ctx.rect(x+dx-7, y+dy, 14, 10);
-    ctx.fill();
-  });
-  // Flags
-  if (colored) {
-    [[-35+x,y-178],[65+x,y-126],[-65+x,y-126]].forEach(([fx,fy]) => {
-      ctx.fillStyle = rc;
-      ctx.fillRect(fx, fy, 22, 14);
-      ctx.strokeStyle='#888'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(fx,fy); ctx.lineTo(fx,fy+30); ctx.stroke();
-    });
-  }
-}
-function drawCrystal(ctx, x, y, colored, size, color, t) {
-  const h = 55 * size, w = 18 * size;
-  const pulse = colored ? (0.7 + Math.sin(t * 2.5) * 0.3) : 0;
-  ctx.globalAlpha = colored ? 0.85 : 0.5;
-  if (colored) {
-    ctx.shadowColor = color; ctx.shadowBlur = 18 * pulse;
-  }
-  ctx.fillStyle = colored ? color : '#334';
-  ctx.beginPath();
-  ctx.moveTo(x, y - h);
-  ctx.lineTo(x - w, y - h * 0.4);
-  ctx.lineTo(x - w * 0.6, y);
-  ctx.lineTo(x + w * 0.6, y);
-  ctx.lineTo(x + w, y - h * 0.4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  // Highlight
-  if (colored) {
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(x, y - h);
-    ctx.lineTo(x - w * 0.3, y - h * 0.5);
-    ctx.lineTo(x, y - h * 0.7);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-}
-function drawStalactite(ctx, x, y, colored, size) {
-  const h = 40 * size, w = 12 * size;
-  ctx.fillStyle = colored ? '#2a1860' : '#222';
-  ctx.globalAlpha = colored ? 0.9 : 0.5;
-  ctx.beginPath();
-  ctx.moveTo(x - w, y);
-  ctx.lineTo(x + w, y);
-  ctx.lineTo(x, y + h);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha = 1;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  OBSTACLE / PLATFORM / POWERUP DRAW
-// ─────────────────────────────────────────────────────────────────────────────
-function drawBush(ctx, sx, sy, bw, bh, colored) {
-  const baseY = sy + bh * 0.1;
-  // Drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.beginPath(); ctx.ellipse(sx + bw/2, sy + bh, bw/2, bh*0.15, 0, 0, Math.PI*2); ctx.fill();
-
-  const circles = [
-    [sx + bw*0.5, baseY, bw*0.44, bh*0.75],
-    [sx + bw*0.2, baseY + bh*0.08, bw*0.36, bh*0.65],
-    [sx + bw*0.8, baseY + bh*0.08, bw*0.36, bh*0.65],
-    [sx + bw*0.35, baseY - bh*0.05, bw*0.32, bh*0.55],
-    [sx + bw*0.65, baseY - bh*0.05, bw*0.32, bh*0.55],
-    [sx + bw*0.5, baseY - bh*0.1, bw*0.28, bh*0.5],
-  ];
-  const fc = colored ? '#228822' : '#444';
-  const dc = colored ? '#185018' : '#333';
-
-  circles.forEach(([cx,cy,rw,rh]) => {
-    ctx.fillStyle = dc;
-    ctx.beginPath(); ctx.ellipse(cx, cy+2, rw, rh, 0, 0, Math.PI*2); ctx.fill();
-    // Red glow outline
-    ctx.save();
-    ctx.strokeStyle = '#dd1111';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#dd1111'; ctx.shadowBlur = 8;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.restore();
-    ctx.fillStyle = fc;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI*2); ctx.fill();
-  });
-
-  // Thorns
-  const thornAngles = [0, 40, 80, 120, 160, 200, 240, 280, 320];
-  ctx.fillStyle = colored ? '#bb4400' : '#555';
-  thornAngles.forEach(deg => {
-    const rad = deg * Math.PI / 180;
-    const tx = sx + bw/2 + Math.cos(rad) * bw*0.48;
-    const ty = baseY + Math.sin(rad) * bh*0.55;
-    ctx.save();
-    ctx.translate(tx, ty);
-    ctx.rotate(rad + Math.PI/2);
-    ctx.beginPath();
-    ctx.moveTo(0, -7); ctx.lineTo(-3, 0); ctx.lineTo(3, 0);
-    ctx.closePath(); ctx.fill();
-    ctx.restore();
-  });
-}
-
-function drawPlatform(ctx, sx, sy, pw, colored) {
-  const ph = 14;
-  // Wood
-  const wc = colored ? '#8B5E1A' : '#444';
-  ctx.fillStyle = wc;
-  ctx.beginPath(); ctx.roundRect(sx, sy, pw, ph, 4); ctx.fill();
-  // Moss top
-  const mc = colored ? '#4a8a20' : '#333';
-  ctx.fillStyle = mc;
-  ctx.beginPath(); ctx.roundRect(sx, sy, pw, 5, [4,4,0,0]); ctx.fill();
-  // Grass tufts
-  if (colored) {
-    ctx.fillStyle = '#5aaa28';
-    for (let gx = sx+6; gx < sx+pw-4; gx += 14) {
-      ctx.beginPath();
-      ctx.moveTo(gx, sy); ctx.lineTo(gx-3, sy-6); ctx.lineTo(gx, sy-3); ctx.lineTo(gx+3, sy-6); ctx.lineTo(gx+3, sy);
-      ctx.fill();
+    for (let a = 0; a < 5; a++) {
+      const ax = x + Math.cos(a * 1.3) * foliageR * 0.55;
+      const ay = groundY - trunkH + Math.sin(a * 1.3) * foliageR * 0.35 - foliageR*0.1;
+      ctx.fillStyle = '#dd2222'; ctx.beginPath(); ctx.arc(ax, ay, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#228833'; ctx.fillRect(ax-1, ay-7, 2, 5);
     }
   }
-  // Wood grain
-  ctx.strokeStyle = colored ? '#7a5010' : '#333';
-  ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
-  for (let lx = sx+20; lx < sx+pw-8; lx += 22) {
-    ctx.beginPath(); ctx.moveTo(lx, sy+4); ctx.lineTo(lx, sy+ph-2); ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawRainbowCircle(ctx, sx, sy, t) {
-  // Spinning ring of 6 arc segments
-  const r = 18;
-  RAINBOW_COLORS.forEach((rc, i) => {
-    const a0 = (i / 6) * Math.PI * 2 + t * 2;
-    const a1 = a0 + Math.PI * 2 / 6 - 0.1;
-    ctx.strokeStyle = rc; ctx.lineWidth = 5;
-    ctx.shadowColor = rc; ctx.shadowBlur = 8;
-    ctx.beginPath(); ctx.arc(sx, sy, r, a0, a1); ctx.stroke();
-  });
-  ctx.shadowBlur = 0;
-  // White center glow
-  const g = ctx.createRadialGradient(sx,sy,0,sx,sy,12);
-  g.addColorStop(0,'rgba(255,255,255,0.95)'); g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx,sy,12,0,Math.PI*2); ctx.fill();
-  // Gold star
-  ctx.fillStyle = '#ffd700';
-  drawStar(ctx, sx, sy, 5, 7, 3);
-}
-function drawShieldIcon(ctx, sx, sy, t) {
-  ctx.save();
-  ctx.translate(sx, sy);
-  ctx.rotate(Math.sin(t * 1.5) * 0.08);
-  // Hex
-  ctx.strokeStyle = '#00cfff'; ctx.lineWidth = 4;
-  ctx.shadowColor = '#00cfff'; ctx.shadowBlur = 14;
-  ctx.fillStyle = 'rgba(0,180,255,0.25)';
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 - Math.PI/2;
-    const hx = Math.cos(a)*16, hy = Math.sin(a)*16;
-    i===0 ? ctx.moveTo(hx,hy) : ctx.lineTo(hx,hy);
-  }
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.shadowBlur = 0;
-  // Sparkle
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '12px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('✦', 0, 0);
   ctx.restore();
 }
-function drawStar(ctx, cx, cy, n, r1, r2) {
-  ctx.beginPath();
-  for (let i = 0; i < n * 2; i++) {
-    const r = i % 2 === 0 ? r1 : r2;
-    const a = (i / (n*2)) * Math.PI * 2 - Math.PI/2;
-    const px = cx + Math.cos(a)*r, py = cy + Math.sin(a)*r;
-    i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+
+function drawDeadTree(x, groundY, size, colored, seed) {
+  ctx.save();
+  const col = colored ? '#2a1a08' : '#2a2a2a';
+  ctx.strokeStyle = col; ctx.lineWidth = size * 0.065; ctx.lineCap = 'round';
+  const h = size * 0.85;
+  ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x, groundY - h); ctx.stroke();
+  // Branches
+  ctx.lineWidth = size * 0.035;
+  for (let b = 0; b < 5; b++) {
+    const by = groundY - h * (0.4 + b * 0.12);
+    const bLen = size * (0.3 - b * 0.03);
+    const side = b % 2 === 0 ? 1 : -1;
+    ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + side*bLen, by - bLen*0.5); ctx.stroke();
+    // Sub-branches
+    ctx.lineWidth = size * 0.018;
+    ctx.beginPath(); ctx.moveTo(x + side*bLen, by - bLen*0.5);
+    ctx.lineTo(x + side*(bLen+bLen*0.4), by - bLen*0.7); ctx.stroke();
   }
-  ctx.closePath(); ctx.fill();
+  // Eerie glow if colored
+  if (colored) {
+    ctx.globalAlpha = 0.15; ctx.strokeStyle = '#6633aa'; ctx.lineWidth = size*0.12;
+    ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x, groundY-h); ctx.stroke();
+  }
+  ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  RAINBOW TRAIL
-// ─────────────────────────────────────────────────────────────────────────────
-function drawTrail() {
-  if (trailPoints.length < 2) return;
-  const ponyScreenY = ponyY;
-  RAINBOW_COLORS.forEach((rc, ri) => {
-    const bandY = ponyScreenY - 5 + ri * 10;
-    const wave = (wx, i) => Math.sin(time * 3 + i * 0.3 + ri * 0.8) * 2;
-    ctx.beginPath();
-    const pts = trailPoints.map((wp, i) => ({
-      sx: wp - scrollX,
-      sy: bandY + wave(wp, i)
-    })).filter(p => p.sx < PONY_X);
-
-    if (pts.length < 2) return;
-    ctx.moveTo(pts[0].sx, pts[0].sy);
-    pts.forEach(p => ctx.lineTo(p.sx, p.sy));
-    ctx.lineTo(PONY_X, bandY);
-
-    // Gradient: transparent at far left, opaque near pony
-    const grad = ctx.createLinearGradient(pts[0].sx, 0, PONY_X, 0);
-    grad.addColorStop(0, rc + '00');
-    grad.addColorStop(0.06, rc + 'aa');
-    grad.addColorStop(0.18, rc + 'ff');
-    grad.addColorStop(1, rc + 'ff');
-
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = 9;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+function drawCastle(x, groundY, colored) {
+  ctx.save();
+  const c1 = colored ? '#c8b0e8' : '#404040', c2 = colored ? '#b090d0' : '#333';
+  const c3 = colored ? '#e8d4ff' : '#555', wc = colored ? '#88aaff' : '#666';
+  const baseH = 280, baseW = 180;
+  // Main body
+  ctx.fillStyle = c1; ctx.fillRect(x - baseW/2, groundY - baseH, baseW, baseH);
+  // Towers
+  [[- baseW/2 - 25, baseH + 50],[ baseW/2 + 25, baseH + 50]].forEach(([tx, th]) => {
+    ctx.fillStyle = c2; ctx.fillRect(x + tx, groundY - th, 50, th);
+    // Battlements
+    ctx.fillStyle = c3;
+    for (let m = 0; m < 3; m++) ctx.fillRect(x + tx + m*18, groundY - th - 18, 12, 18);
   });
-
-  // Sparkle glow at pony attachment
-  const pulse = 0.5 + Math.sin(time * 9) * 0.5;
-  const glow = ctx.createRadialGradient(PONY_X, ponyScreenY + 25, 0, PONY_X, ponyScreenY + 25, 30 * pulse);
-  glow.addColorStop(0, 'rgba(255,255,200,0.6)');
-  glow.addColorStop(1, 'rgba(255,255,200,0)');
-  ctx.fillStyle = glow;
-  ctx.beginPath(); ctx.arc(PONY_X, ponyScreenY + 25, 30, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = c2;
+  for (let m = 0; m < 5; m++) ctx.fillRect(x - baseW/2 + m*38, groundY - baseH - 20, 25, 20);
+  // Windows
+  ctx.fillStyle = wc;
+  for (let row = 0; row < 3; row++)
+    for (let col = 0; col < 3; col++) {
+      const wx = x - 55 + col*50, wy = groundY - baseH + 40 + row*80;
+      ctx.fillRect(wx, wy, 20, 30);
+      ctx.beginPath(); ctx.arc(wx+10, wy, 10, Math.PI, 0); ctx.fill();
+    }
+  // Gate
+  ctx.fillStyle = colored ? '#4a2a00' : '#222';
+  ctx.fillRect(x - 22, groundY - 60, 44, 60);
+  ctx.beginPath(); ctx.arc(x, groundY - 60, 22, Math.PI, 0); ctx.fill();
+  // Flag
+  if (colored) {
+    ctx.strokeStyle = '#8844aa'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, groundY - baseH - 20); ctx.lineTo(x, groundY - baseH - 60); ctx.stroke();
+    ctx.fillStyle = '#ff4488';
+    ctx.beginPath(); ctx.moveTo(x, groundY - baseH - 60); ctx.lineTo(x + 30, groundY - baseH - 50); ctx.lineTo(x, groundY - baseH - 40); ctx.fill();
+  }
+  ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  PARTICLES
-// ─────────────────────────────────────────────────────────────────────────────
-function spawnParticles(x, y, n, type) {
-  for (let i = 0; i < n; i++) {
-    const angle = type === 'jump'
-      ? (Math.PI/2 + (Math.random()-0.5)*Math.PI)
-      : Math.random() * Math.PI * 2;
-    const speed = type === 'jump' ? randBetween(2, 6) : randBetween(3, 8);
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed * (type === 'jump' ? 0.5 : 1),
-      life: 1, maxLife: randBetween(0.6, 1),
-      color: RAINBOW_COLORS[Math.floor(Math.random() * 6)],
-      r: randBetween(2, 5)
+function drawHill(x, groundY, size, colored) {
+  ctx.save();
+  ctx.fillStyle = colored ? '#3a6a20' : '#2a2a2a';
+  ctx.beginPath(); ctx.arc(x, groundY + size*0.1, size, Math.PI, 0); ctx.fill();
+  if (colored) {
+    ctx.fillStyle = '#4a8830';
+    ctx.beginPath(); ctx.arc(x - size*0.2, groundY - size*0.4, size*0.4, Math.PI, 0); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBgCrystal(x, groundY, size, colored, seed) {
+  ctx.save();
+  const hue = (seed * 40) % 360;
+  ctx.fillStyle = colored ? `hsla(${hue},80%,65%,0.7)` : 'rgba(100,100,120,0.5)';
+  if (colored) { ctx.shadowColor = `hsl(${hue},100%,70%)`; ctx.shadowBlur = 20; }
+  ctx.beginPath();
+  ctx.moveTo(x, groundY - size);
+  ctx.lineTo(x - size*0.25, groundY - size*0.4);
+  ctx.lineTo(x - size*0.15, groundY);
+  ctx.lineTo(x + size*0.15, groundY);
+  ctx.lineTo(x + size*0.25, groundY - size*0.4);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = colored ? `hsla(${hue},90%,85%,0.6)` : 'rgba(150,150,160,0.4)';
+  ctx.beginPath();
+  ctx.moveTo(x, groundY - size);
+  ctx.lineTo(x - size*0.08, groundY - size*0.4);
+  ctx.lineTo(x + size*0.08, groundY - size*0.4);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawBat(x, y, size, colored, t) {
+  ctx.save();
+  ctx.fillStyle = colored ? '#220022' : '#333';
+  const flap = Math.sin(t * 8) * 0.4;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(flap);
+  ctx.beginPath(); ctx.ellipse(-size*0.5, 0, size*0.55, size*0.25, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-flap);
+  ctx.beginPath(); ctx.ellipse(size*0.5, 0, size*0.55, size*0.25, 0.3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = colored ? '#330033' : '#444';
+  ctx.beginPath(); ctx.ellipse(x, y, size*0.25, size*0.2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ===================== DRAW GROUND =====================
+function drawGround() {
+  const zone = currentZone, z = ZONES[zone];
+  const zn = ZONES[Math.min(zone+1, ZONES.length-1)];
+  const nextDist = zone < ZONES.length-1 ? ZONES[zone+1].dist : Infinity;
+  const subT = Math.min((distance - z.dist) / Math.max(1, nextDist - z.dist), 1);
+
+  // Grayscale ground for unvisited (right side), colorized for visited (left)
+  const colorGround = zone < ZONES.length-1 ? lerpHex(z.groundMain, zn.groundMain, subT) : z.groundMain;
+  const grayGround = '#282828';
+
+  ctx.fillStyle = grayGround; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  if (PONY_X > 0) {
+    ctx.fillStyle = colorGround; ctx.fillRect(0, GROUND_Y, PONY_X, H - GROUND_Y);
+  }
+
+  // Ground top line
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
+
+  // Texture marks
+  for (let i = 0; i < 8; i++) {
+    const lx = ((scrollX * 0.9 + i * 115) % W);
+    const col = lx < PONY_X ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lx, GROUND_Y+5); ctx.lineTo(lx+55, GROUND_Y+5); ctx.stroke();
+  }
+}
+
+// ===================== DRAW RAINBOW DRESS TRAIL =====================
+function drawRainbowTrail() {
+  if (trailPoints.length < 4) return;
+
+  const n = trailPoints.length;
+  const bandCount = RAINBOW_COLORS.length;
+  const bandH = 10;
+  const totalH = bandCount * bandH; // ~60px total ribbon height
+
+  // Convert stored world-x to current screen-x
+  const pts = trailPoints.map(p => ({ x: p.wx - scrollX, y: p.y }));
+
+  const anchorX = pts[n - 1].x;  // newest = pony position on screen
+  const anchorY = pts[n - 1].y;
+  const tailX   = pts[0].x;      // oldest = leftmost on screen
+
+  for (let b = 0; b < bandCount; b++) {
+    // Fixed vertical lanes — purely horizontal bands like a flag
+    const yTop = anchorY - totalH + b * bandH;
+    const yBot = yTop + bandH;
+
+    ctx.beginPath();
+    ctx.moveTo(tailX, yTop);
+
+    // Top edge left→right: tiny 2px undulation for life
+    for (let i = 0; i < n; i++) {
+      const wave = Math.sin(time * 2.5 + i * 0.07 + b * 0.55) * 2;
+      ctx.lineTo(pts[i].x, yTop + wave);
+    }
+    // Bottom edge right→left
+    for (let i = n - 1; i >= 0; i--) {
+      const wave = Math.sin(time * 2.5 + i * 0.07 + b * 0.55 + 0.35) * 2;
+      ctx.lineTo(pts[i].x, yBot + wave);
+    }
+    ctx.closePath();
+
+    // Fade: transparent at tail tip → fully opaque near pony
+    const grad = ctx.createLinearGradient(tailX, 0, anchorX, 0);
+    grad.addColorStop(0,    RAINBOW_COLORS[b] + '00');
+    grad.addColorStop(0.06, RAINBOW_COLORS[b] + 'aa');
+    grad.addColorStop(0.18, RAINBOW_COLORS[b] + 'ff');
+    grad.addColorStop(1,    RAINBOW_COLORS[b] + 'ff');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Sparkle glow at the pony end of the trail
+  ctx.save();
+  ctx.globalAlpha = 0.6 + Math.sin(time * 9) * 0.2;
+  const midY = anchorY - totalH / 2;
+  const glow = ctx.createRadialGradient(anchorX, midY, 0, anchorX, midY, 55);
+  glow.addColorStop(0,    'rgba(255,255,255,0.9)');
+  glow.addColorStop(0.45, 'rgba(255,210,80,0.35)');
+  glow.addColorStop(1,    'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(anchorX, midY, 55, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+
+// ===================== DRAW PONY =====================
+function drawPony(x, y, pony, dying, rainbowMode, t) {
+  const { body, mane, mane2, tail } = pony;
+  ctx.save();
+  ctx.translate(x, y);
+
+  const bW = 40, bH = 24, legH = 18;
+  const legSwing = dying ? 0 : Math.sin(t * 11) * 6;
+
+  // ---- LONG FLOWING TAIL ----
+  if (rainbowMode && !dying) {
+    for (let s = 0; s < RAINBOW_COLORS.length; s++) {
+      ctx.strokeStyle = RAINBOW_COLORS[s];
+      ctx.lineWidth = 5 - s*0.4;
+      ctx.lineCap = 'round';
+      const wave = Math.sin(t*5 + s*0.4) * 12;
+      const wave2 = Math.sin(t*3 + s*0.7) * 8;
+      ctx.beginPath();
+      ctx.moveTo(-bW/2 + 2, bH/2 - 2 - s*1.5);
+      ctx.bezierCurveTo(
+        -bW/2 - 20 + wave, bH/2 + 15 - s*2,
+        -bW/2 - 55 + wave2, bH/2 + 25 + s*3,
+        -bW/2 - 90 + wave, bH/2 + 10 + s*4
+      );
+      ctx.stroke();
+    }
+  } else {
+    // Long flowing regular tail
+    const wave = Math.sin(t * 3) * 10;
+    const wave2 = Math.sin(t * 2.2 + 1) * 8;
+    const tc = dying ? '#555' : tail;
+    const tc2 = dying ? '#444' : mane2;
+    [tc, tc2].forEach((c, i) => {
+      ctx.strokeStyle = c; ctx.lineWidth = 8 - i*2; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-bW/2 + 2, bH/2 - 2 - i*3);
+      ctx.bezierCurveTo(
+        -bW/2 - 18 + wave + i*3, bH/2 + 18 - i*2,
+        -bW/2 - 50 + wave2 + i*2, bH/2 + 28 + i*4,
+        -bW/2 - 82 + wave + i*3, bH/2 + 14 + i*5
+      );
+      ctx.stroke();
     });
   }
-}
-function updateParticles() {
-  particles = particles.filter(p => p.life > 0);
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy; p.vy += GRAVITY * 0.5;
-    p.life -= 1 / (p.maxLife * 60);
+
+  // ---- LEGS ----
+  ctx.strokeStyle = dying ? '#666' : body; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  [[-bW/2+10, legSwing], [-bW/2+18, -legSwing], [bW/2-18, legSwing], [bW/2-10, -legSwing]].forEach(([lx, lo]) => {
+    ctx.beginPath(); ctx.moveTo(lx, bH/2-2); ctx.lineTo(lx + lo*0.4, bH/2 + legH); ctx.stroke();
   });
+
+  // ---- BODY ----
+  ctx.fillStyle = dying ? '#888' : body;
+  ctx.beginPath(); ctx.roundRect(-bW/2, -bH/2, bW, bH, 10); ctx.fill();
+
+  // ---- NECK ----
+  ctx.fillStyle = dying ? '#888' : body;
+  ctx.beginPath(); ctx.roundRect(bW/2-10, -bH/2-12, 14, 18, 5); ctx.fill();
+
+  // ---- HEAD ----
+  ctx.beginPath(); ctx.ellipse(bW/2+10, -bH/2-8, 14, 11, 0.25, 0, Math.PI*2); ctx.fill();
+
+  // Snout
+  ctx.fillStyle = dying ? '#777' : lerpHex(body, '#fff', 0.3);
+  ctx.beginPath(); ctx.ellipse(bW/2+20, -bH/2-5, 6, 5, 0.1, 0, Math.PI*2); ctx.fill();
+  // Nostrils
+  ctx.fillStyle = dying ? '#555' : lerpHex(body, '#000', 0.4);
+  ctx.beginPath(); ctx.arc(bW/2+18, -bH/2-4, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bW/2+22, -bH/2-4, 1.5, 0, Math.PI*2); ctx.fill();
+
+  // ---- EYE ----
+  if (dying) {
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(bW/2+6, -bH/2-12); ctx.lineTo(bW/2+12, -bH/2-7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bW/2+12, -bH/2-12); ctx.lineTo(bW/2+6, -bH/2-7); ctx.stroke();
+    // tear
+    ctx.strokeStyle = '#88aaff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(bW/2+9, -bH/2-7); ctx.lineTo(bW/2+8, -bH/2-1); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.ellipse(bW/2+14, -bH/2-10, 4, 5, -0.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.beginPath(); ctx.arc(bW/2+15.5, -bH/2-11.5, 1.5, 0, Math.PI*2); ctx.fill();
+    // Eyelash
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2;
+    for (let e = 0; e < 3; e++) {
+      ctx.beginPath();
+      ctx.moveTo(bW/2+11+e*1.8, -bH/2-14);
+      ctx.lineTo(bW/2+10+e*2.2, -bH/2-18);
+      ctx.stroke();
+    }
+  }
+
+  // ---- EAR ----
+  ctx.fillStyle = dying ? '#777' : body;
+  ctx.beginPath();
+  const ex = bW/2 + 4, ey = -bH/2 - 17;
+  ctx.moveTo(ex, dying ? ey+8 : ey);
+  ctx.lineTo(ex - 6, dying ? ey+16 : ey+10);
+  ctx.lineTo(ex + 6, ey + 10);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = dying ? '#555' : mane;
+  ctx.beginPath(); ctx.moveTo(ex, dying ? ey+9 : ey+1); ctx.lineTo(ex-3, dying ? ey+14 : ey+9); ctx.lineTo(ex+4, ey+9); ctx.closePath(); ctx.fill();
+
+  // ---- LONG FLOWING MANE ----
+  // Eye is at approx (bW/2+14, -bH/2-10).
+  // Mane starts just above the eye: (bW/2+12, -bH/2-18), flows backward and down.
+  if (rainbowMode && !dying) {
+    RAINBOW_COLORS.forEach((c, s) => {
+      ctx.strokeStyle = c; ctx.lineWidth = 5 - s*0.4; ctx.lineCap = 'round';
+      const flow = Math.sin(t*4 + s*0.5) * 10;
+      const flow2 = Math.sin(t*3 + s*0.8) * 8;
+      // Start right above the eye, stagger each strand slightly
+      const startX = bW/2 + 12 - s*0.8;
+      const startY = -bH/2 - 17 + s*1.2;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      // Sweep back over the head, then down over neck
+      ctx.bezierCurveTo(
+        startX - 10 + flow,  startY - 4,
+        bW/2 - 4 + flow2,    -bH/2 - 14 - s,
+        bW/2 - 20 + flow,    -bH/2 - 4 - s
+      );
+      ctx.bezierCurveTo(
+        bW/2 - 34 + flow2,   bH/2 + 4 + s*2,
+        bW/2 - 32 + flow,    bH/2 + 18 + s*3,
+        bW/2 - 22 + flow2,   bH/2 + 34 + s*3
+      );
+      ctx.stroke();
+    });
+  } else {
+    // Long flowing regular mane — starts just above the eye
+    const flowA = Math.sin(t*3) * 8, flowB = Math.sin(t*2.5 + 0.8) * 6;
+    [mane, mane2].forEach((mc, mi) => {
+      ctx.strokeStyle = dying ? '#555' : mc;
+      ctx.lineWidth = mi === 0 ? 10 : 7; ctx.lineCap = 'round';
+      const off = mi * 1.5;
+      // Start above the eye
+      const startX = bW/2 + 13 - mi*2;
+      const startY = -bH/2 - 17 + mi*2;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      // Sweep back over head, down neck, drape to ground
+      ctx.bezierCurveTo(
+        startX - 10 + flowA,      startY - 5,
+        bW/2 - 2 + flowB + off,   -bH/2 - 16,
+        bW/2 - 18 + flowA + off,  -bH/2 - 6
+      );
+      ctx.bezierCurveTo(
+        bW/2 - 34 + flowB + off,  bH/2 + 6,
+        bW/2 - 32 + flowA + off,  bH/2 + 22,
+        bW/2 - 22 + flowB + off,  bH/2 + 38
+      );
+      ctx.bezierCurveTo(
+        bW/2 - 14 + flowA + off,  bH/2 + 46,
+        bW/2 - 8 + flowB + off,   bH/2 + 40,
+        bW/2 - 4 + flowA + off,   bH/2 + 28
+      );
+      ctx.stroke();
+    });
+  }
+
+  ctx.restore();
 }
+
+// ===================== DRAW THORNY BUSH OBSTACLE =====================
+function drawObstacle(obs) {
+  const { x, y, w, h } = obs;
+  ctx.save();
+
+  // Ground color of the bush depends on zone/color reveal
+  // Obstacles are always at ground level, their world X is their screen X + scrollX
+  const worldX = obs.x + scrollX;
+  const colored = isColorized(worldX);
+
+  const leafCol = colored ? '#2d7a18' : '#333';
+  const leafCol2 = colored ? '#3a9a22' : '#3d3d3d';
+  const thornCol = colored ? '#1a0a00' : '#222';
+
+  // Bush body (layered circles for bushy look)
+  const bushCX = x + w/2, bushBY = y + h;
+  const rx = w/2, ry = h * 0.6;
+
+  // Shadow base
+  ctx.fillStyle = colored ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(bushCX, bushBY, rx*1.1, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  // Multiple overlapping circles to form bush silhouette
+  const circles = [
+    [bushCX, bushBY - h*0.35, rx*0.8, ry*0.8],
+    [bushCX - w*0.28, bushBY - h*0.28, rx*0.65, ry*0.65],
+    [bushCX + w*0.28, bushBY - h*0.28, rx*0.65, ry*0.65],
+    [bushCX - w*0.12, bushBY - h*0.6, rx*0.55, ry*0.55],
+    [bushCX + w*0.18, bushBY - h*0.55, rx*0.5, ry*0.5],
+    [bushCX, bushBY - h*0.75, rx*0.45, ry*0.45],
+  ];
+  circles.forEach(([cx,cy,crx,cry], i) => {
+    ctx.fillStyle = i % 2 === 0 ? leafCol : leafCol2;
+    ctx.beginPath(); ctx.ellipse(cx, cy, crx, cry, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Thorns poking outward from bush edges
+  ctx.fillStyle = thornCol;
+  ctx.strokeStyle = thornCol; ctx.lineWidth = 1.5;
+
+  // Thorns all around the silhouette
+  const thornPositions = [
+    [bushCX - rx*0.85, bushBY - h*0.3, -0.8],
+    [bushCX + rx*0.85, bushBY - h*0.3, 0.8],
+    [bushCX - rx*0.65, bushBY - h*0.65, -1.2],
+    [bushCX + rx*0.65, bushBY - h*0.65, 1.2],
+    [bushCX - rx*0.25, bushBY - h*0.88, -Math.PI/2 + 0.3],
+    [bushCX + rx*0.25, bushBY - h*0.88, -Math.PI/2 - 0.3],
+    [bushCX, bushBY - h*0.95, -Math.PI/2],
+    [bushCX - rx*0.5, bushBY - h*0.15, -0.5],
+    [bushCX + rx*0.5, bushBY - h*0.15, 0.5],
+  ];
+  thornPositions.forEach(([tx,ty,angle]) => {
+    const tLen = 9 + (colored ? 2 : 0);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx + Math.cos(angle)*tLen, ty + Math.sin(angle)*tLen);
+    ctx.lineTo(tx + Math.cos(angle+0.35)*tLen*0.45, ty + Math.sin(angle+0.35)*tLen*0.45);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Dark inner shadow for depth
+  ctx.fillStyle = colored ? 'rgba(0,30,0,0.25)' : 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(bushCX, bushBY - h*0.4, rx*0.5, ry*0.5, 0, 0, Math.PI*2); ctx.fill();
+
+  // Red danger outline — draw around the overall bush silhouette
+  ctx.strokeStyle = '#dd1111';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#ff0000';
+  ctx.shadowBlur = 8;
+  circles.forEach(([cx,cy,crx,cry]) => {
+    ctx.beginPath(); ctx.ellipse(cx, cy, crx + 2, cry + 2, 0, 0, Math.PI*2); ctx.stroke();
+  });
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+// ===================== DRAW PLATFORM =====================
+function drawPlatform(plat) {
+  const { x, y, w, h } = plat;
+  const worldX = plat.x + scrollX;
+  const colored = isColorized(worldX);
+
+  ctx.save();
+  ctx.fillStyle = colored ? '#3d2008' : '#303030';
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill();
+  // Mossy top
+  ctx.fillStyle = colored ? '#2a6a10' : '#3a3a3a';
+  ctx.beginPath(); ctx.roundRect(x, y, w, h/2, [4,4,0,0]); ctx.fill();
+  // Grass tufts
+  if (colored) {
+    ctx.fillStyle = '#3a8820';
+    for (let gx = x + 8; gx < x + w - 8; gx += 14) {
+      ctx.beginPath(); ctx.arc(gx, y, 4, Math.PI, 0); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ===================== DRAW POWERUP =====================
+function drawPowerup(pu) {
+  const { x, y, type, angle } = pu;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+
+  if (type === 'rainbow') {
+    const bob = Math.sin(time*4) * 3;
+    ctx.translate(0, bob);
+    ctx.shadowBlur = 20; ctx.shadowColor = 'white';
+    // Outer glow ring
+    for (let r = 0; r < RAINBOW_COLORS.length; r++) {
+      ctx.strokeStyle = RAINBOW_COLORS[r]; ctx.lineWidth = 4;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(0, 0, 16 + r*1.5, (r/RAINBOW_COLORS.length)*Math.PI*2, (r+1)/RAINBOW_COLORS.length*Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Center white
+    ctx.fillStyle = 'white'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('★', 0, 0);
+  } else {
+    // Shield power-up
+    const bob = Math.sin(time*3 + 1) * 3;
+    ctx.translate(0, bob);
+    ctx.shadowColor = '#88ddff'; ctx.shadowBlur = 18;
+    ctx.fillStyle = 'rgba(80,180,255,0.85)';
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -18); ctx.lineTo(15, -8); ctx.lineTo(15, 5);
+    ctx.lineTo(0, 19); ctx.lineTo(-15, 5); ctx.lineTo(-15, -8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'white'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('✦', 0, 0);
+  }
+  ctx.restore();
+}
+
+// ===================== DRAW PARTICLES =====================
 function drawParticles() {
   particles.forEach(p => {
     ctx.globalAlpha = p.life;
@@ -1042,370 +1007,286 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  SPAWNING
-// ─────────────────────────────────────────────────────────────────────────────
-function spawnObstacle() {
-  const bh = randBetween(38, 74);
-  const bw = randBetween(35, 65);
-  obstacles.push({
-    wx: scrollX + W + 60,
-    y: GROUND_Y - bh,
-    w: bw, h: bh
-  });
-}
-function spawnPlatform() {
-  const pw = randBetween(80, 150);
-  const py = GROUND_Y - randBetween(110, 230);
-  platforms.push({
-    wx: scrollX + W + 60,
-    y: py, w: pw, h: 14
-  });
-}
-function spawnPowerup() {
-  const isRainbow = Math.random() < 0.5;
-  const py = GROUND_Y - randBetween(70, 180);
-  powerups.push({
-    wx: scrollX + W + 60,
-    y: py,
-    type: isRainbow ? 'rainbow' : 'shield',
-    collected: false
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  COLLISION
-// ─────────────────────────────────────────────────────────────────────────────
-function ponyRect() {
-  return { x: PONY_X - 28, y: ponyY - 14, w: 56, h: 46 };
-}
-function rectsOverlap(a, b) {
-  return a.x < b.x + b.w && a.x + a.w > b.x &&
-         a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  SHIELD DRAW
-// ─────────────────────────────────────────────────────────────────────────────
+// ===================== DRAW SHIELD =====================
 function drawShieldEffect() {
-  if (shieldTimer <= 0) return;
-  const pulse = 0.6 + Math.sin(time * 8) * 0.4;
+  if (!shieldMode) return;
   ctx.save();
-  ctx.strokeStyle = `rgba(0,200,255,${pulse})`;
-  ctx.lineWidth = 3;
-  ctx.shadowColor = '#00cfff'; ctx.shadowBlur = 16;
-  ctx.beginPath();
-  ctx.arc(PONY_X, ponyY + 16, 40, 0, Math.PI*2);
-  ctx.stroke();
+  ctx.globalAlpha = 0.25 + Math.sin(time*8)*0.1;
+  ctx.strokeStyle = '#88ddff'; ctx.lineWidth = 4;
+  ctx.shadowColor = '#88ddff'; ctx.shadowBlur = 24;
+  ctx.beginPath(); ctx.arc(PONY_X, ponyY, 42, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = '#88ddff';
+  ctx.beginPath(); ctx.arc(PONY_X, ponyY, 42, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  HUD
-// ─────────────────────────────────────────────────────────────────────────────
-function drawHUD() {
-  // Score
-  ctx.font = '28px "Fredoka One", cursive';
-  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-  ctx.fillStyle = '#fff';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
-  ctx.fillText(Math.floor(distance), W - 20, 16);
-  ctx.shadowBlur = 0;
-  ctx.font = '13px Nunito';
-  ctx.fillText('DISTANCE', W - 20, 48);
+// ===================== SPAWN =====================
+function spawnObstacle() {
+  const h = 38 + Math.random() * 36, w = 35 + Math.random() * 30;
+  obstacles.push({ x: W + 60, y: GROUND_Y - h + 8, w, h });
+}
+function spawnPlatform() {
+  const y = GROUND_Y - 110 - Math.random() * 120;
+  platforms.push({ x: W + 60, y, w: 80 + Math.random() * 70, h: 14 });
+}
+function spawnPowerup(type) {
+  const y = GROUND_Y - 70 - Math.random() * 110;
+  powerups.push({ x: W + 60, y, type, alive: true, angle: 0 });
+}
 
-  // Zone label
-  ctx.font = '16px "Fredoka One", cursive';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.fillText(zoneLabel, W/2, H - 12);
+// ===================== COLLISION =====================
+function rectRect(ax,ay,aw,ah,bx,by,bw,bh) {
+  return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+}
 
-  // Power-up indicators
-  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  let hudY = 16;
-  if (rainbowMode > 0) {
-    ctx.font = '18px "Fredoka One", cursive';
-    ctx.fillStyle = '#ffd700';
-    ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 10;
-    ctx.fillText('⚡ RAINBOW MODE', 16, hudY);
-    ctx.shadowBlur = 0;
-    hudY += 32;
-  }
-  if (shieldTimer > 0) {
-    ctx.font = '18px "Fredoka One", cursive';
-    ctx.fillStyle = '#00cfff';
-    ctx.shadowColor = '#00cfff'; ctx.shadowBlur = 10;
-    ctx.fillText('🛡 SHIELD', 16, hudY);
-    ctx.shadowBlur = 0;
+// ===================== DIE =====================
+function die() {
+  if (dying || shieldMode) return;
+  dying = true; deathTimer = 130; playDie(); shake = 28;
+  for (let i = 0; i < 22; i++) {
+    const a = (Math.PI*2*i/22);
+    particles.push({ x:PONY_X, y:ponyY,
+      vx:Math.cos(a)*(2+Math.random()*5), vy:Math.sin(a)*(2+Math.random()*5)-2,
+      life:1, color:`hsl(${i*16},100%,65%)`, r:5+Math.random()*6 });
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  GAME OVER SCREEN
-// ─────────────────────────────────────────────────────────────────────────────
-let finalScore = 0;
-function drawGameOver() {
-  ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
-  ctx.fillRect(0, 0, W, H);
-  if (overlayAlpha < 0.85) return;
-  ctx.textAlign = 'center';
-  ctx.font = '72px "Fredoka One", cursive';
-  ctx.fillStyle = '#ff4444';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 20;
-  ctx.fillText('Game Over', W/2, H/2 - 80);
-  ctx.font = '34px "Fredoka One", cursive';
-  ctx.fillStyle = '#fff';
-  ctx.fillText(`Distance: ${Math.floor(finalScore)}`, W/2, H/2 - 10);
-  // Try Again button — drawn on canvas
-  ctx.fillStyle = '#ffd700';
-  ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 16;
-  ctx.beginPath(); ctx.roundRect(W/2 - 100, H/2 + 50, 200, 54, 28); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#1a0a2e';
-  ctx.font = '24px "Fredoka One", cursive';
-  ctx.fillText('Try Again', W/2, H/2 + 79);
+// ===================== ZONE =====================
+function getZone() {
+  const CYCLE = 5300; // total distance of one full zone loop
+  const loopDist = distance % CYCLE;
+  for (let i = ZONES.length-1; i>=0; i--) if (loopDist >= ZONES[i].dist) return i;
+  return 0;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  INPUT
-// ─────────────────────────────────────────────────────────────────────────────
-function handleJump() {
-  if (gameState !== 'playing' || isDead) return;
-  const unlimited = rainbowMode > 0;
-  if (unlimited || jumpsLeft > 0) {
-    const force = unlimited ? JUMP_FORCE * 0.72 : JUMP_FORCE;
-    ponyVY = force;
-    if (!unlimited) jumpsLeft--;
-    playJump();
-    spawnParticles(PONY_X, ponyY + 40, 8, 'jump');
-  }
-}
+// ===================== SELECT SCREEN =====================
+const grid = document.getElementById('pony-grid');
+PONIES.forEach((pony, i) => {
+  const card = document.createElement('div');
+  card.className = 'pony-card' + (i===0?' selected':'');
+  card.innerHTML = `<canvas width="96" height="80"></canvas><span>${pony.name}</span>`;
+  const c = card.querySelector('canvas');
+  // Draw mini pony
+  const mc = c.getContext('2d');
+  mc.clearRect(0,0,96,80);
+  mc.save(); mc.translate(48, 52);
+  // mini draw (simplified)
+  const { body, mane, mane2, tail } = pony;
+  // tail
+  mc.strokeStyle = tail; mc.lineWidth = 5; mc.lineCap = 'round';
+  mc.beginPath(); mc.moveTo(-18, 8); mc.bezierCurveTo(-28, 18, -42, 22, -38, 12); mc.stroke();
+  mc.strokeStyle = mane2; mc.lineWidth = 3;
+  mc.beginPath(); mc.moveTo(-18, 6); mc.bezierCurveTo(-30, 16, -44, 18, -40, 8); mc.stroke();
+  // body
+  mc.fillStyle = body; mc.beginPath(); mc.roundRect(-16, -10, 32, 20, 8); mc.fill();
+  // neck+head
+  mc.fillStyle = body; mc.beginPath(); mc.roundRect(12, -18, 10, 14, 4); mc.fill();
+  mc.beginPath(); mc.ellipse(24, -14, 11, 9, 0.2, 0, Math.PI*2); mc.fill();
+  // eye
+  mc.fillStyle = '#111'; mc.beginPath(); mc.arc(28, -16, 3, 0, Math.PI*2); mc.fill();
+  mc.fillStyle = 'white'; mc.beginPath(); mc.arc(29, -17, 1, 0, Math.PI*2); mc.fill();
+  // mane — starts right above the eye (eye at ~28,-16), sweeps back and down
+  mc.strokeStyle = mane; mc.lineWidth = 6; mc.lineCap = 'round';
+  mc.beginPath(); mc.moveTo(26,-23); mc.bezierCurveTo(20,-28,8,-28,-2,-22); mc.bezierCurveTo(-12,-15,-12,4,-6,18); mc.stroke();
+  mc.strokeStyle = mane2; mc.lineWidth = 3;
+  mc.beginPath(); mc.moveTo(27,-22); mc.bezierCurveTo(18,-27,6,-26,-4,-20); mc.bezierCurveTo(-14,-13,-12,6,-6,20); mc.stroke();
+  // legs
+  mc.strokeStyle = body; mc.lineWidth = 5; mc.lineCap = 'round';
+  [[-10,10],[0,10],[14,10],[20,10]].forEach(([lx,ly]) => { mc.beginPath(); mc.moveTo(lx,ly); mc.lineTo(lx, ly+14); mc.stroke(); });
+  mc.restore();
 
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') {
-    e.preventDefault();
-    handleJump();
-  }
-});
-canvas.addEventListener('click', e => {
-  if (gameState === 'dead' && overlayAlpha >= 0.85) {
-    const cx = e.offsetX, cy = e.offsetY;
-    if (cx > W/2-100 && cx < W/2+100 && cy > H/2+50 && cy < H/2+104) {
-      startGame();
-    }
-  } else {
-    handleJump();
-  }
-});
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  handleJump();
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.pony-card').forEach(cc => cc.classList.remove('selected'));
+    card.classList.add('selected'); selectedPony = i;
+  });
+  grid.appendChild(card);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  GAME START / RESET
-// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', () => {
+  document.getElementById('gameover-screen').style.display = 'none'; startGame();
+});
+
+// ===================== START =====================
 function startGame() {
-  scrollX = 0; distance = 0; gameSpeed = 6; time = 0; shake = 0;
-  ponyY = GROUND_Y - 40; ponyVY = 0; jumpsLeft = MAX_JUMPS;
-  isDead = false; deathTimer = 0; overlayAlpha = 0; finalScore = 0;
-  rainbowMode = 0; shieldTimer = 0;
-  obstacles = []; platforms = []; powerups = []; particles = []; trailPoints = [];
-  obstacleTimer = 80; platformTimer = 150; powerupTimer = 250;
-  zoneLabel = ZONES[0].name;
-  buildBgObjects();
+  document.getElementById('select-screen').style.display = 'none';
+  document.getElementById('gameover-screen').style.display = 'none';
   gameState = 'playing';
-  document.getElementById('titleScreen').style.display = 'none';
-  canvas.style.display = 'block';
-  if (!loopRunning) { loopRunning = true; requestAnimationFrame(gameLoop); }
+  score = 0; distance = 0; gameSpeed = 6;
+  ponyY = GROUND_Y; ponyVY = 0; onGround = true; jumpCount = 0;
+  dying = false; deathTimer = 0;
+  rainbowMode = false; rainbowTimer = 0; shieldMode = false; shieldTimer = 0;
+  shake = 0; shakeX = 0; shakeY = 0;
+  trailPoints = []; particles = []; obstacles = []; platforms = []; powerups = [];
+  scrollX = 0; time = 0; currentZone = 0;
+  spawnTimer = 60; platformTimer = 120; powerupTimer = 220;
+  initBgObjects();
+  document.getElementById('score').textContent = '0';
+  document.getElementById('zone-label').textContent = ZONES[0].name;
+  document.getElementById('rainbow-indicator').classList.remove('active');
+  document.getElementById('shield-indicator').classList.remove('active');
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
+// ===================== INPUT =====================
+document.addEventListener('keydown', e => { if (e.code==='Space') { e.preventDefault(); handleJump(); } });
+canvas.addEventListener('click', handleJump);
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  MAIN GAME LOOP
-// ─────────────────────────────────────────────────────────────────────────────
-function gameLoop() {
-  time += 1/60;
-  update();
-  render();
-  requestAnimationFrame(gameLoop);
+function handleJump() {
+  if (gameState !== 'playing' || dying) return;
+  if (jumpCount < MAX_JUMPS || rainbowMode) {
+    ponyVY = JUMP_FORCE * (rainbowMode ? 0.72 : 1);
+    onGround = false; jumpCount++;
+    playJump();
+    for (let i = 0; i < 8; i++) {
+      particles.push({ x:PONY_X, y:ponyY+18,
+        vx:(Math.random()-0.5)*5, vy:2+Math.random()*3,
+        life:1, color:`hsl(${Math.random()*360},100%,70%)`, r:4 });
+    }
+  }
 }
 
-function update() {
-  if (gameState === 'title') return;
+// ===================== MAIN LOOP =====================
+let lastTime = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 16.67, 3);
+  lastTime = ts;
 
-  gameSpeed = 6 + distance / 2200;
+  if (gameState !== 'playing') { requestAnimationFrame(loop); return; }
 
-  if (!isDead) {
-    // Scroll
-    const speed = rainbowMode > 0 ? gameSpeed * 1.65 : gameSpeed;
-    scrollX += speed;
-    distance += speed;
+  time += 0.016 * dt;
 
-    // Zone label
-    const { zi } = getZoneProgress(distance);
-    zoneLabel = ZONES[zi].name;
+  // Shake
+  if (shake > 0) {
+    shake -= dt * 1.6;
+    shakeX = (Math.random()-0.5)*shake*1.5;
+    shakeY = (Math.random()-0.5)*shake*1.5;
+  } else { shakeX=0; shakeY=0; shake=0; }
 
-    // Trail
-    trailPoints.push(scrollX + PONY_X);
+  // Zone
+  const newZone = getZone();
+  if (newZone !== currentZone) {
+    currentZone = newZone;
+    document.getElementById('zone-label').textContent = ZONES[currentZone].name;
+  }
+
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  // --- UPDATE ---
+  if (!dying) {
+    const speed = gameSpeed * dt * (rainbowMode ? 1.65 : 1);
+
+    // Physics
+    ponyVY += GRAVITY * dt;
+    ponyY += ponyVY * dt;
+    if (ponyY >= GROUND_Y) { ponyY = GROUND_Y; ponyVY = 0; if (!onGround) { onGround=true; jumpCount=0; } }
+
+    // Platform collision
+    platforms.forEach(plat => {
+      if (PONY_X+22>plat.x && PONY_X-22<plat.x+plat.w && ponyY>plat.y-2 && ponyY<plat.y+14 && ponyVY>0) {
+        ponyY=plat.y; ponyVY=0; onGround=true; jumpCount=0;
+      }
+    });
+
+    // Trail: store world-x so points spread out horizontally as pony runs
+    trailPoints.push({ wx: scrollX + PONY_X - 22, y: ponyY });
     if (trailPoints.length > 120) trailPoints.shift();
 
-    // Pony physics
-    ponyVY += GRAVITY;
-    ponyY += ponyVY;
-    if (ponyY >= GROUND_Y - 40) {
-      ponyY = GROUND_Y - 40;
-      ponyVY = 0;
-      jumpsLeft = rainbowMode > 0 ? jumpsLeft : MAX_JUMPS;
-    }
+    // Move world
+    obstacles.forEach(o => o.x -= speed);
+    platforms.forEach(p => p.x -= speed);
+    powerups.forEach(pu => { pu.x -= speed; pu.angle += 0.04*dt; });
+    scrollX += speed;
 
-    // Platform landing
-    const pr = ponyRect();
-    platforms.forEach(p => {
-      const sr = { x: p.wx - scrollX, y: p.y, w: p.w, h: p.h };
-      if (ponyVY >= 0 && pr.y + pr.h > sr.y && pr.y + pr.h < sr.y + sr.h + 12 &&
-          pr.x + pr.w > sr.x + 8 && pr.x < sr.x + sr.w - 8) {
-        ponyY = p.y - 40;
-        ponyVY = 0;
-        jumpsLeft = MAX_JUMPS;
-      }
+    obstacles = obstacles.filter(o => o.x > -120);
+    platforms = platforms.filter(p => p.x > -220);
+    powerups = powerups.filter(pu => pu.x > -60);
+
+    // Particles
+    particles.forEach(p => { p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=0.18*dt; p.life-=0.028*dt; });
+    particles = particles.filter(p => p.life > 0);
+
+    // Spawn
+    spawnTimer -= dt; if (spawnTimer <= 0) { spawnObstacle(); spawnTimer = 55 + Math.random()*75; }
+    platformTimer -= dt; if (platformTimer <= 0) { spawnPlatform(); platformTimer = 95 + Math.random()*115; }
+    powerupTimer -= dt; if (powerupTimer <= 0) { spawnPowerup(Math.random()<0.5?'rainbow':'shield'); powerupTimer = 180 + Math.random()*200; }
+
+    // Collisions
+    obstacles.forEach(obs => {
+      if (!shieldMode && rectRect(PONY_X-20, ponyY-24, 38, 40, obs.x+6, obs.y+6, obs.w-12, obs.h-6)) die();
     });
 
-    // Power-up timers
-    if (rainbowMode > 0) rainbowMode--;
-    if (shieldTimer > 0) shieldTimer--;
-
-    // Spawn obstacles
-    obstacleTimer--;
-    if (obstacleTimer <= 0) {
-      spawnObstacle();
-      obstacleTimer = randInt(55, 130);
-    }
-    platformTimer--;
-    if (platformTimer <= 0) {
-      spawnPlatform();
-      platformTimer = randInt(95, 210);
-    }
-    powerupTimer--;
-    if (powerupTimer <= 0) {
-      spawnPowerup();
-      powerupTimer = randInt(180, 380);
-    }
-
-    // Cleanup off-screen
-    const cullX = scrollX - 200;
-    obstacles = obstacles.filter(o => o.wx > cullX);
-    platforms = platforms.filter(p => p.wx > cullX);
-    powerups = powerups.filter(p => p.wx > cullX && !p.collected);
-
-    // Collisions — obstacles
-    obstacles.forEach(o => {
-      const sx = o.wx - scrollX;
-      const oRect = { x: sx + 6, y: o.y + 6, w: o.w - 12, h: o.h - 6 };
-      if (rectsOverlap(pr, oRect)) {
-        if (shieldTimer > 0) return;
-        die();
-      }
-    });
-
-    // Collisions — powerups
-    powerups.forEach(p => {
-      if (p.collected) return;
-      const sx = p.wx - scrollX;
-      const pRect = { x: sx - 20, y: p.y - 20, w: 40, h: 40 };
-      if (rectsOverlap(pr, pRect)) {
-        p.collected = true;
-        if (p.type === 'rainbow') {
-          rainbowMode = 300;
-          playRainbowPickup();
-          spawnParticles(PONY_X, ponyY, 24, 'death');
+    // Powerups
+    powerups.forEach(pu => {
+      if (pu.alive && rectRect(PONY_X-20, ponyY-24, 38, 40, pu.x-18, pu.y-18, 36, 36)) {
+        pu.alive = false; playPowerup();
+        if (pu.type === 'rainbow') {
+          rainbowMode=true; rainbowTimer=300;
+          document.getElementById('rainbow-indicator').classList.add('active');
+          for (let i=0;i<24;i++) {
+            const a=Math.random()*Math.PI*2;
+            particles.push({ x:PONY_X, y:ponyY, vx:Math.cos(a)*6, vy:Math.sin(a)*6-2, life:1, color:`hsl(${i*15},100%,60%)`, r:7 });
+          }
         } else {
-          shieldTimer = 420;
-          playShieldPickup();
-          spawnParticles(PONY_X, ponyY, 12, 'jump');
+          shieldMode=true; shieldTimer=420; playShield();
+          document.getElementById('shield-indicator').classList.add('active');
         }
       }
     });
+    powerups = powerups.filter(pu => pu.alive);
 
-  } else {
-    // Dying
-    deathTimer++;
-    overlayAlpha = clamp((deathTimer - 65) / 65, 0, 0.88);
-    if (shake > 0) shake -= 1.6;
+    // Powerup timers
+    if (rainbowMode) { rainbowTimer-=dt; if (rainbowTimer<=0) { rainbowMode=false; document.getElementById('rainbow-indicator').classList.remove('active'); } }
+    if (shieldMode) { shieldTimer-=dt; if (shieldTimer<=0) { shieldMode=false; document.getElementById('shield-indicator').classList.remove('active'); } }
+
+    // Score
+    distance += speed * 0.5;
+    score = Math.floor(distance);
+    document.getElementById('score').textContent = score;
+    gameSpeed = 6 + distance / 2200;
   }
 
-  updateParticles();
-}
-
-function die() {
-  if (isDead) return;
-  isDead = true;
-  gameState = 'dead';
-  finalScore = distance;
-  shake = 28;
-  playDeath();
-  spawnParticles(PONY_X, ponyY + 20, 22, 'death');
-}
-
-function render() {
-  ctx.save();
-  // Screen shake
-  if (shake > 0) {
-    ctx.translate(
-      (Math.random()-0.5)*shake*1.5,
-      (Math.random()-0.5)*shake*1.5
-    );
-  }
-
-  const splitX = PONY_X;
-
-  // Background
-  drawBackground(splitX);
-
-  // Trail (behind pony)
-  drawTrail();
-
-  // Platforms
-  platforms.forEach(p => {
-    const sx = p.wx - scrollX;
-    const colored = sx < splitX;
-    drawPlatform(ctx, sx, p.y, p.w, colored);
-  });
-
-  // Obstacles
-  obstacles.forEach(o => {
-    const sx = o.wx - scrollX;
-    const colored = sx < splitX;
-    drawBush(ctx, sx, o.y, o.w, o.h, colored);
-  });
-
-  // Power-ups
-  powerups.forEach(p => {
-    if (p.collected) return;
-    const sx = p.wx - scrollX;
-    if (p.type === 'rainbow') drawRainbowCircle(ctx, sx, p.y, time);
-    else drawShieldIcon(ctx, sx, p.y, time);
-  });
-
-  // Shield effect
-  drawShieldEffect();
-
-  // Pony
-  const pony = PONIES[selectedPony];
-  drawPonyPortrait(ctx, pony, PONY_X, ponyY + 40, 1, time, isDead, rainbowMode > 0);
-
-  // Particles
+  // --- DRAW ---
+  drawBackground();
+  drawGround();
+  drawRainbowTrail();
+  platforms.forEach(drawPlatform);
+  obstacles.forEach(drawObstacle);
+  powerups.forEach(drawPowerup);
   drawParticles();
+  drawShieldEffect();
+  drawPony(PONY_X, ponyY, PONIES[selectedPony], dying, rainbowMode, time);
 
-  // HUD
-  drawHUD();
-
-  // Game over overlay
-  if (isDead) drawGameOver();
+  // Death: fade to grayscale overlay
+  if (dying) {
+    const fadeIn = Math.min(1, (130 - deathTimer) / 65);
+    if (fadeIn > 0.01) {
+      // Desaturate via pixel manipulation is expensive; instead overlay dark semi-transparent
+      ctx.save();
+      ctx.globalAlpha = fadeIn * 0.7;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      // White vignette text hint
+      ctx.globalAlpha = fadeIn * 0.5;
+      ctx.fillStyle = '#fff';
+      ctx.font = "bold 14px 'Nunito',sans-serif";
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.restore();
+    }
+    deathTimer -= dt;
+    if (deathTimer <= 0) {
+      document.getElementById('final-score').textContent = `Score: ${score}`;
+      document.getElementById('gameover-screen').style.display = 'flex';
+      gameState = 'dead';
+    }
+  }
 
   ctx.restore();
+  requestAnimationFrame(loop);
 }
+
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
