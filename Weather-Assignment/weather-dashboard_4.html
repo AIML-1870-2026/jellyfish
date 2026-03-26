@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sky-card: rgba(255,255,255,0.07);
+  --sky-card-hover: rgba(255,255,255,0.11);
+  --sky-border: rgba(255,255,255,0.13);
+  --sky-border-strong: rgba(255,255,255,0.28);
+  --text-primary: #f0f4ff;
+  --text-secondary: rgba(200,215,255,0.75);
+  --text-muted: rgba(160,185,230,0.55);
+  --accent-cool: #50b8f0;
+  --accent-red: #f06070;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+/* ── dynamic background ── */
+body {
+  font-family: var(--font);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 4s ease;
+  background: #0a1628;
+}
+#bgCanvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  width: 100%; height: 100%;
+}
+
+/* ── stars ── */
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.star { position: absolute; background: white; border-radius: 50%; animation: twinkle var(--d) ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: var(--min); } to { opacity: var(--max); } }
+
+.shell { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+
+/* ── saved cities ── */
+.cities-bar {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.cities-bar::-webkit-scrollbar { display: none; }
+.city-chip {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  padding: 7px 14px; background: var(--sky-card); border: 1px solid var(--sky-border);
+  border-radius: 20px; font-size: 13px; color: var(--text-secondary);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s; white-space: nowrap;
+}
+.city-chip:hover { background: var(--sky-card-hover); border-color: var(--sky-border-strong); }
+.city-chip.active { border-color: rgba(80,184,240,0.5); background: rgba(80,184,240,0.12); color: var(--accent-cool); }
+.city-chip-remove {
+  font-size: 11px; color: var(--text-muted); background: none; border: none;
+  cursor: pointer; line-height: 1; padding: 0 0 0 2px; transition: color 0.15s;
+}
+.city-chip-remove:hover { color: var(--accent-red); }
+.cities-empty { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
+
+/* ── top bar ── */
+.top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.search-wrap { display: flex; flex: 1; min-width: 200px; position: relative; }
+.search-input {
+  flex: 1; background: var(--sky-card); border: 1px solid var(--sky-border);
+  border-radius: var(--radius-sm); padding: 12px 16px 12px 44px;
+  font-family: var(--font); font-size: 15px; color: var(--text-primary); outline: none;
+  transition: border-color 0.2s;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus { border-color: var(--sky-border-strong); }
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 17px; pointer-events: none; }
+.search-btn {
+  padding: 12px 20px; background: rgba(80,184,240,0.14); border: 1px solid rgba(80,184,240,0.35);
+  border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 500;
+  color: var(--accent-cool); cursor: pointer; transition: background 0.2s; white-space: nowrap;
+}
+.search-btn:hover { background: rgba(80,184,240,0.24); }
+.save-btn {
+  padding: 12px 16px; background: var(--sky-card); border: 1px solid var(--sky-border);
+  border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px;
+  color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+}
+.save-btn:hover { background: var(--sky-card-hover); color: var(--text-secondary); }
+
+/* unit toggle */
+.unit-toggle { display: flex; background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
+.unit-btn { padding: 12px 14px; background: transparent; border: none; font-family: var(--mono); font-size: 13px; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.unit-btn + .unit-btn { border-left: 1px solid var(--sky-border); }
+.unit-btn.active { background: rgba(80,184,240,0.18); color: var(--accent-cool); }
+.unit-btn:hover:not(.active) { background: var(--sky-card-hover); color: var(--text-secondary); }
+
+/* error */
+.error-bar {
+  background: rgba(240,96,112,0.12); border: 1px solid rgba(240,96,112,0.3);
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;
+  font-size: 13px; color: var(--accent-red); display: none;
+}
+.error-bar.visible { display: block; }
+
+/* ── current card ── */
+.current-card {
+  background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius);
+  padding: 28px 32px; margin-bottom: 20px;
+  display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+}
+.city-name { font-size: 13px; color: var(--text-secondary); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.current-temp { font-size: 80px; font-weight: 300; line-height: 1; letter-spacing: -4px; }
+.current-desc { font-size: 18px; color: var(--text-secondary); margin-top: 8px; text-transform: capitalize; }
+.current-feels { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.current-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.current-dt { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+
+/* ── animated weather icons ── */
+.wx-icon-wrap { width: 80px; height: 80px; position: relative; }
+.wx-icon-wrap svg { width: 100%; height: 100%; overflow: visible; }
+
+/* sun rays */
+@keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes pulse-sun { 0%,100%{opacity:.7;r:14} 50%{opacity:1;r:15.5} }
+@keyframes float-cloud { 0%,100%{transform:translateX(0)} 50%{transform:translateX(3px)} }
+@keyframes fall-rain { from{transform:translateY(-6px);opacity:0} 60%{opacity:1} to{transform:translateY(12px);opacity:0} }
+@keyframes fall-snow { 0%{transform:translateY(-4px) rotate(0deg);opacity:0} 60%{opacity:1} 100%{transform:translateY(12px) rotate(180deg);opacity:0} }
+@keyframes flash { 0%,90%,100%{opacity:0} 92%,98%{opacity:1} }
+@keyframes drift-fog { 0%,100%{transform:translateX(0);opacity:.5} 50%{transform:translateX(5px);opacity:.9} }
+@keyframes twinkle-moon { 0%,100%{filter:drop-shadow(0 0 3px rgba(200,210,255,.4))} 50%{filter:drop-shadow(0 0 8px rgba(200,210,255,.8))} }
+
+/* stats */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm); padding: 16px 18px; }
+.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 500; }
+.stat-unit { font-size: 13px; color: var(--text-secondary); margin-left: 2px; }
+.stat-bar { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.stat-bar-fill { height: 100%; border-radius: 2px; }
+
+/* aqi */
+.aqi-card {
+  background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm);
+  padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.aqi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.aqi-badge { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+.aqi-components { display: flex; gap: 14px; flex-wrap: wrap; }
+.aqi-comp { font-size: 12px; color: var(--text-secondary); }
+.aqi-comp span { color: var(--text-primary); font-family: var(--mono); }
+
+/* ── sunrise/sunset arc card ── */
+.sun-arc-card {
+  background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm);
+  padding: 20px 24px; margin-bottom: 20px;
+}
+.sun-arc-card svg { width: 100%; display: block; }
+
+/* ── golden/blue hour card ── */
+.golden-card {
+  background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm);
+  padding: 18px 22px; margin-bottom: 20px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.golden-block { }
+.golden-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.golden-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.golden-name { color: var(--text-muted); }
+.golden-time { font-family: var(--mono); color: var(--text-primary); }
+
+/* hourly */
+.section-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+.hourly-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 20px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+.hourly-item { background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm); padding: 14px 16px; flex-shrink: 0; text-align: center; min-width: 78px; }
+.hourly-item.now { border-color: rgba(80,184,240,0.4); background: rgba(80,184,240,0.08); }
+.hourly-time { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-bottom: 8px; }
+.hourly-icon { margin-bottom: 8px; display: flex; justify-content: center; }
+.hourly-icon svg { width: 28px; height: 28px; overflow: visible; }
+.hourly-temp { font-size: 15px; font-weight: 500; }
+.hourly-pop { font-size: 10px; color: var(--accent-cool); margin-top: 4px; }
+
+/* weekly */
+.weekly-grid { display: flex; flex-direction: column; gap: 8px; }
+.day-row { background: var(--sky-card); border: 1px solid var(--sky-border); border-radius: var(--radius-sm); padding: 12px 18px; display: flex; align-items: center; gap: 14px; }
+.day-name { font-size: 13px; font-weight: 500; width: 42px; flex-shrink: 0; }
+.day-icon { width: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.day-icon svg { width: 24px; height: 24px; overflow: visible; }
+.day-desc { font-size: 12px; color: var(--text-secondary); flex: 1; text-transform: capitalize; }
+.day-pop { font-size: 11px; color: var(--accent-cool); width: 36px; text-align: right; flex-shrink: 0; }
+.day-range { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.day-lo { font-size: 13px; color: var(--text-muted); min-width: 40px; text-align: right; }
+.day-bar-wrap { width: 72px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; position: relative; }
+.day-bar-fill { position: absolute; height: 100%; border-radius: 2px; background: linear-gradient(90deg,#50b8f0,#f0a050); }
+.day-hi { font-size: 13px; font-weight: 500; min-width: 40px; }
+
+/* ── splash / empty state ── */
+.splash {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 72vh; text-align: center; padding: 40px 24px;
+  position: relative; overflow: hidden;
+}
+.splash-scene {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+/* animated sun */
+@keyframes sunRise { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-12px) scale(1.04)} }
+@keyframes raysSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes corePulse { 0%,100%{r:28} 50%{r:30} }
+/* clouds */
+@keyframes cloudDrift { 0%,100%{transform:translateX(0)} 50%{transform:translateX(18px)} }
+@keyframes cloudDriftR{ 0%,100%{transform:translateX(0)} 50%{transform:translateX(-14px)} }
+/* rain */
+@keyframes rainFall { from{transform:translateY(-10px);opacity:0} 60%{opacity:.7} to{transform:translateY(20px);opacity:0} }
+/* snow */
+@keyframes snowFall { 0%{transform:translateY(-8px) rotate(0deg);opacity:0} 40%{opacity:.8} 100%{transform:translateY(20px) rotate(180deg);opacity:0} }
+/* lightning */
+@keyframes bolt { 0%,88%,100%{opacity:0} 90%,96%{opacity:1} }
+/* floating particles */
+@keyframes particleDrift {
+  0%   { transform: translate(0,0) scale(1); opacity:0; }
+  10%  { opacity: var(--po); }
+  90%  { opacity: var(--po); }
+  100% { transform: translate(var(--px),var(--py)) scale(var(--ps)); opacity:0; }
+}
+.sp { position:absolute; border-radius:50%; animation: particleDrift var(--pd) ease-in-out infinite; animation-delay: var(--pdelay); }
+
+.splash-hero { position:relative; z-index:1; margin-bottom:20px; }
+.splash-hero svg { overflow:visible; }
+.splash-title {
+  font-size: 36px; font-weight: 300; letter-spacing: -0.5px;
+  color: var(--text-primary); margin-bottom: 10px; position: relative; z-index: 1;
+}
+.splash-title strong { font-weight: 500; color: #ffd860; }
+.splash-sub {
+  font-size: 16px; color: var(--text-secondary); margin-bottom: 36px;
+  position: relative; z-index: 1; max-width: 340px; line-height: 1.6;
+}
+.splash-chips {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  position: relative; z-index: 1; margin-bottom: 0;
+}
+.splash-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid; transition: transform 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.splash-chip svg { flex-shrink:0; overflow:visible; }
+.splash-chip:hover { transform: translateY(-2px); }
+.splash-chip.warm  { background: rgba(255,180,50,0.15); border-color: rgba(255,180,50,0.4); color: #ffd060; }
+.splash-chip.cool  { background: rgba(80,184,240,0.13); border-color: rgba(80,184,240,0.38); color: #80d0f8; }
+.splash-chip.snow  { background: rgba(180,210,255,0.12); border-color: rgba(180,210,255,0.35); color: #b8d8ff; }
+.splash-chip.storm { background: rgba(180,140,255,0.12); border-color: rgba(180,140,255,0.35); color: #c8b0ff; }
+.splash-glow {
+  width: 360px; height: 360px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,210,80,0.20) 0%, rgba(80,184,240,0.10) 55%, transparent 75%);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-55%);
+  animation: glowPulse 4s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes glowPulse {
+  from { transform: translate(-50%,-55%) scale(1); opacity: 0.7; }
+  to   { transform: translate(-50%,-55%) scale(1.18); opacity: 1; }
+}
+
+/* loading */
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(10,22,40,0.85); align-items: center; justify-content: center; z-index: 100; flex-direction: column; gap: 16px; }
+.loading-overlay.active { display: flex; }
+.spinner { width: 36px; height: 36px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--accent-cool); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--text-secondary); }
+
+@media (max-width: 620px) {
+  .current-temp { font-size: 60px; }
+  .golden-card { grid-template-columns: 1fr; }
+  .day-desc { display: none; }
+  .day-bar-wrap { width: 50px; }
+}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="stars" id="stars"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Fetching weather…</div>
+</div>
+
+<div class="shell">
+  <div class="cities-bar" id="citiesBar">
+    <span class="cities-empty">No saved cities yet — search and click "Save"</span>
+  </div>
+
+  <div class="top-bar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="cityInput" type="text" placeholder="Enter a city name…" onkeydown="if(event.key==='Enter')fetchAll()">
+    </div>
+    <button class="search-btn" onclick="fetchAll()">Search</button>
+    <button class="save-btn" id="saveBtn" onclick="saveCity()" style="display:none">+ Save</button>
+    <div class="unit-toggle">
+      <button class="unit-btn active" id="btn-metric" onclick="setUnit('metric')">°C</button>
+      <button class="unit-btn" id="btn-imperial" onclick="setUnit('imperial')">°F</button>
+      <button class="unit-btn" id="btn-standard" onclick="setUnit('standard')">K</button>
+    </div>
+  </div>
+
+  <div class="error-bar" id="errBar"></div>
+  <div id="mainContent">
+        <div class="splash" id="splash">
+      <div class="splash-glow"></div>
+      <div class="splash-scene" id="splashScene"></div>
+
+      <!-- animated hero: sun + clouds -->
+      <div class="splash-hero">
+        <svg width="220" height="140" viewBox="0 0 220 140">
+          <!-- sun rays group (spins) -->
+          <g style="transform-origin:110px 68px;animation:raysSpin 18s linear infinite">
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(45 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(90 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(135 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(180 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(225 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(270 110 68)"/>
+            <line x1="110" y1="12" x2="110" y2="2"  stroke="#ffd84a" stroke-width="3" stroke-linecap="round" opacity=".7" transform="rotate(315 110 68)"/>
+          </g>
+          <!-- sun glow halo -->
+          <circle cx="110" cy="68" r="36" fill="#ffd84a" opacity=".10"/>
+          <!-- sun core -->
+          <circle cx="110" cy="68" r="28" fill="#ffd84a" style="animation:corePulse 2.5s ease-in-out infinite"/>
+          <circle cx="110" cy="68" r="24" fill="#ffe878"/>
+          <!-- sun bob wrapper -->
+          <g style="animation:sunRise 3.5s ease-in-out infinite"/>
+
+          <!-- cloud 1 (back, slower) -->
+          <g style="animation:cloudDrift 7s ease-in-out infinite; transform-origin:60px 80px">
+            <ellipse cx="42" cy="88" rx="24" ry="14" fill="white" opacity=".22"/>
+            <ellipse cx="62" cy="84" rx="18" ry="13" fill="white" opacity=".22"/>
+            <ellipse cx="78" cy="90" rx="16" ry="11" fill="white" opacity=".22"/>
+          </g>
+
+          <!-- cloud 2 (front right, faster) -->
+          <g style="animation:cloudDriftR 5s ease-in-out infinite; transform-origin:155px 72px">
+            <ellipse cx="140" cy="80" rx="20" ry="13" fill="white" opacity=".30"/>
+            <ellipse cx="158" cy="75" rx="22" ry="15" fill="white" opacity=".30"/>
+            <ellipse cx="176" cy="82" rx="16" ry="11" fill="white" opacity=".30"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="splash-title">What's the weather like<br>in <strong>your city?</strong></div>
+      <div class="splash-sub">Type any city above — or jump to one of these:</div>
+      <div class="splash-chips">
+        <button class="splash-chip warm" onclick="quickCity('Tokyo')">
+          <!-- small sun icon -->
+          <svg width="14" height="14" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#ffd84a"/><g stroke="#ffd84a" stroke-width="1.8" stroke-linecap="round"><line x1="10" y1="1" x2="10" y2="3"/><line x1="10" y1="17" x2="10" y2="19"/><line x1="1" y1="10" x2="3" y2="10"/><line x1="17" y1="10" x2="19" y2="10"/><line x1="3.5" y1="3.5" x2="5" y2="5"/><line x1="15" y1="15" x2="16.5" y2="16.5"/><line x1="16.5" y1="3.5" x2="15" y2="5"/><line x1="5" y1="15" x2="3.5" y2="16.5"/></g></svg>
+          Tokyo
+        </button>
+        <button class="splash-chip cool" onclick="quickCity('London')">
+          <!-- cloud icon -->
+          <svg width="16" height="12" viewBox="0 0 24 16"><ellipse cx="9" cy="10" rx="8" ry="6" fill="#80d0f8" opacity=".8"/><ellipse cx="16" cy="8" rx="7" ry="5" fill="#80d0f8" opacity=".8"/><ellipse cx="19" cy="11" rx="5" ry="4" fill="#80d0f8" opacity=".8"/></svg>
+          London
+        </button>
+        <button class="splash-chip snow" onclick="quickCity('Reykjavik')">
+          <!-- snowflake icon -->
+          <svg width="14" height="14" viewBox="0 0 20 20"><g stroke="#b8d8ff" stroke-width="1.6" stroke-linecap="round"><line x1="10" y1="1" x2="10" y2="19"/><line x1="1" y1="10" x2="19" y2="10"/><line x1="3.5" y1="3.5" x2="16.5" y2="16.5"/><line x1="16.5" y1="3.5" x2="3.5" y2="16.5"/><line x1="10" y1="4" x2="8" y2="6"/><line x1="10" y1="4" x2="12" y2="6"/><line x1="10" y1="16" x2="8" y2="14"/><line x1="10" y1="16" x2="12" y2="14"/></g></svg>
+          Reykjavik
+        </button>
+        <button class="splash-chip storm" onclick="quickCity('Miami')">
+          <!-- lightning icon -->
+          <svg width="12" height="16" viewBox="0 0 14 20"><polyline points="9,1 4,11 8,11 5,19 13,7 8,7 11,1" fill="#c8b0ff" stroke="#c8b0ff" stroke-width=".5" stroke-linejoin="round"/></svg>
+          Miami
+        </button>
+        <button class="splash-chip warm" onclick="quickCity('Sydney')">
+          <!-- partly cloudy sun -->
+          <svg width="16" height="14" viewBox="0 0 22 18"><circle cx="8" cy="8" r="5" fill="#ffd84a"/><g stroke="#ffd84a" stroke-width="1.4" stroke-linecap="round"><line x1="8" y1="1" x2="8" y2="3"/><line x1="1" y1="8" x2="3" y2="8"/><line x1="2.8" y1="2.8" x2="4.2" y2="4.2"/></g><ellipse cx="14" cy="12" rx="7" ry="5" fill="white" opacity=".55"/><ellipse cx="18" cy="13" rx="5" ry="4" fill="white" opacity=".55"/></svg>
+          Sydney
+        </button>
+        <button class="splash-chip cool" onclick="quickCity('New York')">
+          <!-- rain icon -->
+          <svg width="16" height="16" viewBox="0 0 20 20"><ellipse cx="10" cy="7" rx="8" ry="5" fill="#80d0f8" opacity=".7"/><g stroke="#80d0f8" stroke-width="1.4" stroke-linecap="round" opacity=".8"><line x1="6"  y1="13" x2="5"  y2="17"/><line x1="10" y1="13" x2="9"  y2="17"/><line x1="14" y1="13" x2="13" y2="17"/></g></svg>
+          New York
+        </button>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+const API_KEY = '4897b4a4704872f9a669f028cb841556';
+let UNITS = 'metric';
+let cachedCur = null, cachedFore = null, cachedAQ = null;
+let cachedName = '', cachedCountry = '';
+let savedCities = JSON.parse(localStorage.getItem('wx_saved') || '[]');
+let activeCity = null;
+
+const $ = id => document.getElementById(id);
+
+/* ── stars ── */
+(function(){
+  const c = $('stars');
+  for(let i=0;i<100;i++){
+    const s = document.createElement('div'); s.className = 'star';
+    const sz = Math.random()*1.8+0.4;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--min:${(Math.random()*0.15).toFixed(2)};--max:${(Math.random()*0.55+0.25).toFixed(2)}`;
+    c.appendChild(s);
+  }
+})();
+
+/* ── dynamic background via canvas ── */
+const bgCanvas = $('bgCanvas');
+const ctx = bgCanvas.getContext('2d');
+let bgState = { phase: 'night', weatherId: 800, cloudOpacity: 0 };
+
+function resizeBg() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; drawBg(); }
+window.addEventListener('resize', resizeBg);
+
+function skyColors(phase, weatherId) {
+  const cloudy = weatherId < 800 || weatherId > 801;
+  const storm = weatherId >= 200 && weatherId < 600;
+  if(storm) return ['#0d1520','#1a2535','#243040'];
+  const palettes = {
+    night:       ['#060e1f','#0a1628','#0d1f35'],
+    astronomical:['#080f1e','#0f1d30','#131f38'],
+    nautical:    ['#0e1a30','#162540','#1d3050'],
+    civil:       ['#1a2a4a','#253858','#2e4870'],
+    golden:      ['#c85a10','#d4782a','#a03010'],
+    day_clear:   ['#1060c8','#2478d8','#1870d0'],
+    day_cloudy:  ['#304878','#3d5888','#2a4070'],
+    sunset_gold: ['#c04010','#d05820','#a83010'],
+    dusk:        ['#1a2040','#253050','#1c2848'],
+  };
+  const p = palettes[phase] || palettes.night;
+  if(cloudy && phase.startsWith('day')) return palettes.day_cloudy;
+  return p;
+}
+
+function drawBg() {
+  const w = bgCanvas.width, h = bgCanvas.height;
+  const [c1, c2, c3] = skyColors(bgState.phase, bgState.weatherId);
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(0.5, c2);
+  grad.addColorStop(1, c3);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // cloud overlay for cloudy/stormy
+  if(bgState.cloudOpacity > 0) {
+    const cg = ctx.createRadialGradient(w*0.5, h*0.2, 0, w*0.5, h*0.2, w*0.7);
+    cg.addColorStop(0, `rgba(40,55,80,${bgState.cloudOpacity * 0.5})`);
+    cg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // horizon glow for golden/sunrise/sunset
+  if(bgState.phase === 'golden' || bgState.phase === 'sunset_gold') {
+    const hg = ctx.createRadialGradient(w*0.5, h*0.85, 0, w*0.5, h*0.85, w*0.55);
+    hg.addColorStop(0, 'rgba(255,140,30,0.35)');
+    hg.addColorStop(0.5, 'rgba(220,80,20,0.15)');
+    hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // star visibility layer (night phases)
+  const starAlpha = {night:1,astronomical:0.9,nautical:0.6,civil:0.3,golden:0,day_clear:0,day_cloudy:0,sunset_gold:0,dusk:0.1}[bgState.phase] || 0;
+  $('stars').style.opacity = starAlpha;
+}
+
+function updateBackground(cur) {
+  const now = Math.floor(Date.now() / 1000);
+  const tz = cur.timezone;
+  const localNow = now + tz;
+  const sr = cur.sys.sunrise + tz;
+  const ss = cur.sys.sunset + tz;
+  const id = cur.weather[0].id;
+
+  // golden hour = 1hr after sunrise, 1hr before sunset
+  const goldenMorn = sr + 3600;
+  const goldenEve = ss - 3600;
+  const blueEve = ss + 2400;
+
+  let phase;
+  if(localNow < sr - 5400) phase = 'night';
+  else if(localNow < sr - 3600) phase = 'astronomical';
+  else if(localNow < sr - 1800) phase = 'nautical';
+  else if(localNow < sr) phase = 'civil';
+  else if(localNow < goldenMorn) phase = 'golden';
+  else if(localNow < goldenEve) phase = 'day_clear';
+  else if(localNow < ss) phase = 'golden';
+  else if(localNow < ss + 1800) phase = 'sunset_gold';
+  else if(localNow < blueEve) phase = 'dusk';
+  else phase = 'night';
+
+  const cloudy = (id >= 200 && id < 800) || id > 801;
+  bgState.phase = phase;
+  bgState.weatherId = id;
+  bgState.cloudOpacity = cloudy ? Math.min(1, (id < 300 ? 0.8 : id < 800 ? 0.5 : 0.3)) : 0;
+  resizeBg();
+}
+
+/* ── animated SVG weather icons ── */
+function wxSVG(id, pod, size=40) {
+  const night = pod === 'n';
+  const s = size;
+  const cx = s/2, cy = s/2;
+
+  if(id >= 200 && id < 300) return `<svg viewBox="0 0 ${s} ${s}">
+    <ellipse cx="${cx}" cy="${cy-4}" rx="13" ry="9" fill="#8899aa" style="animation:float-cloud 3s ease-in-out infinite"/>
+    <path d="M${cx-4} ${cy+6} L${cx+2} ${cy-2} L${cx-1} ${cy-2} L${cx+5} ${cy+8}" fill="none" stroke="#f8d030" stroke-width="2" stroke-linecap="round" style="animation:flash 2.5s ease-in-out infinite"/>
+    ${[cx-6,cx-1,cx+5].map((x,i)=>`<line x1="${x}" y1="${cy+4}" x2="${x-2}" y2="${cy+12}" stroke="#7ab8f0" stroke-width="1.5" stroke-linecap="round" style="animation:fall-rain ${0.6+i*0.15}s linear infinite"/>`).join('')}
+  </svg>`;
+
+  if(id >= 300 && id < 400) return `<svg viewBox="0 0 ${s} ${s}">
+    <ellipse cx="${cx}" cy="${cy-2}" rx="12" ry="8" fill="#8899bb" style="animation:float-cloud 3.5s ease-in-out infinite"/>
+    ${[cx-4,cx+2].map((x,i)=>`<line x1="${x}" y1="${cy+4}" x2="${x-1}" y2="${cy+11}" stroke="#7ab8f0" stroke-width="1.2" stroke-linecap="round" style="animation:fall-rain ${0.7+i*0.2}s linear infinite"/>`).join('')}
+  </svg>`;
+
+  if(id >= 500 && id < 600) return `<svg viewBox="0 0 ${s} ${s}">
+    <ellipse cx="${cx}" cy="${cy-3}" rx="13" ry="9" fill="#6677aa" style="animation:float-cloud 3s ease-in-out infinite"/>
+    ${[cx-6,cx-1,cx+5,cx+2].map((x,i)=>`<line x1="${x}" y1="${cy+4}" x2="${x-2}" y2="${cy+13}" stroke="#5aa0e0" stroke-width="1.5" stroke-linecap="round" style="animation:fall-rain ${0.5+i*0.12}s linear infinite"/>`).join('')}
+  </svg>`;
+
+  if(id >= 600 && id < 700) return `<svg viewBox="0 0 ${s} ${s}">
+    <ellipse cx="${cx}" cy="${cy-3}" rx="13" ry="8" fill="#aabbcc" style="animation:float-cloud 4s ease-in-out infinite"/>
+    ${[cx-5,cx,cx+5,cx-2].map((x,i)=>`<circle cx="${x}" cy="${cy+8+i*2}" r="2" fill="white" opacity=".85" style="animation:fall-snow ${0.8+i*0.2}s linear infinite"/>`).join('')}
+  </svg>`;
+
+  if(id >= 700 && id < 800) return `<svg viewBox="0 0 ${s} ${s}">
+    ${[cy-6,cy-1,cy+4].map((y,i)=>`<rect x="${cx-12}" y="${y}" width="24" height="3" rx="1.5" fill="#aabbcc" opacity=".7" style="animation:drift-fog ${2+i*0.4}s ease-in-out infinite; animation-delay:${i*0.3}s"/>`).join('')}
+  </svg>`;
+
+  if(id === 800) {
+    if(night) return `<svg viewBox="0 0 ${s} ${s}">
+      <path d="M${cx+2} ${cy-10} A10 10 0 1 0 ${cx+10} ${cy+4} A7 7 0 1 1 ${cx+2} ${cy-10}Z" fill="#d0d8ff" style="animation:twinkle-moon 3s ease-in-out infinite"/>
+    </svg>`;
+    return `<svg viewBox="0 0 ${s} ${s}">
+      <g style="transform-origin:${cx}px ${cy}px;animation:spin-slow 12s linear infinite">
+        ${[0,45,90,135,180,225,270,315].map(a=>`<line x1="${cx}" y1="${cy-17}" x2="${cx}" y2="${cy-20}" stroke="#f8c840" stroke-width="2" stroke-linecap="round" transform="rotate(${a} ${cx} ${cy})"/>`).join('')}
+      </g>
+      <circle cx="${cx}" cy="${cy}" r="11" fill="#f8c840" style="animation:pulse-sun 2s ease-in-out infinite"/>
+    </svg>`;
+  }
+
+  if(id === 801 || id === 802) {
+    const sunPart = night ? `<path d="M${cx-4} ${cy-12} A8 8 0 1 0 ${cx+6} ${cy-4} A5 5 0 1 1 ${cx-4} ${cy-12}Z" fill="#c0c8f0" opacity=".9"/>` :
+      `<circle cx="${cx-5}" cy="${cy-8}" r="9" fill="#f8c840" opacity=".9"/>`;
+    return `<svg viewBox="0 0 ${s} ${s}">
+      ${sunPart}
+      <ellipse cx="${cx+3}" cy="${cy+3}" rx="13" ry="8" fill="#aabbcc" style="animation:float-cloud 3.5s ease-in-out infinite"/>
+    </svg>`;
+  }
+
+  // 803, 804 heavy cloud
+  return `<svg viewBox="0 0 ${s} ${s}">
+    <ellipse cx="${cx-3}" cy="${cy}" rx="11" ry="8" fill="#778899" style="animation:float-cloud 4s ease-in-out infinite"/>
+    <ellipse cx="${cx+5}" cy="${cy+2}" rx="12" ry="8" fill="#8899aa" style="animation:float-cloud 3.5s ease-in-out infinite; animation-delay:.5s"/>
+  </svg>`;
+}
+
+/* ── utils ── */
+function loading(on, msg='Fetching weather…'){ $('loading').classList.toggle('active',on); $('loadingText').textContent=msg; }
+function showErr(msg){ const b=$('errBar'); b.textContent=msg; b.classList.toggle('visible',!!msg); }
+function unitSym(){ return UNITS==='metric'?'°C':UNITS==='imperial'?'°F':'K'; }
+function windUnit(){ return UNITS==='imperial'?'mph':'km/h'; }
+function toDisplay(c){ if(UNITS==='metric') return c; if(UNITS==='imperial') return c*9/5+32; return c+273.15; }
+function windDisplay(ms){ return UNITS==='imperial'?Math.round(ms*2.23694):Math.round(ms*3.6); }
+
+function fmtTime(ts, tz){
+  return new Date((ts+tz)*1000).toUTCString().match(/\d{2}:\d{2}/)[0];
+}
+function fmtTimeFromLocal(localTs){
+  const d = new Date(localTs*1000);
+  return d.toUTCString().match(/\d{2}:\d{2}/)[0];
+}
+
+function aqiInfo(a){ return [{label:'Good',color:'#40d0b0',bg:'rgba(64,208,176,0.15)'},{label:'Fair',color:'#8be050',bg:'rgba(139,224,80,0.15)'},{label:'Moderate',color:'#f0a050',bg:'rgba(240,160,80,0.15)'},{label:'Poor',color:'#f07050',bg:'rgba(240,112,80,0.15)'},{label:'Very Poor',color:'#f06070',bg:'rgba(240,96,112,0.15)'}][a-1]||{label:'Unknown',color:'#888',bg:'rgba(136,136,136,0.15)'}; }
+
+/* ── golden/blue hour calculation ── */
+function goldenHours(sunriseTsLocal, sunsetTsLocal) {
+  // local timestamps (already offset by tz)
+  const sr = sunriseTsLocal, ss = sunsetTsLocal;
+  return {
+    morningBlueStart:  fmtTimeFromLocal(sr - 2700),
+    morningBlueEnd:    fmtTimeFromLocal(sr - 1800),
+    morningGoldStart:  fmtTimeFromLocal(sr),
+    morningGoldEnd:    fmtTimeFromLocal(sr + 3600),
+    eveningGoldStart:  fmtTimeFromLocal(ss - 3600),
+    eveningGoldEnd:    fmtTimeFromLocal(ss),
+    eveningBlueStart:  fmtTimeFromLocal(ss),
+    eveningBlueEnd:    fmtTimeFromLocal(ss + 1800),
+  };
+}
+
+/* ── saved cities ── */
+function renderCitiesBar() {
+  const bar = $('citiesBar');
+  if(!savedCities.length) {
+    bar.innerHTML = '<span class="cities-empty">No saved cities yet — search and click "+ Save"</span>';
+    return;
+  }
+  bar.innerHTML = savedCities.map(c => `
+    <div class="city-chip${c === activeCity ? ' active' : ''}" onclick="loadCity('${c}')">
+      ${c}
+      <button class="city-chip-remove" onclick="event.stopPropagation();removeCity('${c}')" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function saveCity() {
+  const name = cachedName + ', ' + cachedCountry;
+  if(!savedCities.includes(name)) {
+    savedCities.push(name);
+    localStorage.setItem('wx_saved', JSON.stringify(savedCities));
+    renderCitiesBar();
+  }
+}
+
+function removeCity(name) {
+  savedCities = savedCities.filter(c => c !== name);
+  localStorage.setItem('wx_saved', JSON.stringify(savedCities));
+  if(activeCity === name) activeCity = null;
+  renderCitiesBar();
+}
+
+function loadCity(name) {
+  activeCity = name;
+  $('cityInput').value = name.split(', ')[0];
+  renderCitiesBar();
+  fetchAll();
+}
+
+/* ── sunrise/sunset arc SVG ── */
+function sunArcSVG(sunriseTs, sunsetTs, nowTs, tz) {
+  const sr = sunriseTs + tz;
+  const ss = sunsetTs + tz;
+  const now = nowTs + tz;
+
+  const W = 600, H = 130, pad = 40;
+  const arcW = W - pad*2;
+  const arcH = 95;
+  const cx = W/2, baseY = H - 20;
+
+  // sun position along arc (0=sunrise, 1=sunset)
+  const t = Math.max(0, Math.min(1, (now - sr) / (ss - sr)));
+  const angle = Math.PI * (1 - t); // PI=left, 0=right
+  const sunX = cx - Math.cos(angle) * (arcW/2);
+  const sunY = baseY - Math.sin(angle) * arcH;
+  const isDaytime = now >= sr && now <= ss;
+
+  const srTime = fmtTimeFromLocal(sr);
+  const ssTime = fmtTimeFromLocal(ss);
+  const goldenMornEnd = fmtTimeFromLocal(sr + 3600);
+  const goldenEveStart = fmtTimeFromLocal(ss - 3600);
+
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#f0a050" stop-opacity="0.9"/>
+        <stop offset="30%" stop-color="#f8d080" stop-opacity="0.7"/>
+        <stop offset="70%" stop-color="#f8d080" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#f07040" stop-opacity="0.9"/>
+      </linearGradient>
+      <linearGradient id="trackGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+        <stop offset="50%" stop-color="rgba(255,255,255,0.1)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0.06)"/>
+      </linearGradient>
+    </defs>
+
+    <!-- track arc -->
+    <path d="M${pad} ${baseY} A${arcW/2} ${arcH} 0 0 1 ${W-pad} ${baseY}"
+      fill="none" stroke="url(#trackGrad)" stroke-width="2"/>
+
+    <!-- horizon line -->
+    <line x1="${pad-10}" y1="${baseY}" x2="${W-pad+10}" y2="${baseY}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+    <!-- progress arc if daytime -->
+    ${isDaytime ? `<path d="M${pad} ${baseY} A${arcW/2} ${arcH} 0 0 1 ${sunX} ${sunY}"
+      fill="none" stroke="url(#arcGrad)" stroke-width="2.5" stroke-linecap="round"/>` : ''}
+
+    <!-- sun dot -->
+    ${isDaytime ? `
+      <circle cx="${sunX}" cy="${sunY}" r="10" fill="#f8c840" opacity="0.25"/>
+      <circle cx="${sunX}" cy="${sunY}" r="6" fill="#f8c840"/>
+    ` : ''}
+
+    <!-- sunrise label -->
+    <text x="${pad}" y="${baseY+16}" fill="rgba(200,215,255,0.6)" font-size="11" text-anchor="middle" font-family="'DM Mono', monospace">${srTime}</text>
+    <text x="${pad}" y="${baseY+27}" fill="rgba(240,160,80,0.8)" font-size="9" text-anchor="middle" font-family="'DM Sans', sans-serif">Sunrise</text>
+
+    <!-- sunset label -->
+    <text x="${W-pad}" y="${baseY+16}" fill="rgba(200,215,255,0.6)" font-size="11" text-anchor="middle" font-family="'DM Mono', monospace">${ssTime}</text>
+    <text x="${W-pad}" y="${baseY+27}" fill="rgba(240,120,60,0.8)" font-size="9" text-anchor="middle" font-family="'DM Sans', sans-serif">Sunset</text>
+
+    <!-- golden hour markers -->
+    ${[{t:0,lbl:'Golden',sub:goldenMornEnd},{t:1,lbl:'Golden',sub:goldenEveStart}].map(({t:tp,lbl,sub})=>{
+      const ang = Math.PI*(1-tp*0.28-0.14*(tp?-1:1));
+      const mx = cx - Math.cos(ang)*(arcW/2);
+      const my = baseY - Math.sin(ang)*arcH;
+      return `<circle cx="${mx}" cy="${my}" r="3" fill="#f0a050" opacity="0.7"/>`;
+    }).join('')}
+  </svg>`;
+}
+
+/* ── fetch ── */
+async function fetchAll() {
+  const city = $('cityInput').value.trim();
+  if(!city){ showErr('Please enter a city name.'); return; }
+  showErr('');
+  loading(true, 'Looking up ' + city + '…');
+  try {
+    const geoR = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`);
+    const geoD = await geoR.json();
+    if(!Array.isArray(geoD)||!geoD.length) throw new Error(`City "${city}" not found.`);
+    const {lat, lon, name, country} = geoD[0];
+    loading(true, 'Loading weather data…');
+    const [curR, foreR, aqR] = await Promise.all([
+      fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&cnt=56&appid=${API_KEY}`),
+      fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
+    ]);
+    const [cur, fore, aqRaw] = await Promise.all([curR.json(), foreR.json(), aqR.json()]);
+    if(cur.cod !== 200) throw new Error(cur.message || 'Weather fetch failed.');
+    cachedCur = cur; cachedFore = fore; cachedAQ = aqRaw;
+    cachedName = name; cachedCountry = country;
+    updateBackground(cur);
+    $('saveBtn').style.display = '';
+    // hide splash
+    const splash = $('splash'); if(splash) splash.style.display='none';
+    renderAll(cur, fore, aqRaw, name, country);
+  } catch(e) {
+    showErr(e.message.includes('401') ? 'Invalid API key.' : e.message);
+  } finally { loading(false); }
+}
+
+function setUnit(u) {
+  UNITS = u;
+  ['metric','imperial','standard'].forEach(x => $('btn-'+x).classList.toggle('active', x===u));
+  if(cachedCur) renderAll(cachedCur, cachedFore, cachedAQ, cachedName, cachedCountry);
+}
+
+/* ── render ── */
+function renderAll(cur, fore, aqRaw, name, country) {
+  const sym = unitSym();
+  const tz = cur.timezone;
+  const nowTs = Math.floor(Date.now()/1000);
+
+  const temp = toDisplay(cur.main.temp);
+  const feels = toDisplay(cur.main.feels_like);
+  const tmax = toDisplay(cur.main.temp_max);
+  const tmin = toDisplay(cur.main.temp_min);
+  const weatherId = cur.weather[0].id;
+  const pod = cur.weather[0].icon.slice(-1);
+
+  const humidity = cur.main.humidity;
+  const windSpd = windDisplay(cur.wind.speed);
+  const vis = Math.round(cur.visibility/1000);
+  const pressure = cur.main.pressure;
+  const windDirs = ['N','NE','E','SE','S','SW','W','NW'];
+  const windDir = windDirs[Math.round((cur.wind.deg||0)/45)%8];
+
+  const aq = aqRaw.list[0];
+  const aqInf = aqiInfo(aq.main.aqi);
+  const comp = aq.components;
+
+  const srLocal = cur.sys.sunrise + tz;
+  const ssLocal = cur.sys.sunset + tz;
+  const gh = goldenHours(srLocal, ssLocal);
+
+  const hourlyItems = fore.list.slice(0,9);
+
+  const days = {};
+  fore.list.forEach(h => {
+    const key = new Date((h.dt+tz)*1000).toUTCString().split(' ').slice(0,3).join(' ');
+    if(!days[key]) days[key] = {items:[]};
+    days[key].items.push(h);
+  });
+  const dayArr = Object.values(days).slice(0,7);
+  const allHi = dayArr.map(d => toDisplay(Math.max(...d.items.map(h => h.main.temp_max))));
+  const allLo = dayArr.map(d => toDisplay(Math.min(...d.items.map(h => h.main.temp_min))));
+  const globalHi = Math.max(...allHi), globalLo = Math.min(...allLo);
+  const rng = Math.max(globalHi-globalLo, 1);
+  const wkDays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const todayIdx = new Date().getDay();
+
+  $('mainContent').innerHTML = `
+    <div class="current-card">
+      <div>
+        <div class="city-name">${name}, ${country}</div>
+        <div class="current-temp">${Math.round(temp)}${sym}</div>
+        <div class="current-desc">${cur.weather[0].description}</div>
+        <div class="current-feels">Feels like ${Math.round(feels)}${sym} &nbsp;·&nbsp; High ${Math.round(tmax)}${sym} &nbsp; Low ${Math.round(tmin)}${sym}</div>
+      </div>
+      <div class="current-right">
+        <div class="wx-icon-wrap">${wxSVG(weatherId, pod, 80)}</div>
+        <div class="current-dt">${new Date().toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'})}</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Humidity</div>
+        <div class="stat-value">${humidity}<span class="stat-unit">%</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${humidity}%;background:#50b8f0"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Wind</div>
+        <div class="stat-value">${windSpd}<span class="stat-unit"> ${windUnit()} ${windDir}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Visibility</div>
+        <div class="stat-value">${vis}<span class="stat-unit"> km</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${Math.min(vis,10)*10}%;background:#40d0b0"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pressure</div>
+        <div class="stat-value">${pressure}<span class="stat-unit"> hPa</span></div>
+      </div>
+    </div>
+
+    <div class="aqi-card">
+      <div>
+        <div class="aqi-label">Air Quality</div>
+        <div class="aqi-badge" style="background:${aqInf.bg};color:${aqInf.color};border:1px solid ${aqInf.color}50">${aqInf.label}</div>
+      </div>
+      <div class="aqi-components">
+        <div class="aqi-comp">PM2.5 <span>${comp.pm2_5.toFixed(1)}</span></div>
+        <div class="aqi-comp">PM10 <span>${comp.pm10.toFixed(1)}</span></div>
+        <div class="aqi-comp">O₃ <span>${comp.o3.toFixed(1)}</span></div>
+        <div class="aqi-comp">NO₂ <span>${comp.no2.toFixed(1)}</span></div>
+        <div class="aqi-comp">CO <span>${(comp.co/1000).toFixed(2)} mg/m³</span></div>
+      </div>
+    </div>
+
+    <!-- sunrise/sunset arc -->
+    <div class="section-title">Sun position</div>
+    <div class="sun-arc-card">
+      ${sunArcSVG(cur.sys.sunrise, cur.sys.sunset, nowTs, tz)}
+    </div>
+
+    <!-- golden & blue hour -->
+    <div class="section-title">Golden &amp; blue hour</div>
+    <div class="golden-card">
+      <div class="golden-block">
+        <div class="golden-label" style="color:#f0a050">Morning</div>
+        <div class="golden-row"><span class="golden-name">Blue hour</span><span class="golden-time">${gh.morningBlueStart} – ${gh.morningBlueEnd}</span></div>
+        <div class="golden-row"><span class="golden-name">Golden hour</span><span class="golden-time">${gh.morningGoldStart} – ${gh.morningGoldEnd}</span></div>
+      </div>
+      <div class="golden-block">
+        <div class="golden-label" style="color:#e07040">Evening</div>
+        <div class="golden-row"><span class="golden-name">Golden hour</span><span class="golden-time">${gh.eveningGoldStart} – ${gh.eveningGoldEnd}</span></div>
+        <div class="golden-row"><span class="golden-name">Blue hour</span><span class="golden-time">${gh.eveningBlueStart} – ${gh.eveningBlueEnd}</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Next 24 hours</div>
+    <div class="hourly-scroll">
+      ${hourlyItems.map((h,i) => {
+        const ic = wxSVG(h.weather[0].id, h.weather[0].icon.slice(-1), 28);
+        const t = toDisplay(h.main.temp);
+        const pop = Math.round(h.pop*100);
+        return `<div class="hourly-item${i===0?' now':''}">
+          <div class="hourly-time">${i===0?'Now':fmtTime(h.dt,tz)}</div>
+          <div class="hourly-icon">${ic}</div>
+          <div class="hourly-temp">${Math.round(t)}${sym}</div>
+          ${pop>0?`<div class="hourly-pop">💧 ${pop}%</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-title">7-day forecast</div>
+    <div class="weekly-grid">
+      ${dayArr.map((d,i) => {
+        const hi = allHi[i], lo = allLo[i];
+        const rep = d.items[Math.floor(d.items.length/2)];
+        const ic = wxSVG(rep.weather[0].id, 'd', 24);
+        const desc = rep.weather[0].description;
+        const pop = Math.round(Math.max(...d.items.map(h=>h.pop))*100);
+        const barLeft = ((lo-globalLo)/rng*100).toFixed(1);
+        const barWidth = ((hi-lo)/rng*100).toFixed(1);
+        const label = i===0?'Today':wkDays[(todayIdx+i)%7];
+        return `<div class="day-row">
+          <div class="day-name">${label}</div>
+          <div class="day-icon">${ic}</div>
+          <div class="day-desc">${desc}</div>
+          ${pop>0?`<div class="day-pop">💧${pop}%</div>`:'<div class="day-pop"></div>'}
+          <div class="day-range">
+            <div class="day-lo">${Math.round(lo)}${sym}</div>
+            <div class="day-bar-wrap"><div class="day-bar-fill" style="left:${barLeft}%;width:${barWidth}%"></div></div>
+            <div class="day-hi">${Math.round(hi)}${sym}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+/* ── quick city shortcut ── */
+function quickCity(name) {
+  $('cityInput').value = name;
+  fetchAll();
+}
+
+/* ── splash particles (no emoji) ── */
+function initSplashFloaters() {
+  const wrap = $('splashScene');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  // glowing orbs in warm/cool palette
+  const colors = [
+    'rgba(255,216,74,VAR)','rgba(255,180,60,VAR)',
+    'rgba(80,184,240,VAR)','rgba(120,200,255,VAR)',
+    'rgba(180,220,255,VAR)','rgba(255,240,150,VAR)',
+  ];
+  for(let i=0;i<22;i++){
+    const el = document.createElement('div');
+    el.className = 'sp';
+    const sz = Math.random()*14+4;
+    const col = colors[Math.floor(Math.random()*colors.length)];
+    const opacity = (Math.random()*0.25+0.08).toFixed(2);
+    const bg = col.replace('VAR', opacity);
+    const left = (Math.random()*88+6).toFixed(1);
+    const top  = (Math.random()*80+8).toFixed(1);
+    const dur  = (Math.random()*8+6).toFixed(1);
+    const delay= (Math.random()*6).toFixed(1);
+    const px   = ((Math.random()-0.5)*60).toFixed(0);
+    const py   = ((Math.random()-0.5)*50-20).toFixed(0);
+    const ps   = (Math.random()*0.6+0.7).toFixed(2);
+    const po   = opacity;
+    el.style.cssText = [
+      `width:${sz}px`, `height:${sz}px`,
+      `background:${bg}`,
+      `left:${left}%`, `top:${top}%`,
+      `--pd:${dur}s`, `--pdelay:${delay}s`,
+      `--px:${px}px`, `--py:${py}px`,
+      `--ps:${ps}`, `--po:${po}`,
+    ].join(';');
+    wrap.appendChild(el);
+  }
+}
+
+/* ── init ── */
+resizeBg();
+renderCitiesBar();
+// set a cheerful daytime sky on the splash
+bgState.phase = 'day_clear';
+bgState.weatherId = 800;
+bgState.cloudOpacity = 0;
+drawBg();
+$('stars').style.opacity = 0;
+initSplashFloaters();
+</script>
+</body>
+</html>
