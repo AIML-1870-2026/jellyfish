@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☄ Asteroid Watch</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0ead8;--card:#fff;--border:#1a1a2e;
+  --green:#00b388;--yellow:#f0a500;--red:#e03030;--blue:#2d6be4;--purple:#7c3aed;
+  --text:#1a1a2e;--muted:#7777aa;
+}
+body{background:var(--bg);color:var(--text);font-family:'VT323',monospace;font-size:19px;min-height:100vh;
+  background-image:radial-gradient(circle,#ccc6b4 1px,transparent 1px);background-size:22px 22px;}
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+.hdr{background:var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--green);gap:12px;}
+.hdr-title{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--green);letter-spacing:1px;}
+.hdr-sub{font-size:15px;color:#aaa;margin-top:4px;}
+.pill{display:flex;align-items:center;gap:8px;border:2px solid var(--green);padding:5px 13px;font-size:15px;color:var(--green);background:rgba(0,179,136,.1);white-space:nowrap;}
+.dot{width:8px;height:8px;background:var(--green);flex-shrink:0;animation:blink 1.2s step-end infinite;border-radius:0;}
+@keyframes blink{50%{opacity:0;}}
+
+/* ── TABS ────────────────────────────────────────────────────── */
+.tabs{display:flex;padding:18px 28px 0;gap:3px;flex-wrap:wrap;}
+.tab{font-family:'Press Start 2P',monospace;font-size:8px;padding:9px 13px;border:3px solid var(--border);border-bottom:none;
+  background:#d8d2c2;color:var(--muted);cursor:pointer;position:relative;top:3px;white-space:nowrap;transition:background .1s;}
+.tab:hover{background:#eae4d4;color:var(--text);}
+.tab.active{background:var(--card);color:var(--text);top:0;}
+
+/* ── PANELS ──────────────────────────────────────────────────── */
+.panels{padding:0 28px 32px;}
+.panel{display:none;background:var(--card);border:3px solid var(--border);box-shadow:6px 6px 0 var(--border);padding:26px;}
+.panel.active{display:block;}
+
+/* ── SECTION LABEL ───────────────────────────────────────────── */
+.slabel{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:3px;
+  margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.slabel::after{content:'';flex:1;height:2px;background:var(--bg);}
+
+/* ── TIP BOX ─────────────────────────────────────────────────── */
+.tip{background:#eef3ff;border:2px solid var(--blue);border-left:5px solid var(--blue);padding:13px 17px;margin-bottom:20px;font-size:18px;line-height:1.7;}
+.tip b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--blue);}
+
+/* ── STAT CARDS ──────────────────────────────────────────────── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin-bottom:28px;}
+.card{border:3px solid var(--border);padding:18px;background:var(--bg);box-shadow:3px 3px 0 var(--border);
+  position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--card-accent,var(--green));}
+.card-ico{font-size:28px;margin-bottom:8px;}
+.card-val{font-size:36px;color:var(--green);line-height:1;margin-bottom:3px;}
+.card-val.y{color:var(--yellow);}.card-val.r{color:var(--red);}.card-val.b{color:var(--blue);}
+.card-lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);line-height:1.7;margin-bottom:5px;}
+.card-sub{font-size:15px;color:var(--muted);}
+
+/* ── FLYBY LIST ──────────────────────────────────────────────── */
+.fl-head,.fl-row{display:grid;grid-template-columns:155px 1fr 115px 130px;gap:10px;align-items:center;padding:10px 14px;}
+.fl-head{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);border-bottom:2px solid var(--border);margin-bottom:3px;}
+.fl-row{border:2px solid #ddd8cc;background:var(--bg);margin-bottom:5px;transition:border-color .15s;}
+.fl-row:hover{border-color:var(--green);background:#f4fff9;}
+.fl-row.d{border-left:5px solid var(--red);}.fl-row.w{border-left:5px solid var(--yellow);}.fl-row.s{border-left:5px solid var(--green);}
+.fl-name{font-family:'Press Start 2P',monospace;font-size:8px;}
+.fl-date{font-size:15px;color:var(--muted);margin-top:3px;}
+.bar-bg{height:9px;background:#ddd8cc;margin-top:5px;}.bar-fg{height:100%;}
+
+/* ── WATCH LIST ──────────────────────────────────────────────── */
+.st-row{display:grid;grid-template-columns:1fr 230px 155px;gap:16px;align-items:center;
+  padding:14px 18px;border:2px solid #ddd8cc;background:var(--bg);margin-bottom:8px;transition:border-color .15s;}
+.st-row:hover{border-color:var(--red);background:#fff8f8;}
+.st-name{font-family:'Press Start 2P',monospace;font-size:8px;margin-bottom:5px;}
+.st-sub{font-size:15px;color:var(--muted);}
+.rb-bg{height:13px;background:#ddd8cc;}.rb-fg{height:100%;}
+.chance-lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px;}
+
+/* ── HOW BIG ─────────────────────────────────────────────────── */
+.hb-wrap{display:grid;grid-template-columns:240px 1fr;gap:24px;align-items:start;}
+.hb-list{display:flex;flex-direction:column;gap:5px;max-height:500px;overflow-y:auto;}
+.hb-list::-webkit-scrollbar{width:7px;}.hb-list::-webkit-scrollbar-thumb{background:var(--border);}
+.hb-item{padding:10px 14px;border:2px solid #ddd8cc;background:var(--bg);cursor:pointer;
+  font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.6;transition:all .15s;}
+.hb-item:hover,.hb-item.sel{border-color:var(--green);background:#f0fff8;}
+.hb-sub{font-size:14px;color:var(--muted);font-family:'VT323',monospace;margin-top:3px;}
+.hb-stage{border:3px solid var(--border);background:linear-gradient(180deg,#c8eeff 0%,#a0d4f0 40%,#7ab8d8 100%);
+  min-height:460px;position:relative;overflow:hidden;box-shadow:3px 3px 0 var(--border);}
+/* ground */
+.hb-stage::after{content:'';position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(180deg,#5a8a3c 0%,#3d6b28 100%);}
+/* grid lines on sky */
+.hb-stage::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.15) 1px,transparent 1px);
+  background-size:40px 40px;}
+.hb-canvas-wrap{position:relative;}
+.hb-note{font-size:15px;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+/* ── 3D EARTH TAB ────────────────────────────────────────────── */
+#earth-canvas-wrap{position:relative;width:100%;height:600px;border:3px solid var(--border);
+  box-shadow:6px 6px 0 var(--border);background:#000820;overflow:hidden;}
+#earth-canvas-wrap canvas{display:block;width:100%!important;height:100%!important;}
+.earth-legend{margin-top:16px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:16px;}
+.legend-dot{width:12px;height:12px;flex-shrink:0;}
+.earth-tooltip{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.85);color:#fff;font-family:'Press Start 2P',monospace;font-size:8px;
+  padding:10px 16px;border:2px solid var(--green);pointer-events:none;white-space:nowrap;
+  line-height:1.8;display:none;}
+.earth-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,.5);font-size:14px;font-family:'Press Start 2P',monospace;font-size:7px;
+  letter-spacing:1px;pointer-events:none;white-space:nowrap;}
+
+/* ── SCROLLABLE ──────────────────────────────────────────────── */
+.scroll{max-height:440px;overflow-y:auto;}
+.scroll::-webkit-scrollbar{width:7px;}.scroll::-webkit-scrollbar-thumb{background:var(--border);}
+.foot{margin-top:18px;font-size:14px;color:var(--muted);border-top:2px dashed #ccc;padding-top:10px;}
+
+/* ── PIXEL STARS decoration ──────────────────────────────────── */
+.stars{position:absolute;inset:0;pointer-events:none;}
+
+@media(max-width:720px){
+  .fl-head,.fl-row{grid-template-columns:1fr 1fr;}
+  .st-row,.hb-wrap{grid-template-columns:1fr;}
+  .cards{grid-template-columns:1fr 1fr;}
+  .hdr-title{font-size:10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">☄ ASTEROID WATCH</div>
+    <div class="hdr-sub">NASA / JPL · April 2026</div>
+  </div>
+  <div class="pill"><div class="dot"></div><span>NASA JPL DATA</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="go('earth',this)">🌍 ORBITAL MAP</button>
+  <button class="tab"        onclick="go('facts',this)">⭐ FAST FACTS</button>
+  <button class="tab"        onclick="go('month',this)">🪨 THIS MONTH</button>
+  <button class="tab"        onclick="go('watch',this)">⚠ WATCH LIST</button>
+  <button class="tab"        onclick="go('big',this)">📐 HOW BIG?</button>
+</div>
+
+<div class="panels">
+
+  <!-- ① ORBITAL MAP -->
+  <div id="tab-earth" class="panel active">
+    <div class="slabel">THIS WEEK — LIVE ORBITAL MAP</div>
+    <div class="tip">A 3D view of Earth with this week's asteroids plotted at their actual miss distances. The Moon sits at 1 LD as a reference. <b>DRAG</b> to rotate · <b>SCROLL</b> to zoom · <b>HOVER</b> an asteroid to see details.</div>
+    <div id="earth-canvas-wrap">
+      <div class="earth-tooltip" id="earthTooltip"></div>
+      <div class="earth-hint">DRAG TO ROTATE · SCROLL TO ZOOM · HOVER ASTEROIDS</div>
+    </div>
+    <div class="earth-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#00ff88"></div>Far flyby (&gt;10 LD)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffcc00"></div>Close flyby (5–10 LD)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>Very close (&lt;5 LD)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#aaaaff"></div>Moon (1 LD)</div>
+    </div>
+    <p class="foot">Orbital distances are not to true astronomical scale — scaled for visibility. Asteroid positions are distributed around Earth for clarity.</p>
+  </div>
+
+  <!-- ② FAST FACTS -->
+  <div id="tab-facts" class="panel">
+    <div id="facts-body"></div>
+  </div>
+
+  <!-- ③ THIS MONTH -->
+  <div id="tab-month" class="panel">
+    <div id="month-body"></div>
+  </div>
+
+  <!-- ④ WATCH LIST -->
+  <div id="tab-watch" class="panel">
+    <div id="watch-body"></div>
+  </div>
+
+  <!-- ⑤ HOW BIG? -->
+  <div id="tab-big" class="panel">
+    <div id="big-body"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+// ── BAKED DATA ───────────────────────────────────────────────────────────
+const RAW_CAD = [["2026 FV5","2026-Apr-01 16:03","0.0300402350970566","5.56798015802217","27.301"],["2026 FC7","2026-Apr-01 18:06","0.0487498050405306","10.9978582695058","25.857"],["2026 FH7","2026-Apr-01 21:51","0.00480757353991148","8.27035953982315","26.804"],["2026 FQ8","2026-Apr-02 02:25","0.0206125342183777","8.08182717780025","25.921"],["2026 FD4","2026-Apr-02 10:33","0.0203662678884361","5.98783230923465","27.754"],["2026 FR6","2026-Apr-02 13:30","0.0391617051300409","17.0576028657335","25.804"],["2026 FR4","2026-Apr-02 14:28","0.0358018289069196","6.82300255594764","27.294"],["2026 FK4","2026-Apr-02 15:44","0.0361898051884671","8.32369847694384","27.69"],["2026 FT3","2026-Apr-03 23:18","0.0107499673948736","13.0836886521617","26.501"],["2026 FA9","2026-Apr-04 00:19","0.0367004726978707","8.08817070960648","26.894"],["2026 FE4","2026-Apr-04 02:28","0.0264474628413866","6.66428817268855","27.024"],["2026 FN4","2026-Apr-04 03:33","0.0452386413948838","7.83618785696437","27.177"],["2026 FZ3","2026-Apr-04 05:49","0.0418867929116535","7.94701048929568","27.388"],["2026 FP3","2026-Apr-04 13:49","0.0492660052820507","8.13015350826622","27.029"],["2026 FL4","2026-Apr-04 16:31","0.0276793399076406","13.5093050396396","26.011"],["2026 FJ4","2026-Apr-04 18:50","0.0280025133393892","7.08906754803143","26.714"],["2026 FY3","2026-Apr-05 00:51","0.0244636271601395","10.7879474897461","25.924"],["2026 FO4","2026-Apr-05 06:53","0.0463768765561624","10.1017847049803","26.662"],["2026 FB9","2026-Apr-05 12:15","0.0381600975261619","11.1779988049706","26.305"],["2026 FX4","2026-Apr-05 17:37","0.0301085416555047","10.3432427543012","26.803"],["2026 FT4","2026-Apr-06 00:38","0.0364394067498218","8.08282428780908","26.896"],["2026 FW4","2026-Apr-06 05:28","0.0274791440972017","10.0459741419782","27.192"],["2026 FU4","2026-Apr-06 10:52","0.0249406534870804","10.6621752474268","26.655"],["2026 FV4","2026-Apr-06 14:24","0.0383765832018095","9.36296791831095","26.862"],["2026 FM4","2026-Apr-06 16:01","0.0176547009268258","8.77395629611497","27.095"],["2026 FC4","2026-Apr-07 07:03","0.0461618756944856","5.91374671555847","21.05"],["2026 FN3","2026-Apr-08 14:35","0.0343064793888977","7.08042050891447","26.998"],["2026 FJ5","2026-Apr-15 13:33","0.0163799948494967","6.67905773693547","26.516"],["2026 EU3","2026-Apr-20 00:39","0.025706461011143","8.12998890925181","21.05"],["2022 UU8","2026-Apr-25 06:31","0.0223473602320884","4.04164341957584","27.97"]];
+
+const RAW_SENTRY = [{"des":"2010 RF12","ip":"0.05967555545","h":"28.6","range":"2095-2122","ps_cum":"-1.66","fullname":"(2010 RF12)","diameter":"0.007"},{"des":"29075","ip":"6.274859e-04","h":"17.0","range":"2880-2880","ps_cum":"-1.42","fullname":"29075 (1950 DA)","diameter":"1.3"},{"des":"101955","ip":"0.00057","h":"20.2","range":"2178-2290","ps_cum":"-1.40","fullname":"101955 Bennu (1999 RQ36)","diameter":"0.49"},{"des":"2011 AG5","ip":"0.000588","h":"21.8","range":"2040-2115","ps_cum":"-2.37","fullname":"(2011 AG5)","diameter":"0.14"},{"des":"2000 SG344","ip":"0.002743395186","h":"24.79","range":"2069-2122","ps_cum":"-2.77","fullname":"(2000 SG344)","diameter":"0.037"},{"des":"2008 JL3","ip":"0.0001658147615","h":"25.16","range":"2027-2122","ps_cum":"-2.80","fullname":"(2008 JL3)","diameter":"0.029"},{"des":"2007 FT3","ip":"1.73e-05","h":"19.2","range":"2024-2116","ps_cum":"-2.55","fullname":"(2007 FT3)","diameter":"0.34"},{"des":"2022 KK2","ip":"0.0001203297828","h":"28.45","range":"2060-2122","ps_cum":"-5.59","fullname":"(2022 KK2)","diameter":"0.018"},{"des":"2023 DW","ip":"0.000072","h":"25.0","range":"2046-2101","ps_cum":"-2.83","fullname":"(2023 DW)","diameter":"0.05"},{"des":"99942","ip":"2.7e-06","h":"19.7","range":"2029-2116","ps_cum":"-2.93","fullname":"Apophis 99942 (2004 MN4)","diameter":"0.34"},{"des":"2019 SU3","ip":"0.000031","h":"25.6","range":"2084-2119","ps_cum":"-3.11","fullname":"(2019 SU3)","diameter":"0.024"},{"des":"2020 NK1","ip":"0.000014","h":"21.4","range":"2086-2101","ps_cum":"-2.78","fullname":"(2020 NK1)","diameter":"0.17"},{"des":"1979 XB","ip":"8.515158e-07","h":"18.54","range":"2056-2113","ps_cum":"-2.69","fullname":"(1979 XB)","diameter":"0.66"},{"des":"2022 AP7","ip":"0.0000018","h":"16.9","range":"2050-2125","ps_cum":"-2.66","fullname":"(2022 AP7)","diameter":"1.5"},{"des":"2024 YR4","ip":"0.0000032","h":"24.8","range":"2032-2032","ps_cum":"-3.52","fullname":"(2024 YR4)","diameter":"0.057"}];
+
+const AU_KM=149597870.7, LD_KM=384400, ALBEDO=0.14;
+const cadRows = RAW_CAD.map(r=>({des:r[0],cd:r[1],dist:r[2],vrel:r[3],h:parseFloat(r[4])}));
+const sentryRows = RAW_SENTRY.sort((a,b)=>parseFloat(b.ip)-parseFloat(a.ip));
+
+function auToLd(au){return parseFloat(au)*AU_KM/LD_KM;}
+function hToDiam(h){return (1329/Math.sqrt(ALBEDO))*Math.pow(10,-h/5);}
+function fmtSize(m){return m>=1000?(m/1000).toFixed(1)+'km':Math.round(m)+'m';}
+
+function go(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='earth' && !window._earthInit) initEarth();
+  if(name==='big'   && !window._bigInit)  { renderBig(); window._bigInit=true; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ① 3D EARTH
+// ══════════════════════════════════════════════════════════════════════════
+function initEarth(){
+  window._earthInit=true;
+  const wrap   = document.getElementById('earth-canvas-wrap');
+  const W      = wrap.clientWidth  || 900;
+  const H      = wrap.clientHeight || 600;
+
+  const renderer = new THREE.WebGLRenderer({antialias:false});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(W,H);
+  renderer.shadowMap.enabled=false;
+  wrap.appendChild(renderer.domElement);
+
+  const scene  = new THREE.Scene();
+  scene.background = new THREE.Color(0x000820);
+
+  // Pixel-star field
+  const starGeo = new THREE.BufferGeometry();
+  const starVerts=[];
+  for(let i=0;i<2000;i++){
+    starVerts.push((Math.random()-0.5)*600,(Math.random()-0.5)*600,(Math.random()-0.5)*600);
+  }
+  starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starVerts,3));
+  const starMat = new THREE.PointsMaterial({color:0xffffff,size:1.2,sizeAttenuation:false});
+  scene.add(new THREE.Points(starGeo,starMat));
+
+  const camera = new THREE.PerspectiveCamera(45,W/H,0.1,2000);
+  camera.position.set(0,0,22);
+
+  // ── Earth (pixelated by using low-poly segments + canvas texture) ──────
+  const earthGeo = new THREE.SphereGeometry(4,32,32);
+
+  // ── Earth texture: real NASA image, pixelated via canvas downscale trick ──
+  // We load the high-res texture then redraw it at low res for a pixel look
+  const earthMat = new THREE.MeshPhongMaterial({
+    specular: new THREE.Color(0x1a3366),
+    shininess: 25,
+    color: 0xffffff,
+  });
+  const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  scene.add(earthMesh);
+
+  // Load real NASA earth texture, then pixelate it onto a canvas
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.src = 'https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg';
+  img.onload = () => {
+    // Draw full-res to a small canvas (pixelation effect), then upscale
+    const PIXEL_RES = 128; // controls how "chunky" pixels are — lower = chunkier
+    const lo = document.createElement('canvas');
+    lo.width = PIXEL_RES; lo.height = PIXEL_RES / 2;
+    const lctx = lo.getContext('2d');
+    lctx.imageSmoothingEnabled = false;
+    lctx.drawImage(img, 0, 0, lo.width, lo.height);
+
+    // Upscale back to full res with NO smoothing → hard pixel edges
+    const hi = document.createElement('canvas');
+    hi.width = 1024; hi.height = 512;
+    const hctx = hi.getContext('2d');
+    hctx.imageSmoothingEnabled = false;
+    hctx.drawImage(lo, 0, 0, hi.width, hi.height);
+
+    // Pixel grid overlay for extra chunky feel
+    hctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    hctx.lineWidth = 1;
+    const gs = hi.width / PIXEL_RES;
+    for(let x=0;x<=hi.width;x+=gs){hctx.beginPath();hctx.moveTo(x,0);hctx.lineTo(x,hi.height);hctx.stroke();}
+    for(let y=0;y<=hi.height;y+=gs){hctx.beginPath();hctx.moveTo(0,y);hctx.lineTo(hi.width,y);hctx.stroke();}
+
+    const tex = new THREE.CanvasTexture(hi);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    earthMat.map = tex;
+    earthMat.needsUpdate = true;
+  };
+  img.onerror = () => {
+    // Fallback: solid blue/green painted earth if image fails
+    earthMat.color = new THREE.Color(0x1a6aaa);
+    earthMat.needsUpdate = true;
+  };
+
+  // Atmosphere glow (inner halo)
+  const atmGeo = new THREE.SphereGeometry(4.22, 32, 32);
+  const atmMat = new THREE.MeshPhongMaterial({color:0x4499ff,transparent:true,opacity:0.10,side:THREE.BackSide});
+  scene.add(new THREE.Mesh(atmGeo,atmMat));
+  // Thin outer atmosphere rim
+  const rimGeo = new THREE.SphereGeometry(4.45, 32, 32);
+  const rimMat = new THREE.MeshPhongMaterial({color:0x88ccff,transparent:true,opacity:0.04,side:THREE.BackSide});
+  scene.add(new THREE.Mesh(rimGeo,rimMat));
+
+  // ── Lighting ─────────────────────────────────────────────────────────
+  const sunLight = new THREE.DirectionalLight(0xffffff,1.2);
+  sunLight.position.set(40,10,20);
+  scene.add(sunLight);
+  scene.add(new THREE.AmbientLight(0x223355,0.8));
+
+  // ── Moon ─────────────────────────────────────────────────────────────
+  const LD_SCENE = 7; // 1 LD in scene units
+  const moonGeo  = new THREE.SphereGeometry(0.45,12,12);
+  const moonCanvas=document.createElement('canvas');
+  moonCanvas.width=moonCanvas.height=64;
+  const mx=moonCanvas.getContext('2d');
+  mx.fillStyle='#bbbbcc'; mx.fillRect(0,0,64,64);
+  // craters as darker squares
+  [[10,10,8,8],[30,5,6,6],[45,20,10,8],[15,35,7,7],[35,40,9,6],[50,50,5,5]].forEach(([x,y,w,h])=>{
+    mx.fillStyle='#9999aa'; mx.fillRect(x,y,w,h);
+  });
+  mx.strokeStyle='rgba(0,0,0,0.2)'; mx.lineWidth=1;
+  for(let x=0;x<=64;x+=8){mx.beginPath();mx.moveTo(x,0);mx.lineTo(x,64);mx.stroke();}
+  for(let y=0;y<=64;y+=8){mx.beginPath();mx.moveTo(0,y);mx.lineTo(64,y);mx.stroke();}
+  const moonTex=new THREE.CanvasTexture(moonCanvas);
+  moonTex.magFilter=THREE.NearestFilter;
+  const moonMat=new THREE.MeshPhongMaterial({map:moonTex});
+  const moonMesh=new THREE.Mesh(moonGeo,moonMat);
+  moonMesh.position.set(LD_SCENE,0.5,0);
+  scene.add(moonMesh);
+
+  // Moon orbit ring
+  const moonRingGeo=new THREE.RingGeometry(LD_SCENE-0.05,LD_SCENE+0.05,64);
+  const moonRingMat=new THREE.MeshBasicMaterial({color:0x5555aa,side:THREE.DoubleSide,transparent:true,opacity:0.35});
+  const moonRing=new THREE.Mesh(moonRingGeo,moonRingMat);
+  moonRing.rotation.x=Math.PI/2;
+  scene.add(moonRing);
+
+  // Moon label sprite
+  const moonLabel=makeLabel('🌙 MOON (1 LD)',0xaaaaff);
+  moonLabel.position.set(LD_SCENE,1.1,0);
+  scene.add(moonLabel);
+
+  // ── Asteroids ─────────────────────────────────────────────────────────
+  // Parse "2026-Apr-01 16:03" format reliably across all browsers
+  function parseCd(cd){
+    const months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    const m=cd.match(/(\d{4})-([A-Za-z]{3})-(\d{2})\s+(\d{2}):(\d{2})/);
+    if(!m) return new Date(cd);
+    return new Date(Date.UTC(+m[1],months[m[2]],+m[3],+m[4],+m[5]));
+  }
+
+  // Show all baked rows — they're all close approaches worth displaying
+  // Sort by date and take the first 12 for clarity
+  const displayRows = [...cadRows]
+    .sort((a,b)=>parseCd(a.cd)-parseCd(b.cd))
+    .slice(0,12);
+
+  const asteroidMeshes=[];
+  displayRows.forEach((r,i)=>{
+    const ld=auToLd(r.dist);
+    // Scale: 1 LD = 7 scene units, clamp to visible range
+    const dist=Math.min(28,Math.max(6,ld*LD_SCENE));
+    // Evenly spread around Earth, fixed angles so they don't drift on reload
+    const angle = (i/displayRows.length)*Math.PI*2;
+    const elev  = (i%3-1)*0.15;
+    const x=Math.cos(angle)*dist, z=Math.sin(angle)*dist, y=elev*dist*0.25;
+
+    // Color by closeness
+    let col=0x00ff88;
+    if(ld<5) col=0xff4444;
+    else if(ld<10) col=0xffcc00;
+
+    // Pixelated asteroid: cluster of boxes, bigger and more visible
+    const aGrp=new THREE.Group();
+    const cubeSize=0.28;
+    [
+      [0,0,0],[cubeSize,0,0],[-cubeSize,0,0],
+      [0,cubeSize,0],[0,-cubeSize,0],
+      [cubeSize,cubeSize,0],[-cubeSize,-cubeSize,0],
+    ].forEach(([ox,oy,oz])=>{
+      const cg=new THREE.BoxGeometry(cubeSize,cubeSize,cubeSize);
+      const cm=new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.6});
+      const cb=new THREE.Mesh(cg,cm);
+      cb.position.set(ox,oy,oz);
+      aGrp.add(cb);
+    });
+
+    // Glow sprite — larger and more visible
+    const glowMat=new THREE.SpriteMaterial({color:col,transparent:true,opacity:0.5});
+    const glow=new THREE.Sprite(glowMat);
+    glow.scale.set(2.2,2.2,1);
+    aGrp.add(glow);
+
+    aGrp.position.set(x,y,z);
+    aGrp.userData={row:r,ld,col};
+    scene.add(aGrp);
+    asteroidMeshes.push(aGrp);
+
+    // Orbit ring
+    const rg=new THREE.RingGeometry(dist-0.06,dist+0.06,64);
+    const rm=new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide,transparent:true,opacity:0.22});
+    const ring=new THREE.Mesh(rg,rm);
+    ring.rotation.x=Math.PI/2;
+    scene.add(ring);
+
+    // Label sprite
+    const lbl=makeLabel(r.des,col);
+    lbl.position.set(x,y+0.8,z);
+    scene.add(lbl);
+  });
+
+  // ── Orbit controls (manual implementation) ───────────────────────────
+  let isDragging=false,prevMouse={x:0,y:0};
+  let spherical={theta:0,phi:Math.PI/2,radius:22};
+
+  function updateCamera(){
+    camera.position.x=spherical.radius*Math.sin(spherical.phi)*Math.sin(spherical.theta);
+    camera.position.y=spherical.radius*Math.cos(spherical.phi);
+    camera.position.z=spherical.radius*Math.sin(spherical.phi)*Math.cos(spherical.theta);
+    camera.lookAt(0,0,0);
+  }
+  updateCamera();
+
+  renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;prevMouse={x:e.clientX,y:e.clientY};});
+  renderer.domElement.addEventListener('mouseup',()=>isDragging=false);
+  renderer.domElement.addEventListener('mouseleave',()=>isDragging=false);
+  renderer.domElement.addEventListener('mousemove',e=>{
+    if(isDragging){
+      const dx=e.clientX-prevMouse.x, dy=e.clientY-prevMouse.y;
+      spherical.theta -= dx*0.008;
+      spherical.phi   = Math.max(0.2,Math.min(Math.PI-0.2,spherical.phi+dy*0.008));
+      prevMouse={x:e.clientX,y:e.clientY};
+      updateCamera();
+    }
+    // Hover detection
+    handleHover(e);
+  });
+  renderer.domElement.addEventListener('wheel',e=>{
+    spherical.radius=Math.max(8,Math.min(60,spherical.radius+e.deltaY*0.03));
+    updateCamera();
+    e.preventDefault();
+  },{passive:false});
+
+  // Touch
+  let lastTouch=null;
+  renderer.domElement.addEventListener('touchstart',e=>{lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};});
+  renderer.domElement.addEventListener('touchmove',e=>{
+    if(!lastTouch) return;
+    const dx=e.touches[0].clientX-lastTouch.x, dy=e.touches[0].clientY-lastTouch.y;
+    spherical.theta-=dx*0.01; spherical.phi=Math.max(0.2,Math.min(Math.PI-0.2,spherical.phi+dy*0.01));
+    lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    updateCamera(); e.preventDefault();
+  },{passive:false});
+
+  // Hover / tooltip
+  const raycaster=new THREE.Raycaster();
+  const mouse2d=new THREE.Vector2();
+  const tooltip=document.getElementById('earthTooltip');
+  function handleHover(e){
+    const rect=renderer.domElement.getBoundingClientRect();
+    mouse2d.x=((e.clientX-rect.left)/rect.width)*2-1;
+    mouse2d.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(mouse2d,camera);
+    // Check each asteroid group by testing children
+    let hit=null;
+    asteroidMeshes.forEach(grp=>{
+      grp.children.forEach(child=>{
+        if(child.isMesh){
+          const intersects=raycaster.intersectObject(child);
+          if(intersects.length>0) hit=grp;
+        }
+      });
+    });
+    if(hit){
+      const r=hit.userData.row;
+      const ld=hit.userData.ld;
+      tooltip.style.display='block';
+      tooltip.innerHTML=`${r.des}<br>Miss distance: ${ld.toFixed(2)} LD<br>Speed: ${parseFloat(r.vrel).toFixed(1)} km/s<br>Size: ~${fmtSize(hToDiam(r.h))}<br>Date: ${r.cd}`;
+      // Scale up on hover
+      hit.scale.set(1.5,1.5,1.5);
+    } else {
+      tooltip.style.display='none';
+      asteroidMeshes.forEach(g=>g.scale.set(1,1,1));
+    }
+  }
+
+  // ── Animation loop ────────────────────────────────────────────────────
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t+=0.005;
+    earthMesh.rotation.y+=0.002;
+    moonMesh.position.x=Math.cos(t*0.3)*LD_SCENE;
+    moonMesh.position.z=Math.sin(t*0.3)*LD_SCENE;
+    moonLabel.position.x=moonMesh.position.x;
+    moonLabel.position.z=moonMesh.position.z;
+    moonMesh.rotation.y+=0.005;
+    // Pulse asteroids
+    asteroidMeshes.forEach((g,i)=>{
+      g.rotation.y+=0.01+i*0.002;
+      g.rotation.x+=0.007;
+      const pulse=1+0.08*Math.sin(t*2+i);
+      if(g.scale.x<=1.1) g.scale.set(pulse,pulse,pulse);
+    });
+    renderer.render(scene,camera);
+  }
+  animate();
+
+  // Resize
+  window.addEventListener('resize',()=>{
+    const nW=wrap.clientWidth, nH=wrap.clientHeight;
+    camera.aspect=nW/nH; camera.updateProjectionMatrix();
+    renderer.setSize(nW,nH);
+  });
+}
+
+function makeLabel(text,color){
+  const c=document.createElement('canvas');
+  c.width=256; c.height=48;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,8,c.width,32);
+  ctx.fillStyle='#'+color.toString(16).padStart(6,'0');
+  ctx.font='bold 13px "Press Start 2P",monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text.length>14?text.slice(0,12)+'…':text,128,24);
+  const tex=new THREE.CanvasTexture(c);
+  tex.magFilter=THREE.NearestFilter;
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true});
+  const sprite=new THREE.Sprite(mat);
+  sprite.scale.set(3.5,0.7,1);
+  return sprite;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ② FAST FACTS
+// ══════════════════════════════════════════════════════════════════════════
+function renderFacts(){
+  const closest=cadRows.reduce((a,b)=>parseFloat(a.dist)<parseFloat(b.dist)?a:b);
+  const fastest=cadRows.reduce((a,b)=>parseFloat(a.vrel)>parseFloat(b.vrel)?a:b);
+  const pha=cadRows.filter(r=>auToLd(r.dist)<19.5&&r.h<22);
+  const top=sentryRows[0];
+  const n=cadRows[0], nLd=auToLd(n.dist), nCol=nLd<5?'var(--red)':nLd<10?'var(--yellow)':'var(--green)';
+
+  document.getElementById('facts-body').innerHTML=`
+    <div class="slabel">THIS MONTH AT A GLANCE</div>
+    <div class="tip">A live scoreboard of near-Earth activity for April 2026, from NASA JPL.</div>
+    <div class="cards" style="--card-accent:var(--green)">
+      <div class="card" style="--card-accent:var(--green)"><div class="card-ico">🪨</div>
+        <div class="card-val">${cadRows.length}</div><div class="card-lbl">FLYBYS THIS MONTH</div>
+        <div class="card-sub">asteroids passing Earth</div></div>
+      <div class="card" style="--card-accent:var(--blue)"><div class="card-ico">📏</div>
+        <div class="card-val b">${auToLd(closest.dist).toFixed(1)}<span style="font-size:20px"> LD</span></div>
+        <div class="card-lbl">CLOSEST APPROACH</div><div class="card-sub">${closest.des}</div></div>
+      <div class="card" style="--card-accent:var(--yellow)"><div class="card-ico">💨</div>
+        <div class="card-val y">${parseFloat(fastest.vrel).toFixed(0)}<span style="font-size:20px"> km/s</span></div>
+        <div class="card-lbl">FASTEST FLYBY</div><div class="card-sub">${fastest.des}</div></div>
+      <div class="card" style="--card-accent:var(--red)"><div class="card-ico">⚠</div>
+        <div class="card-val ${pha.length?'r':''}">${pha.length}</div>
+        <div class="card-lbl">POTENTIALLY HAZARDOUS</div><div class="card-sub">large &amp; relatively close</div></div>
+      <div class="card" style="--card-accent:var(--red)"><div class="card-ico">🔭</div>
+        <div class="card-val r" style="font-size:20px">1-in-${Math.round(1/parseFloat(top.ip)).toLocaleString()}</div>
+        <div class="card-lbl">TOP SENTRY RISK</div><div class="card-sub">${top.des} · ${top.range||'—'}</div></div>
+      <div class="card" style="--card-accent:var(--purple)"><div class="card-ico">🌍</div>
+        <div class="card-val" style="font-size:24px;color:var(--purple)">${sentryRows.length}</div>
+        <div class="card-lbl">ON WATCH LIST</div><div class="card-sub">monitored by Sentry</div></div>
+    </div>
+    <div class="slabel">NEXT FLYBY</div>
+    <div style="border:3px solid var(--border);padding:20px;background:var(--bg);box-shadow:3px 3px 0 var(--border)">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:20px;align-items:center">
+        <div><div style="font-family:'Press Start 2P',monospace;font-size:9px;margin-bottom:6px">${n.des}</div>
+          <div style="font-size:16px;color:var(--muted)">${n.cd}</div></div>
+        <div><div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px">MISS DISTANCE</div>
+          <div style="font-size:28px;color:${nCol}">${nLd.toFixed(1)} LD</div>
+          <div style="font-size:15px;color:var(--muted)">${(parseFloat(n.dist)*AU_KM/1e6).toFixed(1)}M km</div></div>
+        <div><div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px">SPEED</div>
+          <div style="font-size:28px;color:var(--yellow)">${parseFloat(n.vrel).toFixed(1)} km/s</div>
+          <div style="font-size:15px;color:var(--muted)">${Math.round(parseFloat(n.vrel))}× bullet speed</div></div>
+        <div><div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:4px">EST. SIZE</div>
+          <div style="font-size:26px;color:var(--blue)">~${fmtSize(hToDiam(n.h))}</div>
+          <div style="font-size:15px;color:var(--muted)">H=${n.h}</div></div>
+      </div>
+    </div>
+    <p class="foot">Source: JPL SBDB Close-Approach API & JPL Sentry System · April 2026</p>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ③ THIS MONTH
+// ══════════════════════════════════════════════════════════════════════════
+function renderMonth(){
+  document.getElementById('month-body').innerHTML=`
+    <div class="tip">Every asteroid flying past Earth this month. <b>NONE</b> are on a collision course. 🟢 Far &nbsp;🟡 Closer &nbsp;🔴 Very close (still safe). 1 LD = Earth to Moon (~384,000 km).</div>
+    <div class="fl-head"><div>NAME</div><div>HOW CLOSE (bar up to 20 LD)</div><div>DATE</div><div>SPEED</div></div>
+    <div class="scroll">${cadRows.map(r=>{
+      const ld=auToLd(r.dist),pct=Math.min(100,(ld/20)*100);
+      let cls='s',col='#00b388';
+      if(ld<5){cls='d';col='#e03030';}else if(ld<10){cls='w';col='#f0a500';}
+      const kms=parseFloat(r.vrel),date=r.cd.split(' ')[0];
+      return `<div class="fl-row ${cls}">
+        <div><div class="fl-name">${r.des}</div><div class="fl-date">${date}</div></div>
+        <div><div style="font-size:19px;color:${col}">${ld.toFixed(1)} lunar distances</div>
+          <div class="bar-bg"><div class="bar-fg" style="width:${pct}%;background:${col}"></div></div>
+          <div style="font-size:13px;color:var(--muted)">~${fmtSize(hToDiam(r.h))} wide</div></div>
+        <div style="color:${col};font-size:20px">${ld.toFixed(1)} LD<br>
+          <span style="font-size:13px;color:var(--muted)">${(parseFloat(r.dist)*AU_KM/1e6).toFixed(1)}M km</span></div>
+        <div><div style="font-size:20px">${kms.toFixed(1)} km/s</div>
+          <div style="font-size:13px;color:var(--muted)">${Math.round(kms)}× bullet</div></div>
+      </div>`;
+    }).join('')}</div>
+    <p class="foot">Source: JPL SBDB Close-Approach API · LD = Lunar Distance (384,400 km)</p>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ④ WATCH LIST
+// ══════════════════════════════════════════════════════════════════════════
+function renderWatch(){
+  const top=sentryRows.slice(0,15), maxIp=parseFloat(top[0].ip);
+  document.getElementById('watch-body').innerHTML=`
+    <div class="tip">NASA's <b>SENTRY SYSTEM</b> tracks asteroids with any theoretical chance of hitting Earth. Chances are tiny — usually less than 1-in-a-million. <b>NO ASTEROID IS CONFIRMED ON A COLLISION COURSE WITH EARTH.</b></div>
+    <div class="slabel">TOP 15 — RANKED BY IMPACT CHANCE</div>
+    <div class="scroll">${top.map((obj,i)=>{
+      const ip=parseFloat(obj.ip||0),ps=parseFloat(obj.ps_cum||-10),pct=Math.min(100,(ip/maxIp)*100);
+      const oneIn=ip>0?'1-in-'+Math.round(1/ip).toLocaleString():'<1-in-billion';
+      let col='#00b388'; if(ps>-1)col='#e03030'; else if(ps>-2)col='#f0a500';
+      const risk=ps>-1?'⚠ NOTABLE':ps>-2?'◆ LOW':'✓ ROUTINE';
+      return `<div class="st-row">
+        <div><div class="st-name">#${i+1} &nbsp;${obj.des}</div>
+          <div class="st-sub">${obj.fullname?obj.fullname.trim():''}</div>
+          <div class="st-sub" style="margin-top:5px">Window: <strong>${obj.range||'—'}</strong></div></div>
+        <div><div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:5px">IMPACT CHANCE vs others</div>
+          <div class="rb-bg"><div class="rb-fg" style="width:${pct}%;background:${col}"></div></div>
+          <div style="font-size:21px;color:${col};margin-top:4px">${oneIn} chance</div></div>
+        <div><div class="chance-lbl">RISK LEVEL</div>
+          <div style="font-size:22px;color:${col}">${risk}</div>
+          <div class="st-sub">Palermo: ${ps.toFixed(2)}</div></div>
+      </div>`;
+    }).join('')}</div>
+    <p class="foot">Source: JPL Sentry System · Palermo Scale below −2 = routine monitoring</p>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ⑤ HOW BIG? — silhouette scene comparison
+// ══════════════════════════════════════════════════════════════════════════
+
+// Reference objects: name, diameter metres, SVG path or shape type, colour
+const REFS = [
+  {name:'Person',      m:1.8,  type:'person',  col:'#5566cc'},
+  {name:'Bus',         m:12,   type:'bus',     col:'#3355bb'},
+  {name:'Blue Whale',  m:30,   type:'whale',   col:'#2255aa'},
+  {name:'747 Jet',     m:64,   type:'plane',   col:'#7733cc'},
+  {name:'Eiffel Tower',m:330,  type:'tower',   col:'#cc6600'},
+  {name:'Empire State',m:443,  type:'building',col:'#993333'},
+  {name:'1km City',    m:1000, type:'city',    col:'#661133'},
+];
+
+function renderBig(){
+  const seen=new Set(), items=[];
+  cadRows.forEach(r=>{if(!seen.has(r.des)){seen.add(r.des);items.push({des:r.des,h:r.h});}});
+  sentryRows.forEach(o=>{if(!seen.has(o.des)){seen.add(o.des);items.push({des:o.des,h:parseFloat(o.h||20)});}});
+  items.sort((a,b)=>a.h-b.h);
+  window._hbItems=items;
+
+  document.getElementById('big-body').innerHTML=`
+    <div class="tip">Pick an asteroid to see how it compares in size to everyday objects. Sizes are estimated from brightness (magnitude H).</div>
+    <div class="hb-wrap">
+      <div>
+        <div class="slabel">PICK AN ASTEROID</div>
+        <div class="hb-list" id="hbList">
+          ${items.map((it,i)=>`<div class="hb-item" id="hbi-${i}" onclick="drawSilhouette(${i})">
+            ${it.des}<div class="hb-sub">~${fmtSize(hToDiam(it.h))} wide · H=${parseFloat(it.h).toFixed(1)}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="slabel" id="hbTitle">← PICK AN ASTEROID</div>
+        <div class="hb-stage" id="hbStage">
+          <svg id="hbSvg" width="100%" height="380" xmlns="http://www.w3.org/2000/svg">
+            <text x="50%" y="50%" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="10" fill="#aaa">Select an asteroid →</text>
+          </svg>
+        </div>
+        <div class="hb-note" id="hbNote"></div>
+      </div>
+    </div>`;
+}
+
+function drawSilhouette(idx){
+  const items=window._hbItems, it=items[idx]; if(!it) return;
+  document.querySelectorAll('.hb-item').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('hbi-'+idx)?.classList.add('sel');
+  const diam=hToDiam(it.h);
+  document.getElementById('hbTitle').textContent=it.des+' — ~'+fmtSize(diam)+' wide';
+  document.getElementById('hbNote').textContent='Estimated from brightness (H='+parseFloat(it.h).toFixed(1)+'). Real shape varies — asteroids are lumpy!';
+
+  const SVG_H=460, GROUND=SVG_H-55;
+  const stage=document.getElementById('hbStage');
+  const SVG_W=stage.clientWidth||580;
+
+  // The asteroid gets the LAST column, always on the right, separated visually
+  // Reference objects fill the left portion
+  const ASTEROID_COL_W = Math.min(160, SVG_W * 0.28);
+  const REF_W = SVG_W - ASTEROID_COL_W - 20;
+  const colW = REF_W / REFS.length;
+
+  const maxRefM = Math.max(...REFS.map(o=>o.m));
+  const maxM    = Math.max(maxRefM, diam);
+  const maxPx   = GROUND - 30;
+  const scale   = maxPx / maxM;
+
+  // Divider x position
+  const divX = REF_W + 10;
+  const aCX  = divX + ASTEROID_COL_W / 2; // asteroid centre x
+
+  let svgContent=`
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6ab0d8"/>
+        <stop offset="60%" stop-color="#b8dff0"/>
+        <stop offset="100%" stop-color="#d8eef8"/>
+      </linearGradient>
+      <linearGradient id="ground-g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#5a8a3c"/>
+        <stop offset="100%" stop-color="#3d6b28"/>
+      </linearGradient>
+      <linearGradient id="ast-glow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ff6633" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#cc2200" stop-opacity="0.05"/>
+      </linearGradient>
+      <filter id="redshadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#ff3300" flood-opacity="0.6"/>
+      </filter>
+    </defs>
+
+    <!-- Sky -->
+    <rect width="${SVG_W}" height="${SVG_H}" fill="url(#sky)"/>
+
+    <!-- Subtle pixel grid on sky -->
+    ${Array.from({length:Math.ceil(SVG_W/24)},(_,i)=>`<line x1="${i*24}" y1="0" x2="${i*24}" y2="${GROUND}" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>`).join('')}
+    ${Array.from({length:Math.ceil(GROUND/24)},(_,i)=>`<line x1="0" y1="${i*24}" x2="${SVG_W}" y2="${i*24}" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>`).join('')}
+
+    <!-- Ground -->
+    <rect x="0" y="${GROUND}" width="${SVG_W}" height="${SVG_H-GROUND}" fill="url(#ground-g)"/>
+    ${Array.from({length:Math.ceil(SVG_W/24)},(_,i)=>`<line x1="${i*24}" y1="${GROUND}" x2="${i*24}" y2="${SVG_H}" stroke="rgba(0,0,0,0.12)" stroke-width="0.5"/>`).join('')}
+
+    <!-- Divider: "VS" separator between refs and asteroid -->
+    <rect x="${divX-1}" y="20" width="2" height="${GROUND-20}" fill="rgba(0,0,0,0.15)" stroke-dasharray="6,4"/>
+    <rect x="${divX-18}" y="${GROUND/2-14}" width="36" height="28" fill="#1a1a2e" rx="2"/>
+    <text x="${divX}" y="${GROUND/2+5}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="9" fill="#ffffff">VS</text>
+
+    <!-- Asteroid zone background highlight -->
+    <rect x="${divX+1}" y="0" width="${ASTEROID_COL_W+8}" height="${SVG_H}" fill="rgba(200,30,30,0.06)"/>
+  `;
+
+  // ── Draw reference objects ───────────────────────────────────────────
+  REFS.forEach((obj,i)=>{
+    const cx   = i*colW + colW/2 + 2;
+    const hPx  = Math.max(3, obj.m * scale);
+    const topY = GROUND - hPx;
+    const bW   = Math.max(8, Math.min(colW-8, hPx*0.75));
+    svgContent += drawShape(obj.type, cx, topY, bW, hPx, obj.col, false);
+
+    // Size label inside tall shapes
+    if(hPx > 30){
+      svgContent+=`<text x="${cx}" y="${topY+hPx/2+4}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="7" fill="rgba(255,255,255,0.92)">${fmtSize(obj.m)}</text>`;
+    }
+
+    // Floating name banner ABOVE the shape (always visible)
+    const lblW = Math.max(50, obj.name.length * 6 + 12);
+    const lblX = cx - lblW/2;
+    const lblY = topY - 26;
+    svgContent+=`<rect x="${lblX}" y="${lblY}" width="${lblW}" height="18" fill="${obj.col}" rx="1"/>`;
+    svgContent+=`<text x="${cx}" y="${lblY+13}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="7" fill="white">${obj.name}</text>`;
+    // Arrow pointing down to shape
+    svgContent+=`<polygon points="${cx},${topY-2} ${cx-5},${lblY+18} ${cx+5},${lblY+18}" fill="${obj.col}"/>`;
+
+    // Size below ground
+    svgContent+=`<text x="${cx}" y="${GROUND+14}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="6" fill="#1a1a2e">${fmtSize(obj.m)}</text>`;
+  });
+
+  // ── Draw ASTEROID — large, dramatic, clearly labelled ───────────────
+  const aHPx  = Math.max(8, diam * scale);
+  const aTopY = GROUND - aHPx;
+  const aBW   = Math.max(18, Math.min(ASTEROID_COL_W - 12, aHPx * 0.85));
+
+  // Glowing halo behind asteroid
+  svgContent+=`<ellipse cx="${aCX}" cy="${GROUND}" rx="${aBW*0.9}" ry="${Math.min(aHPx*0.5,60)}" fill="url(#ast-glow)"/>`;
+  // Extra outer glow rings
+  svgContent+=`<ellipse cx="${aCX}" cy="${aTopY+aHPx*0.5}" rx="${aBW*0.8}" ry="${aHPx*0.55}" fill="none" stroke="rgba(255,80,0,0.18)" stroke-width="8"/>`;
+  svgContent+=`<ellipse cx="${aCX}" cy="${aTopY+aHPx*0.5}" rx="${aBW*1.0}" ry="${aHPx*0.65}" fill="none" stroke="rgba(255,80,0,0.08)" stroke-width="14"/>`;
+
+  // The asteroid shape itself
+  svgContent += drawShape('asteroid', aCX, aTopY, aBW, aHPx, '#bb2200', true);
+
+  // Size label inside (always visible since it's big)
+  if(aHPx > 20){
+    svgContent+=`<text x="${aCX}" y="${aTopY+aHPx*0.5+5}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="9" fill="rgba(255,255,255,0.95)" filter="url(#redshadow)">${fmtSize(diam)}</text>`;
+  }
+
+  // Big bold name banner below
+  const bannerY = GROUND + 6;
+  svgContent+=`<rect x="${divX+4}" y="${bannerY}" width="${ASTEROID_COL_W}" height="20" fill="#cc2200"/>`;
+  svgContent+=`<text x="${aCX}" y="${bannerY+14}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="7" fill="white">☄ ${it.des.length>10?it.des.slice(0,9)+'…':it.des}</text>`;
+  svgContent+=`<rect x="${divX+4}" y="${bannerY+21}" width="${ASTEROID_COL_W}" height="16" fill="#1a1a2e"/>`;
+  svgContent+=`<text x="${aCX}" y="${bannerY+33}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="7" fill="#ff8844">~${fmtSize(diam)} WIDE</text>`;
+
+  // Arrow pointing at asteroid from above with "YOU ARE HERE" energy
+  svgContent+=`
+    <polygon points="${aCX},${aTopY-8} ${aCX-8},${aTopY-22} ${aCX+8},${aTopY-22}" fill="#ff3300"/>
+    <rect x="${aCX-24}" y="${aTopY-38}" width="48" height="14" fill="#ff3300"/>
+    <text x="${aCX}" y="${aTopY-27}" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="6" fill="white">ASTEROID</text>
+  `;
+
+  const svgEl = document.getElementById('hbSvg');
+  svgEl.setAttribute('width', SVG_W);
+  svgEl.setAttribute('height', SVG_H);
+  svgEl.innerHTML = svgContent;
+}
+
+function drawShape(type, cx, topY, bW, hPx, col, isAsteroid){
+  const bot = topY + hPx;
+  const pBW  = Math.max(8, Math.round(bW / 6) * 6);
+  const pHPx = Math.max(4, Math.round(hPx / 4) * 4);
+  const pTopY = bot - pHPx;
+  let s = '';
+
+  if(type==='person'){
+    const u=Math.max(3,pBW/2);
+    s+=`<rect x="${cx-u*0.45}" y="${pTopY}" width="${u*0.9}" height="${u*0.9}" fill="${col}"/>`;
+    s+=`<rect x="${cx-u*0.65}" y="${pTopY+u*0.9}" width="${u*1.3}" height="${pHPx*0.45}" fill="${col}"/>`;
+    s+=`<rect x="${cx-u*0.65}" y="${pTopY+u*0.9+pHPx*0.45}" width="${u*0.5}" height="${pHPx*0.35}" fill="${col}"/>`;
+    s+=`<rect x="${cx+u*0.15}" y="${pTopY+u*0.9+pHPx*0.45}" width="${u*0.5}" height="${pHPx*0.35}" fill="${col}"/>`;
+  } else if(type==='bus'){
+    s+=`<rect x="${cx-pBW/2}" y="${pTopY}" width="${pBW}" height="${pHPx*0.72}" fill="${col}"/>`;
+    s+=`<rect x="${cx-pBW/2}" y="${pTopY+pHPx*0.72}" width="${pBW}" height="${pHPx*0.28}" fill="${col}"/>`;
+    const wc=Math.max(2,Math.floor(pBW/14));
+    for(let w=0;w<wc;w++){const wx=cx-pBW/2+5+w*(pBW-10)/wc;s+=`<rect x="${wx}" y="${pTopY+3}" width="${(pBW-10)/wc-3}" height="${pHPx*0.38}" fill="rgba(180,220,255,0.75)"/>`;}
+  } else if(type==='whale'){
+    const hw=pBW/2,wh=pHPx;
+    s+=`<rect x="${cx-hw*0.95}" y="${pTopY+wh*0.28}" width="${hw*1.85}" height="${wh*0.44}" fill="${col}"/>`;
+    s+=`<rect x="${cx+hw*0.55}" y="${pTopY+wh*0.12}" width="${hw*0.45}" height="${wh*0.28}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw}" y="${pTopY}" width="${hw*0.45}" height="${wh*0.48}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw}" y="${pTopY+wh*0.52}" width="${hw*0.45}" height="${wh*0.48}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.2}" y="${pTopY+wh*0.08}" width="${hw*0.28}" height="${wh*0.22}" fill="${col}"/>`;
+  } else if(type==='plane'){
+    const hw=pBW/2;
+    s+=`<rect x="${cx-hw*0.85}" y="${pTopY+pHPx*0.38}" width="${pBW*0.85}" height="${pHPx*0.24}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.05}" y="${pTopY+pHPx*0.08}" width="${pBW*1.05}" height="${pHPx*0.16}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.85}" y="${pTopY}" width="${pBW*0.28}" height="${pHPx*0.42}" fill="${col}"/>`;
+    s+=`<rect x="${cx+hw*0.42}" y="${pTopY+pHPx*0.28}" width="${pBW*0.18}" height="${pHPx*0.12}" fill="${col}"/>`;
+  } else if(type==='tower'){
+    const hw=pBW/2;
+    [[1.0,0.82,0.13],[0.72,0.68,0.09],[0.50,0.52,0.07],[0.30,0.33,0.05],[0.14,0.10,0.03]].forEach(([wf,yf,hf])=>{
+      s+=`<rect x="${cx-hw*wf}" y="${pTopY+pHPx*yf}" width="${pBW*wf}" height="${pHPx*hf}" fill="${col}"/>`;
+    });
+    s+=`<rect x="${cx-pBW*0.04}" y="${pTopY}" width="${pBW*0.08}" height="${pHPx*0.12}" fill="${col}"/>`;
+  } else if(type==='building'){
+    const hw=pBW/2;
+    [[1.0,0.58,0.42],[0.72,0.28,0.30],[0.48,0.13,0.15],[0.22,0.04,0.10],[0.07,0.00,0.05]].forEach(([wf,yf,hf])=>{
+      s+=`<rect x="${cx-hw*wf}" y="${pTopY+pHPx*yf}" width="${pBW*wf}" height="${pHPx*hf}" fill="${col}"/>`;
+    });
+    for(let wy=0;wy<4;wy++) for(let wx=0;wx<3;wx++){
+      s+=`<rect x="${cx-hw*0.75+wx*hw*0.5}" y="${pTopY+pHPx*0.62+wy*pHPx*0.09}" width="${hw*0.22}" height="${pHPx*0.055}" fill="rgba(255,220,80,0.65)"/>`;
+    }
+  } else if(type==='city'){
+    const blds=[{xf:-0.44,wf:0.26,hf:0.52},{xf:-0.17,wf:0.22,hf:0.72},{xf:0.06,wf:0.29,hf:0.42},{xf:0.37,wf:0.23,hf:0.62}];
+    blds.forEach(b=>{
+      const bx=cx+pBW/2*b.xf,bh=pHPx*b.hf,bw=pBW*b.wf,by=bot-bh;
+      s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${col}"/>`;
+      for(let wy=0;wy<4;wy++) for(let wx=0;wx<2;wx++){
+        s+=`<rect x="${bx+wx*bw*0.43+bw*0.1}" y="${by+wy*bh*0.18+bh*0.1}" width="${bw*0.22}" height="${bh*0.1}" fill="rgba(255,220,80,0.6)"/>`;
+      }
+    });
+  } else if(type==='asteroid'){
+    // Rich, unmistakeable asteroid: jagged pixel boulder
+    const hw=pBW/2, ah=pHPx;
+    // Main body — irregular cross shape made of rects
+    s+=`<rect x="${cx-hw*0.95}" y="${pTopY+ah*0.22}" width="${pBW*0.95}" height="${ah*0.56}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.72}" y="${pTopY+ah*0.08}" width="${pBW*0.72}" height="${ah*0.84}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.45}" y="${pTopY}" width="${pBW*0.45}" height="${ah}" fill="${col}"/>`;
+    s+=`<rect x="${cx-hw*0.88}" y="${pTopY+ah*0.34}" width="${pBW*0.88}" height="${ah*0.32}" fill="${col}"/>`;
+    // Highlights (lighter top-left faces — 3D pixel feel)
+    s+=`<rect x="${cx-hw*0.9}" y="${pTopY+ah*0.22}" width="${pBW*0.12}" height="${ah*0.56}" fill="rgba(255,255,255,0.18)"/>`;
+    s+=`<rect x="${cx-hw*0.68}" y="${pTopY+ah*0.08}" width="${pBW*0.68}" height="${ah*0.1}" fill="rgba(255,255,255,0.18)"/>`;
+    // Dark shadow on right/bottom
+    s+=`<rect x="${cx+hw*0.45}" y="${pTopY+ah*0.22}" width="${pBW*0.1}" height="${ah*0.56}" fill="rgba(0,0,0,0.25)"/>`;
+    s+=`<rect x="${cx-hw*0.72}" y="${pTopY+ah*0.8}" width="${pBW*0.72}" height="${ah*0.12}" fill="rgba(0,0,0,0.2)"/>`;
+    // Craters
+    [[0.28,0.30,0.11],[0.58,0.52,0.08],[0.18,0.62,0.07],[0.72,0.28,0.06]].forEach(([xf,yf,rf])=>{
+      const r=pBW*rf;
+      const crx=cx-hw+pBW*xf, cry=pTopY+ah*yf;
+      s+=`<rect x="${crx-r}" y="${cry-r*0.5}" width="${r*2}" height="${r*2}" fill="rgba(0,0,0,0.35)"/>`;
+      s+=`<rect x="${crx-r+1}" y="${cry-r*0.5+1}" width="${r*0.8}" height="${r*0.4}" fill="rgba(255,255,255,0.12)"/>`;
+    });
+  }
+  return s;
+}
+
+// ── Boot: render everything except Earth (lazy) ───────────────────────────
+renderFacts();
+renderMonth();
+renderWatch();
+// Earth renders lazily on first tab visit, but since it starts active, init now
+setTimeout(initEarth, 100);
+</script>
+</body>
+</html>
