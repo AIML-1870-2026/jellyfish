@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drug Safety Explorer — OpenFDA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  /* surfaces */
+  --bg:         #f0f4f8;
+  --bg-panel:   #ffffff;
+  --bg-card:    #ffffff;
+  --bg-input:   #f5f8fb;
+  --bg-sidebar: #f8fafc;
+
+  /* borders */
+  --border:     rgba(30,60,100,0.10);
+  --border-md:  rgba(30,60,100,0.20);
+
+  /* accents — vivid, high contrast */
+  --teal:       #009966;
+  --teal-bg:    #e6f7f1;
+  --teal-border:#a3d9c3;
+  --amber:      #c27000;
+  --amber-bg:   #fff8e6;
+  --amber-border:#f5c96a;
+  --red:        #c62828;
+  --red-bg:     #fff0f0;
+  --red-border: #f5b8b8;
+  --blue:       #1565c0;
+  --blue-bg:    #e8f0fe;
+  --blue-border:#aac4f5;
+  --purple:     #6a1b9a;
+  --purple-bg:  #f5edfe;
+  --purple-border:#cfa8f0;
+
+  /* text */
+  --text:       #0d1f35;
+  --text-muted: #4a6080;
+  --text-faint: #8da5be;
+
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+html{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6}
+body{min-height:100vh;display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+header{
+  background:var(--bg-panel);border-bottom:1px solid var(--border);
+  padding:0 2rem;display:flex;align-items:center;justify-content:space-between;
+  height:56px;flex-shrink:0;position:sticky;top:0;z-index:50;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.logo{display:flex;align-items:baseline;gap:10px}
+.logo-mark{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--teal);text-transform:uppercase;font-weight:500}
+.logo-name{font-size:14px;font-weight:500;color:var(--text)}
+.header-right{display:flex;align-items:center;gap:10px}
+.header-badge{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);background:var(--blue-bg);border:1px solid var(--blue-border);padding:3px 8px;border-radius:2px}
+.help-overview-btn{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-border);padding:5px 11px;border-radius:3px;cursor:pointer;transition:all .15s}
+.help-overview-btn:hover{background:#ede0fd}
+.help-icon{width:15px;height:15px;border-radius:50%;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ── DISCLAIMER ── */
+.disclaimer-banner{background:var(--red-bg);border-bottom:1px solid var(--red-border);padding:8px 2rem;display:flex;align-items:baseline;gap:10px;font-size:11px;color:var(--text-muted);line-height:1.6;flex-shrink:0}
+.disc-label{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--red);white-space:nowrap;flex-shrink:0}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:300px 1fr;flex:1}
+
+/* ── SIDEBAR ── */
+aside{border-right:1px solid var(--border);background:var(--bg-sidebar);padding:1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;position:sticky;top:56px;height:calc(100vh - 56px - 48px)}
+.sb-label{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint);margin-bottom:.6rem;display:flex;align-items:center;gap:8px;font-weight:500}
+.sb-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.drug-slot{margin-bottom:.9rem}
+.slot-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-a{background:var(--teal);box-shadow:0 0 0 2px rgba(0,153,102,.2)}
+.dot-b{background:var(--amber);box-shadow:0 0 0 2px rgba(194,112,0,.2)}
+.slot-label{font-family:var(--mono);font-size:11px;color:var(--text-muted);letter-spacing:.06em}
+.slot-input{width:100%;background:var(--bg-input);border:1px solid var(--border-md);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 11px;border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s}
+.slot-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,153,102,.12)}
+.slot-input::placeholder{color:var(--text-faint)}
+.analyze-btn{width:100%;padding:10px;background:var(--teal);color:#fff;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;border:none;border-radius:4px;cursor:pointer;transition:background .15s,transform .1s;margin-top:.2rem}
+.analyze-btn:hover{background:#007a52}
+.analyze-btn:active{transform:scale(.98)}
+.analyze-btn:disabled{background:#a0c8ba;cursor:not-allowed;transform:none}
+.presets{display:flex;flex-direction:column;gap:4px}
+.preset-btn{text-align:left;padding:6px 10px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s}
+.preset-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-bg)}
+.data-notice{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:4px;padding:11px 12px;font-size:11px;color:var(--text-muted);line-height:1.7}
+.data-notice strong{color:var(--amber);font-weight:500}
+
+/* ── MAIN ── */
+main{padding:2rem;overflow-y:auto;display:flex;flex-direction:column;gap:1.5rem}
+.hero{padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
+.hero-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin-bottom:4px;font-weight:500}
+.hero-title{font-size:26px;font-weight:300;color:var(--text);letter-spacing:-.01em;line-height:1.3;margin-bottom:6px}
+.hero-title em{font-style:italic;color:var(--blue)}
+.hero-sub{font-size:13px;color:var(--text-muted);max-width:580px}
+
+.loading-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none}
+.loading-bar.active{display:block}
+.loading-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue),var(--amber));animation:lpulse 1.4s ease-in-out infinite}
+@keyframes lpulse{0%,100%{width:15%;margin-left:0}50%{width:55%;margin-left:22%}}
+
+#results{display:none;flex-direction:column;gap:1.25rem}
+#results.show{display:flex}
+.drug-grid{display:grid;gap:1.1rem}
+.drug-grid.one{grid-template-columns:1fr;max-width:660px}
+.drug-grid.two{grid-template-columns:1fr 1fr}
+
+/* ── DRUG CARDS ── */
+.drug-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;animation:fadein .3s ease both;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.drug-card:nth-child(2){animation-delay:.07s}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card-header{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:#fafcff}
+.card-name{font-size:15px;font-weight:500;flex:1;text-transform:capitalize;color:var(--text)}
+.card-brand{font-size:11px;color:var(--text-faint);font-style:italic;margin-left:4px}
+.card-count{font-family:var(--mono);font-size:10px;color:var(--text-faint);white-space:nowrap}
+.card-body{padding:16px;display:flex;flex-direction:column;gap:18px}
+
+.sec-head{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-faint);margin-bottom:9px;display:flex;align-items:center;gap:6px;font-weight:500}
+.sh-bar{width:16px;height:1px;background:currentColor;opacity:.5}
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);border-radius:50%;font-size:9px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all .15s;flex-shrink:0;margin-left:auto;line-height:1}
+.info-btn:hover{background:var(--blue);color:#fff}
+
+.quality-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.q-chip{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:2px;letter-spacing:.04em;font-weight:500}
+.q-good  {background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
+.q-sparse{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.q-none  {background:#f1f5f9;color:var(--text-faint);border:1px solid var(--border-md)}
+
+.warn-box{background:var(--amber-bg);border:1px solid var(--amber-border);border-left:3px solid var(--amber);border-radius:0 4px 4px 0;padding:10px 12px;font-size:12px;color:var(--text-muted);line-height:1.7;max-height:108px;overflow-y:auto}
+.warn-box::-webkit-scrollbar{width:4px}
+.warn-box::-webkit-scrollbar-thumb{background:var(--amber-border);border-radius:2px}
+
+.bar-row{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.bar-label{font-size:11px;color:var(--text-muted);width:132px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:6px;background:#e8eef5;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.23,1,.32,1)}
+.fill-a{background:var(--teal)}
+.fill-b{background:var(--amber)}
+.bar-num{font-family:var(--mono);font-size:10px;color:var(--text-faint);min-width:50px;text-align:right}
+
+.recall-list{display:flex;flex-direction:column;gap:7px}
+.recall-item{display:flex;align-items:flex-start;gap:8px}
+.recall-badge{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.badge-i  {background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge-ii {background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-iii{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border)}
+.recall-text{font-size:11px;color:var(--text-muted);line-height:1.6}
+.no-data{font-size:12px;color:var(--text-faint);font-style:italic}
+
+/* ── COMPARE PANEL ── */
+.compare-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:18px 20px;animation:fadein .3s ease .12s both;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.cmp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.cmp-title{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-faint);display:flex;align-items:center;gap:6px;font-weight:500}
+.legend{display:flex;gap:14px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)}
+.legend-swatch{width:10px;height:10px;border-radius:2px}
+.chart-wrap{position:relative;width:100%}
+
+.faers-note{padding:11px 14px;background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:4px;font-size:11px;color:var(--text-muted);line-height:1.7}
+
+/* ── EMPTY STATE ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:5rem 2rem;color:var(--text-faint);text-align:center}
+.empty-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;width:48px;height:48px;opacity:.2}
+.empty-grid span{background:var(--teal);border-radius:2px}
+.empty-label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--text-faint)}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:.9rem 2rem;display:flex;flex-direction:column;gap:7px;flex-shrink:0;background:var(--bg-panel);box-shadow:0 -1px 3px rgba(0,0,0,.04)}
+.footer-attribution{font-size:11px;color:var(--text-muted);line-height:1.7;border-left:3px solid var(--teal);padding-left:10px}
+.footer-bottom{font-family:var(--mono);font-size:10px;color:var(--text-faint);display:flex;align-items:center;justify-content:space-between;letter-spacing:.07em}
+
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(13,31,53,.45);align-items:center;justify-content:center;padding:1.5rem;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex;animation:mfadein .18s ease}
+@keyframes mfadein{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border:1px solid var(--border-md);border-radius:10px;max-width:560px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.15);animation:mslide .2s ease}
+@keyframes mslide{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:15px;font-weight:500;color:var(--text);line-height:1.3}
+.modal-close{width:26px;height:26px;flex-shrink:0;background:transparent;border:1px solid var(--border-md);border-radius:4px;color:var(--text-muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1}
+.modal-close:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.modal-body{padding:16px 20px 22px;font-size:13px;color:var(--text-muted);line-height:1.8}
+.modal-body p{margin-bottom:10px}
+.modal-body p:last-child{margin-bottom:0}
+.modal-body strong{color:var(--text);font-weight:500}
+.modal-body ul{padding-left:1.2rem;margin:8px 0}
+.modal-body li{margin-bottom:7px}
+.m-highlight{background:var(--blue-bg);border:1px solid var(--blue-border);border-left:3px solid var(--blue);border-radius:0 4px 4px 0;padding:10px 12px;margin:10px 0;font-size:12px;color:var(--text-muted);line-height:1.7}
+.m-warn{background:var(--amber-bg);border:1px solid var(--amber-border);border-left:3px solid var(--amber);border-radius:0 4px 4px 0;padding:10px 12px;margin:10px 0;font-size:12px;color:var(--text-muted);line-height:1.7}
+.badge-inline{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 6px;border-radius:2px;vertical-align:middle}
+
+/* tabs inside overview modal */
+.tab-bar{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);background:#fafcff;flex-wrap:wrap}
+.help-tab{font-family:var(--mono);font-size:10px;padding:8px 12px;border:none;background:transparent;color:var(--text-faint);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;letter-spacing:.05em}
+.help-tab:hover{color:var(--text-muted)}
+.help-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.tab-pane{display:none;padding:16px 20px 22px;font-size:13px;color:var(--text-muted);line-height:1.8}
+.tab-pane.active{display:block}
+.tab-pane p{margin-bottom:10px}
+.tab-pane p:last-child{margin-bottom:0}
+.tab-pane strong{color:var(--text);font-weight:500}
+.tab-pane ul{padding-left:1.2rem;margin:8px 0}
+.tab-pane li{margin-bottom:7px}
+
+@media(max-width:860px){
+  .layout{grid-template-columns:1fr}
+  aside{border-right:none;border-bottom:1px solid var(--border);position:static;height:auto}
+  .drug-grid.two{grid-template-columns:1fr}
+  header,.disclaimer-banner,main,aside,footer{padding-left:1.1rem;padding-right:1.1rem}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">RX//</span>
+    <span class="logo-name">Drug Safety Explorer</span>
+  </div>
+  <div class="header-right">
+    <button class="help-overview-btn" onclick="openModal('overview')">
+      <span class="help-icon">?</span> How to read this data
+    </button>
+    <span class="header-badge">OpenFDA — Live Data</span>
+  </div>
+</header>
+
+<div class="disclaimer-banner">
+  <span class="disc-label">Educational use only</span>
+  <span>This tool is intended for <strong style="color:var(--red);font-weight:500;">educational and informational purposes only</strong> and does not constitute medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional.</span>
+</div>
+
+<div class="layout">
+  <aside>
+    <div>
+      <div class="sb-label">Search</div>
+      <div class="drug-slot">
+        <div class="slot-header"><div class="dot dot-a"></div><span class="slot-label">Drug A</span></div>
+        <input class="slot-input" id="drugA" type="text" placeholder="e.g. ibuprofen" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="drug-slot">
+        <div class="slot-header"><div class="dot dot-b"></div><span class="slot-label">Drug B — optional</span></div>
+        <input class="slot-input" id="drugB" type="text" placeholder="e.g. naproxen" autocomplete="off" spellcheck="false" />
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">Analyze &rarr;</button>
+    </div>
+
+    <div>
+      <div class="sb-label">Presets</div>
+      <div class="presets" id="presets">
+        <button class="preset-btn" data-a="ibuprofen" data-b="naproxen">Ibuprofen vs Naproxen</button>
+        <button class="preset-btn" data-a="metformin" data-b="glipizide">Metformin vs Glipizide</button>
+        <button class="preset-btn" data-a="atorvastatin" data-b="simvastatin">Atorvastatin vs Simvastatin</button>
+        <button class="preset-btn" data-a="sertraline" data-b="fluoxetine">Sertraline vs Fluoxetine</button>
+        <button class="preset-btn" data-a="lisinopril" data-b="amlodipine">Lisinopril vs Amlodipine</button>
+        <button class="preset-btn" data-a="amoxicillin" data-b="">Amoxicillin (single)</button>
+        <button class="preset-btn" data-a="warfarin" data-b="aspirin">Warfarin vs Aspirin</button>
+      </div>
+    </div>
+
+    <div class="data-notice">
+      <strong>Data literacy.</strong> Adverse event counts reflect <em>submitted reports</em> — not confirmed causal links. A high count may reflect widespread use, not greater risk. Data quality varies across drugs.
+    </div>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <div class="hero-eyebrow">OpenFDA / Drug Safety Explorer</div>
+      <div class="hero-title">Explore <em>real-world</em> drug safety data</div>
+      <div class="hero-sub">Search one drug for a deep dive, or enter two to compare adverse events, official label warnings, and recall history side by side. All data is fetched live from the FDA API.</div>
+    </div>
+
+    <div class="loading-bar" id="loadingBar"><div class="loading-fill"></div></div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="empty-grid">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      <div class="empty-label">Enter a drug name to begin</div>
+    </div>
+
+    <div id="results">
+      <div class="drug-grid" id="drugGrid"></div>
+      <div id="compareArea"></div>
+      <div class="faers-note" id="faersNote" style="display:none;">
+        <strong style="color:var(--amber);font-weight:500;">Note on adverse event counts:</strong> These figures reflect FAERS submission volume, not confirmed incidence rate or severity. Higher counts often correlate with wider drug usage rather than greater danger. Reports are submitted voluntarily by patients, doctors, and manufacturers and are not verified causal relationships.
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="footer-attribution">
+    This product uses publicly available data from the U.S. Food and Drug Administration (FDA). FDA is not responsible for the product and does not endorse or recommend this or any other product.
+  </div>
+  <div class="footer-bottom">
+    <span>Data source: api.fda.gov — U.S. Food &amp; Drug Administration</span>
+    <span>For educational purposes only — not medical advice</span>
+  </div>
+</footer>
+
+<!-- ══ OVERVIEW MODAL (tabbed) ══ -->
+<div class="modal-overlay" id="modal-overview" onclick="closeOnBackdrop(event,this)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">How to read this data</div>
+      <button class="modal-close" onclick="closeModal('overview')">&#10005;</button>
+    </div>
+    <div class="tab-bar" id="overviewTabs">
+      <button class="help-tab active" data-tab="tab-about">About</button>
+      <button class="help-tab" data-tab="tab-events">Adverse events</button>
+      <button class="help-tab" data-tab="tab-labels">Label warnings</button>
+      <button class="help-tab" data-tab="tab-recalls">Recalls</button>
+      <button class="help-tab" data-tab="tab-bias">Report counts</button>
+      <button class="help-tab" data-tab="tab-interactions">Interactions</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-about">
+      <p>This tool queries the <strong>OpenFDA API</strong> to surface publicly available drug safety information from three FDA databases. It is built for educational exploration — not clinical decision-making.</p>
+      <div class="m-highlight">
+        <strong>Three data sources used:</strong><br/>
+        &bull; <strong>Label data</strong> — official FDA-approved prescribing information, reviewed before a drug is approved.<br/>
+        &bull; <strong>Adverse event reports (FAERS)</strong> — voluntary self-reports submitted after a drug is on the market.<br/>
+        &bull; <strong>Enforcement records</strong> — drug recalls and market withdrawals with severity classifications.
+      </div>
+      <p>Each data source tells a different story. Label warnings reflect what was known at approval. Adverse event data reflects real-world experience. Recall history reflects post-market safety actions.</p>
+      <p>Always consult a healthcare professional before making any medication decisions.</p>
+    </div>
+
+    <div class="tab-pane" id="tab-events">
+      <p>The FDA's <strong>Adverse Event Reporting System (FAERS)</strong> collects voluntary reports of side effects submitted by patients, doctors, pharmacists, and manufacturers.</p>
+      <div class="m-warn">
+        <strong>Key limitations:</strong><br/>
+        &bull; Reports are voluntary — many adverse events are never reported.<br/>
+        &bull; Correlation &ne; causation. A report doesn't mean the drug caused the reaction.<br/>
+        &bull; <strong>Higher counts &ne; more dangerous.</strong> Popular drugs naturally accumulate more reports.<br/>
+        &bull; The same reaction may be reported multiple times for one patient.
+      </div>
+      <p>Use adverse event data as a signal for what types of reactions have been observed — not as a definitive measure of risk.</p>
+    </div>
+
+    <div class="tab-pane" id="tab-labels">
+      <p>Label data comes from the <strong>FDA-approved prescribing information</strong> — the "package insert." This is reviewed and approved by the FDA before a drug can be marketed.</p>
+      <div class="m-highlight">
+        <strong>Label warnings include:</strong><br/>
+        &bull; <strong>Boxed warnings</strong> — the most serious, required when there's risk of life-threatening adverse reactions.<br/>
+        &bull; <strong>Contraindications</strong> — situations where the drug should never be used.<br/>
+        &bull; <strong>Warnings &amp; Precautions</strong> — important risks requiring monitoring.<br/>
+        &bull; <strong>Adverse reactions</strong> — side effects observed in clinical trials.
+      </div>
+      <p>Unlike FAERS reports, label data reflects <strong>clinically verified information</strong>. Labels are updated over time as new safety information emerges.</p>
+    </div>
+
+    <div class="tab-pane" id="tab-recalls">
+      <p>The FDA classifies drug recalls into three severity levels:</p>
+      <ul>
+        <li><span class="recall-badge badge-i badge-inline">CLASS I</span> — <strong>Most serious.</strong> Reasonable probability of serious health consequences or death. Example: contaminated injectable drugs or dangerous labeling errors.</li>
+        <li><span class="recall-badge badge-ii badge-inline">CLASS II</span> — <strong>Moderate.</strong> May cause temporary or reversible health consequences. Remote probability of serious harm.</li>
+        <li><span class="recall-badge badge-iii badge-inline">CLASS III</span> — <strong>Least serious.</strong> Unlikely to cause adverse health consequences. Often minor labeling or packaging issues.</li>
+      </ul>
+      <p>A recall doesn't necessarily mean the drug is unsafe — it may relate to a specific batch. Consult your pharmacist if you have a recalled medication.</p>
+    </div>
+
+    <div class="tab-pane" id="tab-bias">
+      <p>The number of adverse event reports is heavily influenced by factors unrelated to how dangerous a drug actually is.</p>
+      <ul>
+        <li><strong>Prescription volume:</strong> Drugs taken by millions naturally accumulate far more reports than rare specialty drugs.</li>
+        <li><strong>Media attention:</strong> When a drug receives news coverage, reporting spikes — even if the underlying risk hasn't changed.</li>
+        <li><strong>Reporting culture:</strong> Patients and doctors vary widely in how often they file FAERS reports.</li>
+        <li><strong>Drug age:</strong> Older drugs have had more time to accumulate reports than newer ones.</li>
+        <li><strong>Manufacturer reporting:</strong> Drug companies must report serious adverse events, creating spikes for widely prescribed drugs.</li>
+      </ul>
+      <p>For a fairer comparison you'd normalize by prescriptions dispensed — data not available in the public FAERS dataset.</p>
+    </div>
+
+    <div class="tab-pane" id="tab-interactions">
+      <p>Some drug combinations carry well-documented risks that appear in official label warnings but aren't captured in a single drug's FAERS data.</p>
+      <div class="m-warn">
+        <strong>Classic high-risk combinations:</strong><br/>
+        &bull; <strong>Warfarin + NSAIDs</strong> (ibuprofen, naproxen) — significantly increased bleeding risk, including life-threatening internal bleeding.<br/>
+        &bull; <strong>MAO inhibitors + SSRIs / SNRIs / tramadol</strong> — can cause serotonin syndrome, a potentially fatal condition.<br/>
+        &bull; <strong>Methotrexate + NSAIDs</strong> — can raise methotrexate toxicity to dangerous levels.<br/>
+        &bull; <strong>ACE inhibitors + potassium-sparing diuretics</strong> — risk of dangerous hyperkalemia.<br/>
+        &bull; <strong>Statins + certain antibiotics / antifungals</strong> — increased risk of rhabdomyolysis.
+      </div>
+      <p>This tool does not check for drug interactions. Always review potential interactions with your pharmacist or doctor.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LABEL MODAL ══ -->
+<div class="modal-overlay" id="modal-label" onclick="closeOnBackdrop(event,this)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">What drug labels actually tell you</div>
+      <button class="modal-close" onclick="closeModal('label')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p>Label data comes from the <strong>FDA-approved prescribing information</strong> — the "package insert." Reviewed and approved by the FDA before a drug can be marketed.</p>
+      <div class="m-highlight">
+        <strong>Label warnings include:</strong><br/>
+        &bull; <strong>Boxed warnings</strong> — the most serious, required when there's risk of life-threatening adverse reactions.<br/>
+        &bull; <strong>Contraindications</strong> — situations where the drug should never be used.<br/>
+        &bull; <strong>Warnings &amp; Precautions</strong> — important risks requiring monitoring.<br/>
+        &bull; <strong>Adverse reactions</strong> — side effects observed in clinical trials.
+      </div>
+      <p>Unlike FAERS reports, label data reflects <strong>clinically verified information</strong>. Labels are updated over time as new safety information emerges — they represent the current scientific understanding of a drug's risk profile.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EVENTS MODAL ══ -->
+<div class="modal-overlay" id="modal-events" onclick="closeOnBackdrop(event,this)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">How to interpret adverse event data</div>
+      <button class="modal-close" onclick="closeModal('events')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p>The FDA's <strong>Adverse Event Reporting System (FAERS)</strong> collects voluntary reports of side effects submitted by patients, doctors, pharmacists, and manufacturers.</p>
+      <div class="m-warn">
+        <strong>Key limitations to keep in mind:</strong><br/>
+        &bull; Reports are voluntary — many adverse events are never reported.<br/>
+        &bull; Correlation &ne; causation. A report doesn't mean the drug caused the reaction.<br/>
+        &bull; <strong>Higher counts &ne; more dangerous.</strong> Popular drugs naturally accumulate more reports because more people take them.<br/>
+        &bull; The same reaction may be reported multiple times for a single patient.
+      </div>
+      <p>A drug with 500,000 adverse event reports may be safer than one with 500 reports, simply because far more people are taking it. Use this data as a signal for what types of reactions have been observed — not a definitive measure of risk.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RECALLS MODAL ══ -->
+<div class="modal-overlay" id="modal-recalls" onclick="closeOnBackdrop(event,this)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Understanding recall classifications</div>
+      <button class="modal-close" onclick="closeModal('recalls')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p>The FDA classifies drug recalls into three severity levels based on the health risk posed:</p>
+      <ul>
+        <li><span class="recall-badge badge-i badge-inline">CLASS I</span> — <strong>Most serious.</strong> Reasonable probability of serious health consequences or death.</li>
+        <li><span class="recall-badge badge-ii badge-inline">CLASS II</span> — <strong>Moderate.</strong> May cause temporary or reversible health consequences, or remote probability of serious harm.</li>
+        <li><span class="recall-badge badge-iii badge-inline">CLASS III</span> — <strong>Least serious.</strong> Unlikely to cause adverse health consequences. Often minor labeling or packaging issues.</li>
+      </ul>
+      <p>A recall doesn't necessarily mean the drug is unsafe — it may relate to a specific batch. Consult your pharmacist or doctor if you have a recalled medication.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INTERACTIONS MODAL ══ -->
+<div class="modal-overlay" id="modal-interactions" onclick="closeOnBackdrop(event,this)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Drug pairs with known dangerous interactions</div>
+      <button class="modal-close" onclick="closeModal('interactions')">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p>Some drug combinations carry well-documented risks that appear in official label warnings but aren't captured in a single drug's FAERS data.</p>
+      <div class="m-warn">
+        <strong>Classic high-risk combinations:</strong><br/>
+        &bull; <strong>Warfarin + NSAIDs</strong> — significantly increased bleeding risk, including life-threatening internal bleeding.<br/>
+        &bull; <strong>MAO inhibitors + SSRIs / SNRIs / tramadol</strong> — can cause fatal serotonin syndrome.<br/>
+        &bull; <strong>Methotrexate + NSAIDs</strong> — can raise methotrexate toxicity to dangerous levels.<br/>
+        &bull; <strong>ACE inhibitors + potassium-sparing diuretics</strong> — risk of dangerous hyperkalemia.<br/>
+        &bull; <strong>Statins + certain antibiotics / antifungals</strong> — increased risk of rhabdomyolysis.
+      </div>
+      <p>This tool does not check for drug interactions. Always review potential interactions with your pharmacist or doctor.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── MODAL SYSTEM ── */
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');document.body.style.overflow=''}
+function closeOnBackdrop(e,overlay){if(e.target===overlay){overlay.classList.remove('open');document.body.style.overflow=''}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(m=>{m.classList.remove('open');document.body.style.overflow=''})}});
+
+/* ── TABS ── */
+document.getElementById('overviewTabs').addEventListener('click',e=>{
+  const btn=e.target.closest('.help-tab');if(!btn)return;
+  document.querySelectorAll('#overviewTabs .help-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active');
+});
+
+/* ── API ── */
+const BASE='https://api.fda.gov';
+let chartInstance=null;
+
+document.getElementById('presets').querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.getElementById('drugA').value=btn.dataset.a||'';
+    document.getElementById('drugB').value=btn.dataset.b||'';
+    analyze();
+  });
+});
+['drugA','drugB'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')analyze()})});
+
+async function apiFetch(url){try{const r=await fetch(url);return await r.json()}catch{return null}}
+async function fetchLabel(drug){
+  const d=await apiFetch(`${BASE}/drug/label.json?search=openfda.generic_name:"${encodeURIComponent(drug)}"&limit=1`);
+  if(d&&d.results&&d.results[0]){const res=d.results[0];return{warnings:(res.warnings&&res.warnings[0])||(res.boxed_warning&&res.boxed_warning[0])||null,brand:(res.openfda&&res.openfda.brand_name&&res.openfda.brand_name[0])||null}}
+  return null;
+}
+async function fetchEvents(drug){const d=await apiFetch(`${BASE}/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(drug.toUpperCase())}"&count=patient.reaction.reactionmeddrapt.exact&limit=10`);return(d&&d.results)?d.results:null}
+async function fetchRecalls(drug){const d=await apiFetch(`${BASE}/drug/enforcement.json?search=product_description:"${encodeURIComponent(drug)}"&limit=5`);return(d&&d.results)?d.results:null}
+async function fetchCount(drug){const d=await apiFetch(`${BASE}/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(drug.toUpperCase())}"&limit=1`);return(d&&d.meta&&d.meta.results)?d.meta.results.total:0}
+
+function clip(t,n){return t&&t.length>n?t.slice(0,n).trim()+'&#8230;':(t||'')}
+function recallBadge(cls){
+  if(!cls)return'<span class="recall-badge badge-iii">UNK</span>';
+  const c=cls.toUpperCase();
+  if(c.includes('CLASS I')&&!c.includes('II'))return'<span class="recall-badge badge-i">CLASS I</span>';
+  if(c.includes('CLASS II')&&!c.includes('III'))return'<span class="recall-badge badge-ii">CLASS II</span>';
+  return'<span class="recall-badge badge-iii">CLASS III</span>';
+}
+function qChip(data,label){
+  if(!data)return`<span class="q-chip q-none">${label}: none</span>`;
+  if(Array.isArray(data)&&!data.length)return`<span class="q-chip q-sparse">${label}: sparse</span>`;
+  return`<span class="q-chip q-good">${label}: ok</span>`;
+}
+
+function buildCard(drug,label,events,recalls,total,slot){
+  const fill=slot==='a'?'fill-a':'fill-b',dot=slot==='a'?'dot-a':'dot-b';
+  const maxCnt=events&&events.length?events[0].count:1;
+  const brandHtml=label&&label.brand?`<span class="card-brand">${label.brand}</span>`:'';
+  const warnHtml=label&&label.warnings?`<div class="warn-box">${clip(label.warnings,420)}</div>`:`<div class="no-data">No warning text found in label database for this drug.</div>`;
+  const eventsHtml=events&&events.length
+    ?events.slice(0,8).map(e=>`<div class="bar-row"><div class="bar-label" title="${e.term}">${e.term.toLowerCase()}</div><div class="bar-track"><div class="bar-fill ${fill}" style="width:${Math.round(e.count/maxCnt*100)}%"></div></div><div class="bar-num">${e.count.toLocaleString()}</div></div>`).join('')
+    :`<div class="no-data">No adverse event data found. This drug may be listed under a different name in FAERS.</div>`;
+  const recallHtml=recalls&&recalls.length
+    ?recalls.slice(0,4).map(r=>`<div class="recall-item">${recallBadge(r.classification)}<div class="recall-text">${clip(r.reason_for_recall||r.product_description,130)}</div></div>`).join('')
+    :`<div class="no-data">No recall records found in enforcement database.</div>`;
+  return`<div class="drug-card">
+    <div class="card-header"><div class="dot ${dot}"></div><div class="card-name">${drug}${brandHtml}</div><div class="card-count">${total>0?total.toLocaleString()+' reports':'no reports'}</div></div>
+    <div class="card-body">
+      <div><div class="sec-head"><span class="sh-bar"></span>Label warnings<button class="info-btn" onclick="openModal('label')" title="What are drug labels?">i</button></div>${warnHtml}<div class="quality-row">${qChip(label,'label')}${qChip(events,'events')}${qChip(recalls,'recalls')}</div></div>
+      <div><div class="sec-head"><span class="sh-bar"></span>Top adverse events &mdash; FAERS<button class="info-btn" onclick="openModal('events')" title="How to interpret this">i</button></div>${eventsHtml}</div>
+      <div><div class="sec-head"><span class="sh-bar"></span>Recalls &amp; enforcement<button class="info-btn" onclick="openModal('recalls')" title="What do recall classes mean?">i</button></div><div class="recall-list">${recallHtml}</div></div>
+    </div>
+  </div>`;
+}
+
+function buildCompare(a,b){
+  if(!a.events||!b.events||!a.events.length||!b.events.length)return'';
+  const topA=a.events.slice(0,6).map(e=>e.term.toLowerCase()),topB=b.events.slice(0,6).map(e=>e.term.toLowerCase());
+  const terms=[...new Set([...topA,...topB])].slice(0,9);
+  const mapA=Object.fromEntries(a.events.map(e=>[e.term.toLowerCase(),e.count]));
+  const mapB=Object.fromEntries(b.events.map(e=>[e.term.toLowerCase(),e.count]));
+  const h=Math.max(280,terms.length*46+60);
+  setTimeout(()=>{
+    const ctx=document.getElementById('cmpChart');if(!ctx)return;
+    if(chartInstance){chartInstance.destroy();chartInstance=null}
+    chartInstance=new Chart(ctx,{
+      type:'bar',
+      data:{labels:terms,datasets:[
+        {label:a.drug,data:terms.map(t=>mapA[t]||0),backgroundColor:'#009966',borderRadius:3,borderSkipped:false},
+        {label:b.drug,data:terms.map(t=>mapB[t]||0),backgroundColor:'#c27000',borderRadius:3,borderSkipped:false}
+      ]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',borderColor:'rgba(30,60,100,0.2)',borderWidth:1,titleColor:'#0d1f35',bodyColor:'#4a6080',callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toLocaleString()} reports`}}},
+        scales:{
+          x:{ticks:{color:'#8da5be',font:{family:"'IBM Plex Mono'",size:10},callback:v=>v>=1000?Math.round(v/1000)+'k':v},grid:{color:'rgba(30,60,100,0.07)'},border:{color:'rgba(30,60,100,0.1)'}},
+          y:{ticks:{color:'#4a6080',font:{size:11}},grid:{display:false},border:{color:'rgba(30,60,100,0.1)'}}
+        }
+      }
+    });
+  },60);
+  return`<div class="compare-panel">
+    <div class="cmp-header">
+      <div class="cmp-title"><span class="sh-bar" style="background:var(--text-faint)"></span>Adverse event comparison<button class="info-btn" onclick="openModal('events')" title="How to interpret this">i</button></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#009966"></div>${a.drug}</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#c27000"></div>${b.drug}</div>
+        <button class="info-btn" onclick="openModal('interactions')" title="Known dangerous drug pairs" style="margin-left:6px;background:var(--red-bg);border-color:var(--red-border);color:var(--red)">!</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:${h}px"><canvas id="cmpChart"></canvas></div>
+  </div>`;
+}
+
+async function analyze(){
+  const drugA=document.getElementById('drugA').value.trim().toLowerCase();
+  const drugB=document.getElementById('drugB').value.trim().toLowerCase();
+  if(!drugA){document.getElementById('drugA').focus();return}
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true;btn.textContent='Fetching\u2026';
+  document.getElementById('loadingBar').classList.add('active');
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('faersNote').style.display='none';
+  const drugs=drugB?[drugA,drugB]:[drugA];
+  const allData=await Promise.all(drugs.map(async drug=>{
+    const[label,events,recalls,total]=await Promise.all([fetchLabel(drug),fetchEvents(drug),fetchRecalls(drug),fetchCount(drug)]);
+    return{drug,label,events,recalls,total};
+  }));
+  const grid=document.getElementById('drugGrid');
+  grid.className='drug-grid '+(allData.length===2?'two':'one');
+  grid.innerHTML=allData.map((d,i)=>buildCard(d.drug,d.label,d.events,d.recalls,d.total,i===0?'a':'b')).join('');
+  const compareArea=document.getElementById('compareArea');
+  if(allData.length===2){compareArea.innerHTML=buildCompare(allData[0],allData[1]);document.getElementById('faersNote').style.display='block'}
+  else{compareArea.innerHTML=''}
+  document.getElementById('results').classList.add('show');
+  document.getElementById('loadingBar').classList.remove('active');
+  btn.disabled=false;btn.textContent='Analyze \u2192';
+}
+</script>
+</body>
+</html>
