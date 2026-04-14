@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Science Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* backgrounds */
+      --bg:       #eef3f7;
+      --bg2:      #e4ecf3;
+      --bg3:      #d6e4ef;
+      --bg4:      #c4d8e8;
+      /* borders */
+      --border:   rgba(40, 100, 150, 0.14);
+      --border2:  rgba(40, 100, 150, 0.32);
+      /* text */
+      --text:     #0d1f2d;
+      --text2:    #1e3a52;
+      --text3:    #4e7a9a;
+      /* accent greens */
+      --green:    #1e7d5a;
+      --green2:   #165e44;
+      /* accent blues */
+      --blue:     #1a6fa8;
+      --blue2:    #0f5080;
+      --blue-lt:  #4499cc;
+      --teal:     #1a8fa0;
+      --teal2:    #0f6e7e;
+      /* status */
+      --red:      #c0454f;
+      --yellow:   #9a7a1e;
+      /* primary action = teal */
+      --accent:   #1a8fa0;
+      --accent2:  #0f6e7e;
+      /* fonts */
+      --mono: 'DM Mono', monospace;
+      --sans: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-image:
+        radial-gradient(ellipse 70% 45% at 0% 0%,   rgba(26,111,168,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 40% at 100% 100%, rgba(26,143,160,0.09) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 35% at 80%  10%,  rgba(30,125,90,0.06)  0%, transparent 50%),
+        repeating-linear-gradient(0deg,   transparent, transparent 47px, rgba(40,100,150,0.05) 48px),
+        repeating-linear-gradient(90deg,  transparent, transparent 47px, rgba(40,100,150,0.05) 48px);
+    }
+
+    .page { max-width: 1240px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 0 1.3rem;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 1.6rem;
+    }
+    .logo-group { display: flex; align-items: center; gap: 14px; }
+    .logo-hex {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      clip-path: polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: #fff; flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(26,143,160,0.35);
+    }
+    .logo-text {
+      font-family: var(--sans); font-size: 18px; font-weight: 800;
+      color: var(--text); letter-spacing: -0.02em;
+    }
+    .logo-text span { color: var(--teal); }
+    .logo-sub  { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .privacy-badge {
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--teal); background: rgba(26,143,160,0.08);
+      border: 1px solid rgba(26,143,160,0.25);
+      padding: 6px 13px; border-radius: 20px; letter-spacing: 0.02em;
+    }
+
+    /* ── LAYOUT ── */
+    .main-grid { display: grid; grid-template-columns: 295px 1fr; gap: 1.4rem; align-items: start; }
+    @media (max-width: 860px) { .main-grid { grid-template-columns: 1fr; } }
+    .right-col { display: flex; flex-direction: column; gap: 1.2rem; }
+
+    /* ── PANEL ── */
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(40,100,150,0.07);
+    }
+    .panel-header {
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--bg2) 0%, var(--bg) 100%);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    /* colored left-edge accent on panel headers */
+    .panel-header { border-left: 3px solid var(--teal); }
+    .panel-header.blue-edge  { border-left-color: var(--blue); }
+    .panel-header.green-edge { border-left-color: var(--green); }
+
+    .ph-left { display: flex; align-items: center; gap: 8px; }
+    .ph-dot  {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--teal); flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(26,143,160,0.2);
+    }
+    .ph-dot.blue  { background: var(--blue);  box-shadow: 0 0 0 2px rgba(26,111,168,0.2); }
+    .ph-dot.green { background: var(--green); box-shadow: 0 0 0 2px rgba(30,125,90,0.2); }
+
+    .section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+
+    label {
+      display: block; font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 7px;
+    }
+
+    /* ── FORM CONTROLS ── */
+    input[type=password], input[type=text], select, textarea {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text); font-family: var(--mono); font-size: 14px;
+      padding: 9px 12px; border-radius: 8px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s; appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(26,143,160,0.12);
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234e7a9a'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 32px; cursor: pointer;
+    }
+    select option { background: #fff; color: var(--text); }
+
+    .key-row { display: flex; gap: 6px; align-items: stretch; }
+    .icon-btn {
+      padding: 0 12px; background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text3); cursor: pointer; border-radius: 8px; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .icon-btn:hover { border-color: var(--teal); color: var(--teal); background: rgba(26,143,160,0.06); }
+
+    .key-status { font-family: var(--mono); font-size: 12px; margin-top: 7px; padding: 4px 10px; border-radius: 6px; display: none; }
+    .key-status.ok  { display: block; color: var(--green); background: rgba(30,125,90,0.10); border: 1px solid rgba(30,125,90,0.2); }
+    .key-status.err { display: block; color: var(--red);   background: rgba(192,69,79,0.08); border: 1px solid rgba(192,69,79,0.2); }
+
+    .temp-row { display: flex; align-items: center; gap: 10px; }
+    input[type=range] { flex: 1; accent-color: var(--teal); cursor: pointer; }
+    .temp-val { font-family: var(--mono); font-size: 13px; color: var(--teal); font-weight: 500; min-width: 28px; text-align: right; }
+
+    /* ── QUICK-SELECT PILLS ── */
+    .pill-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .pill-label {
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 9px;
+    }
+    .pill-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      font-family: var(--mono); font-size: 12px; color: var(--text2);
+      background: var(--bg2); border: 1px solid var(--border);
+      padding: 5px 10px; border-radius: 20px; cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .pill:hover { border-color: var(--blue-lt); color: var(--blue); background: rgba(26,111,168,0.06); }
+    .pill.active {
+      background: linear-gradient(135deg, rgba(26,143,160,0.15), rgba(26,111,168,0.12));
+      color: var(--teal); border-color: var(--teal); font-weight: 500;
+    }
+
+    /* ── PROMPT AREA ── */
+    .prompt-area {
+      width: 100%; background: var(--bg); border: none; color: var(--text);
+      font-family: var(--mono); font-size: 14px; padding: 14px 16px; resize: none;
+      outline: none; line-height: 1.8; min-height: 120px;
+    }
+
+    /* ── SEND BAR ── */
+    .send-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--bg2), var(--bg));
+    }
+    .send-bar-left { display: flex; align-items: center; gap: 10px; }
+    .char-info { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 20px; border: none; border-radius: 8px;
+      font-family: var(--sans); font-size: 14px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.01em; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(26,143,160,0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--teal2), var(--blue2));
+      box-shadow: 0 4px 16px rgba(26,143,160,0.4);
+      transform: translateY(-1px);
+    }
+    .btn-primary:active  { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-secondary {
+      background: white; color: var(--text2);
+      border: 1px solid var(--border);
+      font-size: 13px; padding: 7px 14px;
+    }
+    .btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+    .btn.loading {
+      background: var(--bg3) !important; color: var(--text3) !important;
+      border: 1px solid var(--border) !important; cursor: wait;
+      box-shadow: none !important; transform: none !important;
+    }
+
+    .copy-btn {
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text3);
+      background: transparent; border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .copy-btn:hover { color: var(--teal); border-color: var(--teal); background: rgba(26,143,160,0.06); }
+
+    /* ── ERROR BOX ── */
+    .error-box {
+      margin: 12px 16px; padding: 10px 14px; border-radius: 8px;
+      font-family: var(--mono); font-size: 13px; line-height: 1.7; display: none;
+    }
+    .error-box.visible { display: block; }
+    .error-box.auth    { background:rgba(192,69,79,0.07);  border:1px solid rgba(192,69,79,0.22);  color:var(--red); }
+    .error-box.rate    { background:rgba(26,111,168,0.07); border:1px solid rgba(26,111,168,0.22); color:var(--blue); }
+    .error-box.generic { background:rgba(40,100,150,0.05); border:1px solid var(--border);         color:var(--text2); }
+
+    /* ── RESPONSE BOX ── */
+    .response-box {
+      max-height: 620px; overflow-y: auto; padding: 20px;
+      word-break: break-word;
+    }
+    .response-box::-webkit-scrollbar { width: 4px; }
+    .response-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    .response-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 4rem 1rem; gap: 12px; opacity: 0.35;
+    }
+    .empty-hex {
+      width: 36px; height: 36px;
+      border: 2px solid var(--text3);
+      clip-path: polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+    }
+    .response-empty-text { font-family: var(--mono); font-size: 13px; color: var(--text3); letter-spacing: 0.06em; }
+
+    .response-meta {
+      display: none; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      background: linear-gradient(90deg, var(--bg2), var(--bg));
+      flex-wrap: wrap; gap: 8px;
+    }
+    .response-meta.visible { display: flex; }
+    .response-meta-left { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+    .response-meta-right { display: flex; gap: 8px; align-items: center; }
+
+    /* ── DIFFICULTY BADGE ── */
+    .diff-badge {
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+    }
+    .diff-easy   { background: rgba(30,125,90,0.12);  color: var(--green); border: 1px solid rgba(30,125,90,0.25); }
+    .diff-medium { background: rgba(26,111,168,0.10); color: var(--blue);  border: 1px solid rgba(26,111,168,0.22); }
+    .diff-hard   { background: rgba(192,69,79,0.09);  color: var(--red);   border: 1px solid rgba(192,69,79,0.22); }
+
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block; width: 12px; height: 12px;
+      border: 2px solid transparent; border-top-color: currentColor;
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MARKDOWN ── */
+    .md-body h1 {
+      font-family: var(--sans); font-size: 1.45rem; font-weight: 800; color: var(--text);
+      border-bottom: 2px solid var(--border); padding-bottom: 10px; margin: 0 0 1em;
+      letter-spacing: -0.01em;
+    }
+    .md-body h2 {
+      font-family: var(--sans); font-size: 1.1rem; font-weight: 700; color: var(--teal);
+      margin: 1.5em 0 0.5em;
+      padding-left: 10px; border-left: 3px solid var(--teal);
+    }
+    .md-body h3 {
+      font-family: var(--sans); font-size: 1rem; font-weight: 700; color: var(--blue);
+      margin: 1.2em 0 0.35em;
+    }
+    .md-body p  { font-family: var(--mono); font-size: 14px; line-height: 1.9; color: var(--text2); margin-bottom: 0.85em; }
+    .md-body ul, .md-body ol { padding-left: 1.6em; margin-bottom: 0.85em; }
+    .md-body li { font-family: var(--mono); font-size: 14px; line-height: 1.9; color: var(--text2); margin-bottom: 0.3em; }
+    .md-body strong { color: var(--text); font-weight: 600; }
+    .md-body em     { color: var(--text3); font-style: italic; }
+    .md-body code   {
+      background: rgba(26,111,168,0.07); border: 1px solid rgba(26,111,168,0.18);
+      border-radius: 5px; padding: 2px 6px; font-size: 13px;
+      color: var(--blue); font-family: var(--mono);
+    }
+    .md-body blockquote {
+      border-left: 3px solid var(--teal); margin: 1.2em 0; padding: 8px 16px;
+      background: rgba(26,143,160,0.05); color: var(--text2);
+      border-radius: 0 8px 8px 0;
+    }
+    .md-body hr { border: none; border-top: 1px solid var(--border); margin: 1.4em 0; }
+
+    /* ── HISTORY ── */
+    .hist-list { list-style: none; max-height: 380px; overflow-y: auto; }
+    .hist-list::-webkit-scrollbar { width: 3px; }
+    .hist-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    .hist-item {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.12s; gap: 10px;
+    }
+    .hist-item:hover { background: var(--bg2); }
+    .hist-item:last-child { border-bottom: none; }
+    .hist-item-body { flex: 1; min-width: 0; }
+    .hist-item-title {
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      color: var(--text); margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hist-item-meta  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+    .hist-del {
+      background: transparent; border: none; color: var(--text3); cursor: pointer;
+      font-size: 13px; padding: 2px 5px; opacity: 0; transition: opacity 0.12s; flex-shrink: 0;
+    }
+    .hist-item:hover .hist-del { opacity: 1; }
+    .hist-del:hover { color: var(--red); }
+    .empty-state {
+      padding: 2.2rem 1rem; text-align: center;
+      font-family: var(--sans); font-size: 13px; color: var(--text3); line-height: 1.8;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      .topbar, .main-grid > div:first-child, .pill-section,
+      .send-bar, .response-meta, .panel-header .ph-right,
+      #historyPanel, .footer { display: none !important; }
+      .page { padding: 0; max-width: 100%; }
+      .main-grid { grid-template-columns: 1fr; }
+      .response-box { max-height: none; overflow: visible; }
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top: 3rem; padding-top: 1.3rem;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono); font-size: 12px; color: var(--text3);
+      text-align: center; letter-spacing: 0.04em;
+    }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
+    .panel { animation: fadeUp 0.3s ease both; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo-group">
+      <div class="logo-hex">⚗</div>
+      <div>
+        <div class="logo-text">Science<span>Lab</span></div>
+        <div class="logo-sub">grade-aligned experiment generator</div>
+      </div>
+    </div>
+    <div class="privacy-badge">
+      <svg width="10" height="13" viewBox="0 0 10 13" fill="currentColor">
+        <path d="M5 0L.5 2v4c0 2.76 2.02 5.33 4.5 6 2.48-.67 4.5-3.24 4.5-6V2L5 0zm0 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm0-3.8c.83 0 1.5.67 1.5 1.5v.5h-3v-.5c0-.83.67-1.5 1.5-1.5z"/>
+      </svg>
+      key in memory only — never persisted
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT SIDEBAR -->
+    <div>
+      <div class="panel">
+        <div class="panel-header blue-edge">
+          <div class="ph-left"><span class="ph-dot blue"></span>Provider &amp; Credentials</div>
+        </div>
+
+        <div class="section">
+          <label>OpenAI API Key</label>
+          <div class="key-row">
+            <input type="password" id="apiKey" placeholder="sk-..." oninput="validateKey()" autocomplete="off"/>
+            <button class="icon-btn" onclick="toggleKeyVis()" title="show/hide">👁</button>
+          </div>
+          <div class="key-status" id="keyStatus"></div>
+        </div>
+
+        <div class="section">
+          <label>Grade Level</label>
+          <select id="gradeSelect">
+            <option value="" disabled selected>Select a grade…</option>
+            <option value="K">Kindergarten</option>
+            <option value="1">1st Grade</option>
+            <option value="2">2nd Grade</option>
+            <option value="3">3rd Grade</option>
+            <option value="4">4th Grade</option>
+            <option value="5">5th Grade</option>
+            <option value="6">6th Grade</option>
+            <option value="7">7th Grade</option>
+            <option value="8">8th Grade</option>
+            <option value="9">9th Grade (Freshman)</option>
+            <option value="10">10th Grade (Sophomore)</option>
+            <option value="11">11th Grade (Junior)</option>
+            <option value="12">12th Grade (Senior)</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <label>Model</label>
+          <select id="modelSelect">
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4o-mini">gpt-4o-mini</option>
+            <option value="gpt-4-turbo">gpt-4-turbo</option>
+            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <label>Temperature — <span id="tempLabel" style="color:var(--teal);font-weight:600;">0.8</span></label>
+          <div class="temp-row">
+            <input type="range" min="0" max="2" step="0.1" value="0.8" id="tempSlider"
+              oninput="document.getElementById('tempLabel').textContent=parseFloat(this.value).toFixed(1)"/>
+          </div>
+        </div>
+
+        <div class="section">
+          <label>Max Tokens</label>
+          <select id="maxTokens">
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+            <option value="2000" selected>2000</option>
+            <option value="4096">4096</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- HISTORY PANEL -->
+      <div class="panel" id="historyPanel" style="margin-top:1.2rem;">
+        <div class="panel-header green-edge">
+          <div class="ph-left"><span class="ph-dot green"></span>Saved Experiments</div>
+          <button class="copy-btn" onclick="clearHistory()" style="font-size:11px;padding:3px 8px;">clear</button>
+        </div>
+        <ul class="hist-list" id="histList">
+          <li class="empty-state">No experiments saved yet.<br>Generate one to see it here.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+
+      <!-- QUICK-SELECT SUPPLIES -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="ph-left"><span class="ph-dot"></span>Common Household Supplies</div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3);">click to add</span>
+        </div>
+        <div class="pill-section">
+          <div class="pill-grid" id="pillGrid"></div>
+        </div>
+      </div>
+
+      <!-- SUPPLIES INPUT -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="ph-left"><span class="ph-dot"></span>Available Supplies</div>
+        </div>
+        <textarea class="prompt-area" id="suppliesInput" rows="5"
+          placeholder="List your materials here, or click items above to add them…"
+          oninput="updateCharInfo()"></textarea>
+        <div class="send-bar">
+          <div class="send-bar-left">
+            <span class="char-info" id="charInfo">~0 chars</span>
+            <button class="btn btn-secondary" onclick="clearSupplies()">clear</button>
+          </div>
+          <button class="btn btn-primary" id="generateBtn" onclick="generate()">
+            <span id="generateLabel">Generate Experiment →</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RESPONSE -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="ph-left"><span class="ph-dot"></span>Experiment Plan</div>
+          <div class="ph-right" style="display:flex;gap:8px;align-items:center;">
+            <span class="diff-badge" id="diffBadge" style="display:none;"></span>
+            <button class="copy-btn" id="printBtn" onclick="printWorksheet()" style="display:none;">🖨 Worksheet</button>
+          </div>
+        </div>
+        <div class="error-box" id="errorBox"></div>
+        <div class="response-box" id="responseBox">
+          <div class="response-empty">
+            <div class="empty-hex"></div>
+            <div class="response-empty-text">awaiting generation</div>
+          </div>
+        </div>
+        <div class="response-meta" id="responseMeta">
+          <div class="response-meta-left" id="responseMetaText"></div>
+          <div class="response-meta-right">
+            <button class="copy-btn" onclick="saveToHistory()" id="saveBtn">+ Save</button>
+            <button class="copy-btn" id="copyBtn" onclick="copyResponse()">Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">Science Lab · OpenAI-powered · Key stays in memory only</div>
+</div>
+
+<script>
+  /* ── State ── */
+  let lastRawText = '';
+  let lastTitle   = '';
+  let lastGrade   = '';
+  let history     = JSON.parse(localStorage.getItem('scilab-history') || '[]');
+
+  const GRADE_LABELS = {
+    K:'Kindergarten',1:'1st Grade',2:'2nd Grade',3:'3rd Grade',4:'4th Grade',
+    5:'5th Grade',6:'6th Grade',7:'7th Grade',8:'8th Grade',
+    9:'9th Grade (Freshman)',10:'10th Grade (Sophomore)',
+    11:'11th Grade (Junior)',12:'12th Grade (Senior)'
+  };
+
+  const COMMON_SUPPLIES = [
+    'baking soda','vinegar','food coloring','salt','sugar','flour',
+    'water','dish soap','vegetable oil','lemon juice','cornstarch',
+    'balloons','rubber bands','tape','scissors','paper clips',
+    'plastic cups','paper towels','aluminum foil','zip-lock bags',
+    'string','straws','popsicle sticks','toothpicks','cotton balls',
+    'magnifying glass','ruler','measuring cups','funnel','timer',
+    'candle','matches','ice cubes','sand','soil','rocks'
+  ];
+
+  /* ── Pills ── */
+  function buildPills() {
+    document.getElementById('pillGrid').innerHTML = COMMON_SUPPLIES.map(s =>
+      `<button class="pill" onclick="togglePill(this,'${s}')">${s}</button>`
+    ).join('');
+  }
+
+  function togglePill(btn, supply) {
+    const ta = document.getElementById('suppliesInput');
+    const items = ta.value.split(',').map(s => s.trim()).filter(Boolean);
+    const idx = items.findIndex(i => i.toLowerCase() === supply.toLowerCase());
+    if (idx >= 0) { items.splice(idx, 1); btn.classList.remove('active'); }
+    else          { items.push(supply);   btn.classList.add('active'); }
+    ta.value = items.join(', ');
+    updateCharInfo();
+  }
+
+  function clearSupplies() {
+    document.getElementById('suppliesInput').value = '';
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    updateCharInfo();
+  }
+
+  /* ── Key ── */
+  function toggleKeyVis() {
+    const i = document.getElementById('apiKey');
+    i.type = i.type === 'password' ? 'text' : 'password';
+  }
+  function validateKey() {
+    const key = document.getElementById('apiKey').value.trim();
+    const s   = document.getElementById('keyStatus');
+    if (!key) { s.className = 'key-status'; return; }
+    const ok  = key.startsWith('sk-') && !key.startsWith('sk-ant-');
+    s.className   = 'key-status ' + (ok ? 'ok' : 'err');
+    s.textContent = ok ? '✓ key format looks valid' : '✗ unexpected key format';
+  }
+
+  /* ── UI ── */
+  function updateCharInfo() {
+    document.getElementById('charInfo').textContent =
+      '~' + document.getElementById('suppliesInput').value.length + ' chars';
+  }
+  function showErr(type, msg) {
+    const icons = { auth:'✗', rate:'◷', generic:'!' };
+    const b = document.getElementById('errorBox');
+    b.className   = 'error-box visible ' + (type || 'generic');
+    b.textContent = (icons[type] || '!') + ' ' + msg;
+  }
+  function hideErr() { document.getElementById('errorBox').className = 'error-box'; }
+
+  function setLoading(v) {
+    const btn = document.getElementById('generateBtn');
+    const lbl = document.getElementById('generateLabel');
+    btn.disabled = v;
+    btn.classList.toggle('loading', v);
+    lbl.innerHTML = v ? '<span class="spinner"></span> Generating…' : 'Generate Experiment →';
+  }
+
+  function copyResponse() {
+    if (!lastRawText) return;
+    navigator.clipboard.writeText(lastRawText).then(() => {
+      const btn = document.getElementById('copyBtn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = orig, 1400);
+    });
+  }
+
+  /* ── Difficulty badge ── */
+  function showDiffBadge(gradeVal) {
+    const badge = document.getElementById('diffBadge');
+    const n = parseInt(gradeVal);
+    let cls, label;
+    if (gradeVal === 'K' || n <= 3)  { cls = 'easy';   label = '★☆☆ Easy'; }
+    else if (n <= 6)                  { cls = 'medium'; label = '★★☆ Medium'; }
+    else                              { cls = 'hard';   label = '★★★ Advanced'; }
+    badge.className   = 'diff-badge diff-' + cls;
+    badge.textContent = label;
+    badge.style.display = '';
+  }
+
+  /* ── Print worksheet ── */
+  function printWorksheet() {
+    const content = document.getElementById('responseBox').innerHTML;
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>Science Worksheet</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+    <style>
+      body { font-family: 'Plus Jakarta Sans', sans-serif; max-width: 750px; margin: 40px auto; color: #0d1f2d; padding: 0 20px; font-size: 15px; }
+      h1 { font-size: 1.5rem; font-weight: 800; border-bottom: 2px solid #1a8fa0; padding-bottom: 10px; margin-bottom: 1em; }
+      h2 { font-size: 1.1rem; font-weight: 700; color: #1a8fa0; margin: 1.4em 0 0.4em; padding-left: 10px; border-left: 3px solid #1a8fa0; }
+      h3 { font-size: 1rem; font-weight: 700; color: #1a6fa8; margin: 1.1em 0 0.3em; }
+      p, li { font-family: 'DM Mono', monospace; font-size: 14px; line-height: 1.85; color: #1e3a52; }
+      ul, ol { padding-left: 1.5em; margin-bottom: 0.8em; }
+      strong { color: #0d1f2d; font-weight: 600; }
+      hr { border: none; border-top: 1px solid #ccc; margin: 1.2em 0; }
+      .obs-box { border: 1px solid #aac; border-radius: 6px; padding: 12px; margin: 1em 0; min-height: 80px; }
+      .obs-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #4e7a9a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+      .grade-info { font-family: 'DM Mono', monospace; font-size: 12px; color: #4e7a9a; margin-bottom: 1.5em; }
+    </style></head><body>
+    <div class="grade-info">Grade: ${lastGrade} · Generated by Science Lab</div>
+    ${content}
+    <hr/>
+    <h2>Observation Log</h2>
+    <div class="obs-label">What did you notice?</div><div class="obs-box"></div>
+    <div class="obs-label" style="margin-top:1em;">What surprised you?</div><div class="obs-box"></div>
+    <div class="obs-label" style="margin-top:1em;">Questions I still have:</div><div class="obs-box"></div>
+    <div class="obs-label" style="margin-top:1em;">My hypothesis was: (circle one) &nbsp; SUPPORTED &nbsp;/&nbsp; NOT SUPPORTED</div>
+    <div class="obs-box" style="min-height:40px;"></div>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  }
+
+  /* ── History ── */
+  function saveToHistory() {
+    if (!lastRawText || !lastTitle) return;
+    history.unshift({ id: Date.now(), title: lastTitle, grade: lastGrade,
+      raw: lastRawText, html: document.getElementById('responseBox').innerHTML,
+      ts: new Date().toLocaleDateString() });
+    if (history.length > 20) history.pop();
+    localStorage.setItem('scilab-history', JSON.stringify(history));
+    renderHistory();
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = '✓ Saved';
+    setTimeout(() => btn.textContent = '+ Save', 1400);
+  }
+
+  function loadFromHistory(id) {
+    const e = history.find(e => e.id === id);
+    if (!e) return;
+    lastRawText = e.raw; lastTitle = e.title; lastGrade = e.grade;
+    document.getElementById('responseBox').innerHTML = e.html;
+    document.getElementById('responseMeta').classList.add('visible');
+    document.getElementById('responseMetaText').textContent = 'loaded from history · ' + e.ts;
+    document.getElementById('printBtn').style.display = '';
+    document.getElementById('diffBadge').style.display = 'none';
+    document.getElementById('responseBox').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function deleteFromHistory(id) {
+    history = history.filter(e => e.id !== id);
+    localStorage.setItem('scilab-history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function clearHistory() {
+    if (!history.length) return;
+    if (!confirm('Clear all saved experiments?')) return;
+    history = [];
+    localStorage.setItem('scilab-history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const ul = document.getElementById('histList');
+    if (!history.length) {
+      ul.innerHTML = '<li class="empty-state">No experiments saved yet.<br>Generate one to see it here.</li>';
+      return;
+    }
+    ul.innerHTML = history.map(e => `
+      <li class="hist-item" onclick="loadFromHistory(${e.id})">
+        <div class="hist-item-body">
+          <div class="hist-item-title">${e.title}</div>
+          <div class="hist-item-meta">${e.grade} · ${e.ts}</div>
+        </div>
+        <button class="hist-del" onclick="event.stopPropagation();deleteFromHistory(${e.id})">✕</button>
+      </li>`).join('');
+  }
+
+  /* ── System prompt ── */
+  function buildSystemPrompt(gradeLabel) {
+    return `You are an enthusiastic, experienced science teacher who designs safe, curriculum-aligned science experiments.
+
+When given a list of available supplies, generate a complete experiment plan for ${gradeLabel} students using ONLY those supplies (plus common items like water, tape, scissors, and paper if needed).
+
+Your response must include these sections:
+
+1. **Experiment Title** — A catchy, memorable name
+2. **Scientific Concept** — Core concept being explored, aligned to grade level
+3. **Learning Objectives** — 2–3 clear, age-appropriate goals
+4. **Materials List** — Exactly what's needed from the available supplies
+5. **Safety Notes** — Age-appropriate precautions
+6. **Step-by-Step Procedure** — Clear numbered steps at the right reading level
+7. **What to Observe** — What students should watch for
+8. **Discussion Questions** — 3–5 post-experiment reflection questions
+9. **Extension Activity** — One optional challenge for advanced students
+10. **Supply Substitutions** — For each key material, suggest 1–2 common alternatives
+
+Language guidance by grade:
+- K–3: Simple words, short sentences, concrete ideas
+- 4–5: Accessible language, introduce basic scientific terms
+- 6–8: Proper scientific vocabulary, encourage hypothesis thinking
+- 9–12: Full scientific terminology, hypothesis-driven inquiry, data analysis
+
+Format with markdown headings. Be specific, practical, and enthusiastic!`;
+  }
+
+  function extractTitle(text) {
+    const m = text.match(/^#\s+(.+)/m);
+    return m ? m[1].replace(/\*\*/g, '').trim() : 'Untitled Experiment';
+  }
+
+  /* ── Generate ── */
+  async function generate() {
+    const key      = document.getElementById('apiKey').value.trim();
+    const grade    = document.getElementById('gradeSelect').value;
+    const supplies = document.getElementById('suppliesInput').value.trim();
+    const model    = document.getElementById('modelSelect').value;
+    const temp     = parseFloat(document.getElementById('tempSlider').value);
+    const maxTok   = parseInt(document.getElementById('maxTokens').value);
+
+    if (!key)      { showErr('auth',    'No API key provided.'); return; }
+    if (!grade)    { showErr('generic', 'Please select a grade level.'); return; }
+    if (!supplies) { showErr('generic', 'Please enter at least one supply.'); return; }
+
+    hideErr(); setLoading(true); lastRawText = '';
+    document.getElementById('printBtn').style.display = 'none';
+    document.getElementById('diffBadge').style.display = 'none';
+
+    const box = document.getElementById('responseBox');
+    box.innerHTML = '<div class="response-empty"><div class="empty-hex"></div><div class="response-empty-text">thinking…</div></div>';
+    document.getElementById('responseMeta').classList.remove('visible');
+
+    const gradeLabel = GRADE_LABELS[grade] || grade;
+    lastGrade = gradeLabel;
+    const t0 = Date.now();
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model, temperature: temp, max_tokens: maxTok,
+          messages: [
+            { role: 'system', content: buildSystemPrompt(gradeLabel) },
+            { role: 'user',   content: 'Generate a science experiment for ' + gradeLabel + ' students using these available supplies:\n\n' + supplies }
+          ]
+        })
+      });
+
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        const msg = e?.error?.message || res.statusText;
+        if (res.status === 401) throw { type: 'auth',    msg: 'Invalid API key: ' + msg };
+        if (res.status === 429) throw { type: 'rate',    msg: 'Rate limited: ' + msg };
+        throw { type: 'generic', msg: 'API error ' + res.status + ': ' + msg };
+      }
+
+      const data    = await res.json();
+      const rawText = data.choices?.[0]?.message?.content || '';
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      const tokIn   = data.usage?.prompt_tokens     || 0;
+      const tokOut  = data.usage?.completion_tokens || 0;
+      const words   = rawText.trim().split(/\s+/).filter(Boolean).length;
+
+      lastRawText = rawText;
+      lastTitle   = extractTitle(rawText);
+      box.innerHTML = '<div class="md-body">' + marked.parse(rawText) + '</div>';
+
+      showDiffBadge(grade);
+      document.getElementById('printBtn').style.display = '';
+      document.getElementById('responseMeta').classList.add('visible');
+      document.getElementById('responseMetaText').textContent =
+        words + ' words · ' + elapsed + 's' + ((tokIn || tokOut) ? ' · ' + (tokIn + tokOut) + ' tok' : '') + ' · ' + model;
+
+    } catch (e) {
+      showErr(e?.type || 'generic', e?.msg || String(e));
+      box.innerHTML = '<div class="response-empty"><div class="empty-hex"></div><div class="response-empty-text">error</div></div>';
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  document.getElementById('suppliesInput').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate();
+  });
+
+  buildPills();
+  renderHistory();
+  updateCharInfo();
+</script>
+</body>
+</html>
