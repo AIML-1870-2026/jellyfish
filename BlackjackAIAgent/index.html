@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blackjack with AI Agents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      /* ── GREEN PALETTE ── */
+      --g-dark:     #1b4332;  /* deep forest */
+      --g-mid:      #2d6a4f;  /* forest green */
+      --g-bright:   #40916c;  /* mid green */
+      --g-light:    #74c69d;  /* sage */
+      --g-pale:     #b7e4c7;  /* mint */
+      --g-xpale:    #d8f3dc;  /* very pale mint */
+      --accent:     #52b788;  /* emerald accent */
+      --accent2:    #95d5b2;  /* light emerald */
+      --gold:       #a3b18a;  /* muted olive */
+      --red:        #bc4749;  /* berry red — contrast for losing */
+      --orange:     #c87941;  /* warm amber */
+      --text:       #1b2d25;  /* near-black green */
+      --text2:      #2d6a4f;  /* forest text */
+      --text3:      #74c69d;  /* sage text */
+      --card-bg:    #f8fdf9;
+      --card-border:#c8e6d0;
+      --red-card:   #9b2335;
+      --black-card: #1b2d25;
+      --btn-hit:    #2d6a4f;
+      --btn-stand:  #9b2335;
+      --btn-double: #c87941;
+      --btn-split:  #1b4332;
+      --btn-ins:    #5c4a7c;
+      --win:        #2d6a4f;
+      --lose:       #bc4749;
+      --push:       #c87941;
+      --disabled:   #c8e6d0;
+      --border:     rgba(64,145,108,0.25);
+      --border2:    rgba(64,145,108,0.55);
+      --shadow:     0 4px 24px rgba(27,67,50,0.2);
+      --sans:       'Nunito', sans-serif;
+      --serif:      'Playfair Display', serif;
+    }
+
+    html,body { min-height:100vh; background:var(--g-xpale); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+    body {
+      background: linear-gradient(160deg, #d8f3dc 0%, #b7e4c7 30%, #95d5b2 60%, #74c69d 100%);
+      background-attachment: fixed;
+    }
+    body::before {
+      content:'';
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 15% 8%, rgba(82,183,136,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 85% 5%, rgba(27,67,50,0.1) 0%, transparent 50%);
+    }
+    body > * { position:relative; z-index:1; }
+
+    /* HEADER */
+    .header { display:flex; align-items:center; justify-content:space-between; padding:1rem 2rem; border-bottom:2px solid rgba(64,145,108,0.3); background:rgba(45,106,79,0.75); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(27,67,50,0.2); }
+    .header-suits { display:flex; gap:8px; font-size:20px; }
+    .header-suits .red { color:#e8a0a0; }
+    .header-suits span:not(.red) { color:var(--g-pale); }
+    .header-title { font-family:var(--serif); font-size:clamp(16px,3vw,26px); color:#d8f3dc; text-shadow:0 2px 8px rgba(27,67,50,0.5); letter-spacing:0.02em; font-style:italic; }
+    .about-btn { font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:0.08em; padding:6px 14px; border:2px solid rgba(183,228,199,0.5); border-radius:20px; background:rgba(255,255,255,0.15); color:var(--g-pale); cursor:pointer; transition:all 0.2s; }
+    .about-btn:hover { background:rgba(255,255,255,0.25); color:#fff; }
+
+    /* SETUP */
+    #setup-screen { max-width:900px; margin:3rem auto; padding:0 1.5rem; }
+    .setup-card { background:rgba(216,243,220,0.88); border:2px solid rgba(64,145,108,0.3); border-radius:20px; padding:2rem; backdrop-filter:blur(8px); box-shadow:0 8px 32px rgba(27,67,50,0.12), 0 1px 0 rgba(255,255,255,0.8) inset; }
+    .setup-grid { display:grid; grid-template-columns:1fr 1fr 200px auto; gap:1.2rem; align-items:end; margin-bottom:1.2rem; }
+    @media(max-width:800px){.setup-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:500px){.setup-grid{grid-template-columns:1fr;}}
+    .field-group label { display:block; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text2); margin-bottom:6px; }
+    .styled-select,.styled-input { width:100%; padding:10px 14px; background:rgba(183,228,199,0.4); border:2px solid rgba(64,145,108,0.3); border-radius:10px; color:var(--text); font-family:var(--sans); font-size:14px; outline:none; transition:all 0.2s; appearance:none; }
+    .styled-select:focus,.styled-input:focus { border-color:var(--g-bright); background:rgba(183,228,199,0.65); }
+    .styled-select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%232d6a4f'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; cursor:pointer; }
+    .styled-select option { background:#d8f3dc; color:var(--text); }
+    .styled-input[type=number]{-moz-appearance:textfield;}
+    .styled-input[type=number]::-webkit-inner-spin-button{display:none;}
+    .balance-display { font-family:var(--serif); font-size:14px; color:var(--text2); white-space:nowrap; padding:10px 0; }
+    .balance-display span { color:var(--g-dark); font-size:17px; font-style:italic; }
+
+    .play-btn,.action-btn,.exec-btn,.new-hand-btn { font-family:var(--sans); font-weight:800; letter-spacing:0.06em; border:none; border-radius:10px; cursor:pointer; transition:all 0.18s; }
+    .play-btn { width:100%; padding:14px; font-size:16px; background:linear-gradient(135deg,var(--g-bright),var(--g-dark)); color:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(27,67,50,0.3), 0 1px 0 rgba(255,255,255,0.2) inset; }
+    .play-btn:hover:not(:disabled){ background:linear-gradient(135deg,var(--g-mid),var(--g-dark)); transform:translateY(-1px); box-shadow:0 6px 20px rgba(27,67,50,0.35); }
+    .play-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+    .api-row { display:flex; gap:10px; align-items:center; margin-bottom:1rem; }
+    .api-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text2); white-space:nowrap; }
+    .api-input-wrap { flex:1; position:relative; }
+    .api-input-wrap input { width:100%; padding:8px 36px 8px 12px; background:rgba(183,228,199,0.4); border:2px solid rgba(64,145,108,0.3); border-radius:10px; color:var(--text); font-family:monospace; font-size:12px; outline:none; transition:all 0.2s; }
+    .api-input-wrap input:focus{border-color:var(--g-bright); background:rgba(183,228,199,0.65);}
+    .eye-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:13px; color:var(--text3); padding:2px; }
+    .upload-label { display:flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(183,228,199,0.4); border:2px solid rgba(64,145,108,0.3); border-radius:10px; font-size:12px; font-weight:600; color:var(--g-mid); cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+    .upload-label:hover{border-color:var(--g-bright);background:rgba(64,145,108,0.15);}
+    input[type=file]{display:none;}
+    .key-status{font-size:10px;padding:3px 8px;border-radius:8px;display:none;white-space:nowrap;font-weight:600;}
+    .key-status.ok{display:block;color:var(--g-dark);background:rgba(64,145,108,0.2);border:1px solid rgba(64,145,108,0.4);}
+    .key-status.err{display:block;color:#9b2335;background:rgba(188,71,73,0.12);border:1px solid rgba(188,71,73,0.3);}
+    .refresh-btn{padding:10px 18px;font-size:13px;background:linear-gradient(135deg,var(--g-light),var(--g-bright));color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:var(--sans);font-weight:700;letter-spacing:0.04em;transition:all 0.18s;white-space:nowrap;box-shadow:0 3px 12px rgba(64,145,108,0.3);}
+    .refresh-btn:hover{background:linear-gradient(135deg,var(--accent2),var(--accent));transform:translateY(-1px);}
+
+    .provider-toggle{display:flex;background:rgba(183,228,199,0.4);border:2px solid rgba(64,145,108,0.25);border-radius:12px;overflow:hidden;margin-bottom:1rem;}
+    .prov-btn{flex:1;padding:9px 0;font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.04em;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all 0.18s;}
+    .prov-btn.active{background:linear-gradient(135deg,var(--g-bright),var(--g-dark));color:#fff;}
+    .prov-btn:hover:not(.active){color:var(--g-mid);background:rgba(64,145,108,0.12);}
+
+    .setup-extras{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;}
+    @media(max-width:600px){.setup-extras{grid-template-columns:1fr;}}
+    .toggle-group{display:flex;background:rgba(183,228,199,0.4);border:2px solid rgba(64,145,108,0.25);border-radius:10px;overflow:hidden;}
+    .toggle-btn{flex:1;padding:8px 4px;font-family:var(--sans);font-size:11px;font-weight:600;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all 0.15s;text-align:center;}
+    .toggle-btn.active{background:linear-gradient(135deg,var(--g-bright),var(--g-dark));color:#fff;}
+    .toggle-btn:hover:not(.active){color:var(--g-mid);background:rgba(64,145,108,0.12);}
+
+    .privacy-row{display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;font-weight:600;color:var(--g-dark);margin-top:0.7rem;background:rgba(64,145,108,0.12);border:1px solid rgba(64,145,108,0.3);padding:6px 14px;border-radius:10px;}
+
+    /* GAME */
+    #game-screen{display:none;max-width:1400px;margin:0 auto;padding:1.5rem;}
+    .game-layout{display:grid;grid-template-columns:1fr 370px;gap:1.5rem;}
+    @media(max-width:1150px){.game-layout{grid-template-columns:1fr;}}
+    .game-main{display:flex;flex-direction:column;gap:1.2rem;}
+
+    .felt-table{
+      background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 60%, #081c12 100%);
+      border-radius:20px; border:3px solid rgba(116,198,157,0.35);
+      box-shadow:0 0 0 1px rgba(64,145,108,0.2), inset 0 2px 20px rgba(0,0,0,0.25), 0 8px 32px rgba(27,67,50,0.3);
+      padding:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1.2rem;
+      position:relative; overflow:hidden;
+    }
+    .hand-label{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:0.1em;color:rgba(183,228,199,0.8);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(183,228,199,0.2);padding-bottom:6px;}
+    .cards-row{display:flex;gap:8px;flex-wrap:wrap;min-height:110px;align-items:flex-start;}
+
+    .card{width:68px;height:100px;border-radius:10px;background:var(--card-bg);border:1.5px solid var(--card-border);box-shadow:2px 4px 10px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.9);display:flex;flex-direction:column;justify-content:space-between;padding:5px;position:relative;flex-shrink:0;animation:cardDeal 0.35s cubic-bezier(0.34,1.56,0.64,1) both;}
+    @keyframes cardDeal{from{transform:translateY(-30px) rotate(var(--card-rot,-5deg)) scale(0.8);opacity:0;}to{transform:translateY(0) rotate(0deg) scale(1);opacity:1;}}
+    .card.red{color:var(--red-card);} .card.black{color:var(--black-card);}
+    .card.face-down{background:repeating-linear-gradient(135deg,#1b4332 0px,#1b4332 5px,#2d6a4f 6px,#2d6a4f 6px);border-color:#40916c;}
+    .card-corner{display:flex;flex-direction:column;align-items:center;line-height:1;}
+    .card-rank{font-size:15px;font-weight:800;font-family:var(--sans);}
+    .card-suit{font-size:11px;}
+    .card-center{font-size:26px;text-align:center;margin:auto;}
+    .card-corner.bottom{transform:rotate(180deg);}
+    .score-badge{display:inline-block;margin-top:10px;background:rgba(8,28,18,0.7);color:#d8f3dc;font-family:var(--sans);font-size:13px;font-weight:700;padding:4px 14px;border-radius:20px;border:1px solid rgba(116,198,157,0.4);}
+    .score-badge.bust{color:#f4a0a0;border-color:rgba(188,71,73,0.5);}
+    .score-badge.bj{color:#b7e4c7;border-color:rgba(116,198,157,0.7);}
+    .current-bet{font-size:12px;color:rgba(183,228,199,0.9);margin-top:6px;display:flex;align-items:center;gap:6px;font-weight:600;}
+
+    .action-row{display:flex;gap:10px;flex-wrap:wrap;}
+    .action-btn{flex:1;min-width:90px;padding:12px 8px;font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border-radius:10px;border:none;cursor:pointer;transition:all 0.18s;box-shadow:0 3px 10px rgba(0,0,0,0.12);}
+    .action-btn.hit{background:linear-gradient(135deg,#40916c,#1b4332);color:#d8f3dc;}
+    .action-btn.stand{background:linear-gradient(135deg,#c0403c,#8b1a1a);color:#fff;}
+    .action-btn.double{background:linear-gradient(135deg,#c87941,#8f5220);color:#fff;}
+    .action-btn.split{background:linear-gradient(135deg,#52b788,#2d6a4f);color:#fff;}
+    .action-btn.insurance{background:linear-gradient(135deg,#6e7b4a,#3d4a20);color:#e8f0d0;}
+    .action-btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,0.18);}
+    .action-btn:disabled{background:var(--disabled);color:rgba(45,106,79,0.4);cursor:not-allowed;transform:none;filter:none;box-shadow:none;}
+
+    .status-panel{background:rgba(216,243,220,0.85);border:2px solid rgba(64,145,108,0.25);border-radius:14px;padding:1rem;backdrop-filter:blur(6px);}
+    .status-title{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+    .ai-rec-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(64,145,108,0.12);border:2px solid rgba(64,145,108,0.2);border-radius:10px;padding:10px 14px;margin-bottom:10px;}
+    .ai-rec-label{font-size:12px;color:var(--text2);font-weight:600;}
+    .ai-rec-action{font-family:var(--serif);font-size:14px;font-weight:700;color:var(--g-dark);font-style:italic;}
+    .exec-btn{padding:9px 18px;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--g-bright),var(--g-dark));color:#fff;border-radius:10px;letter-spacing:0.04em;border:none;cursor:pointer;transition:all 0.18s;white-space:nowrap;box-shadow:0 3px 12px rgba(27,67,50,0.25);}
+    .exec-btn:hover:not(:disabled){background:linear-gradient(135deg,var(--g-mid),var(--g-dark));transform:translateY(-1px);}
+    .exec-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+    .result-banner{text-align:center;padding:14px;font-family:var(--serif);font-size:20px;font-style:italic;border-radius:12px;display:none;}
+    .result-banner.win{background:rgba(64,145,108,0.15);color:#1b4332;border:2px solid rgba(64,145,108,0.35);display:block;}
+    .result-banner.lose{background:rgba(188,71,73,0.1);color:#7a1a1a;border:2px solid rgba(188,71,73,0.3);display:block;}
+    .result-banner.push{background:rgba(200,121,65,0.12);color:#7a4820;border:2px solid rgba(200,121,65,0.3);display:block;}
+    .new-hand-btn{width:100%;padding:13px;font-size:15px;background:linear-gradient(135deg,var(--g-bright),var(--g-dark));color:#d8f3dc;border-radius:12px;display:none;margin-top:10px;box-shadow:0 4px 16px rgba(27,67,50,0.25);}
+    .new-hand-btn:hover{background:linear-gradient(135deg,var(--g-mid),var(--g-dark));}
+
+    /* PANELS */
+    .panel-box{background:rgba(216,243,220,0.88);border:2px solid rgba(64,145,108,0.22);border-radius:16px;overflow:hidden;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(27,67,50,0.1);}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:2px solid rgba(64,145,108,0.15);background:rgba(64,145,108,0.1);}
+    .panel-title{font-family:var(--sans);font-size:13px;font-weight:700;color:var(--g-dark);display:flex;align-items:center;gap:8px;}
+    .panel-body{padding:14px;}
+
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .stat-card{background:rgba(64,145,108,0.1);border:1px solid rgba(64,145,108,0.2);border-radius:10px;padding:10px 12px;}
+    .stat-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;font-weight:700;}
+    .stat-value{font-family:var(--serif);font-size:18px;color:var(--text);line-height:1;font-style:italic;}
+    .stat-value.pos{color:var(--g-dark);} .stat-value.neg{color:var(--red);}
+    .stat-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+    .sparkline-wrap{position:relative;height:60px;}
+    .sparkline-wrap canvas{width:100%;height:100%;}
+    .spark-label{font-size:9px;color:var(--text3);margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;font-weight:700;}
+
+    .right-col{display:flex;flex-direction:column;gap:1.2rem;}
+
+    .analysis-body{font-size:13px;line-height:1.75;color:var(--text2);min-height:60px;}
+    .analysis-empty{color:var(--text3);font-style:italic;}
+    .confidence-bar{margin-top:10px;}
+    .confidence-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600;}
+    .confidence-track{height:5px;background:rgba(64,145,108,0.15);border-radius:3px;overflow:hidden;}
+    .confidence-fill{height:100%;border-radius:3px;transition:width 0.5s ease;}
+
+    /* STRATEGY MATRIX */
+    .matrix-wrap{overflow-x:auto;}
+    .matrix-table{border-collapse:collapse;font-size:9px;width:100%;}
+    .matrix-table th{background:rgba(27,67,50,0.12);color:var(--text2);padding:3px 4px;text-align:center;font-weight:700;letter-spacing:0.05em;border:1px solid rgba(64,145,108,0.15);}
+    .matrix-table td{padding:3px 5px;text-align:center;border:1px solid rgba(64,145,108,0.1);font-weight:700;font-size:9px;}
+    .matrix-table td.m-H{background:rgba(64,145,108,0.25);color:#0d3320;}
+    .matrix-table td.m-S{background:rgba(188,71,73,0.2);color:#5a1010;}
+    .matrix-table td.m-D{background:rgba(200,121,65,0.22);color:#5a3010;}
+    .matrix-table td.m-P{background:rgba(82,183,136,0.25);color:#0d3320;}
+    .matrix-table td.highlight{outline:2px solid var(--g-bright);outline-offset:-2px;position:relative;z-index:1;}
+    .matrix-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text3);font-weight:600;}
+    .legend-dot{width:8px;height:8px;border-radius:2px;}
+
+    /* HISTORY */
+    .history-list{max-height:150px;overflow-y:auto;}
+    .history-list::-webkit-scrollbar{width:3px;}
+    .history-list::-webkit-scrollbar-thumb{background:var(--g-light);border-radius:2px;}
+    .history-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(64,145,108,0.15);font-size:11px;}
+    .history-row:last-child{border-bottom:none;}
+    .h-num{color:var(--text3);width:22px;flex-shrink:0;font-weight:600;}
+    .h-desc{flex:1;color:var(--text2);}
+    .h-result{font-weight:700;min-width:36px;text-align:center;}
+    .h-result.win{color:var(--g-dark);} .h-result.lose{color:var(--red);} .h-result.push{color:var(--orange);}
+    .h-amount{min-width:70px;text-align:right;font-size:10px;font-weight:600;}
+    .h-amount.pos{color:var(--g-dark);} .h-amount.neg{color:var(--red);}
+
+    /* MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(8,28,18,0.6);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+    .modal-overlay.open{display:flex;}
+    .modal-box{background:rgba(216,243,220,0.97);border:2px solid rgba(64,145,108,0.35);border-radius:20px;padding:2rem;max-width:520px;width:90%;box-shadow:0 16px 60px rgba(27,67,50,0.3);max-height:90vh;overflow-y:auto;}
+    .modal-title{font-family:var(--serif);font-size:22px;color:var(--g-dark);margin-bottom:1rem;font-style:italic;}
+    .modal-body{font-size:13px;line-height:1.8;color:var(--text2);}
+    .modal-body p{margin-bottom:0.8rem;}
+    .modal-close{display:block;width:100%;margin-top:1.5rem;padding:10px;background:linear-gradient(135deg,var(--g-bright),var(--g-dark));border:none;color:#fff;border-radius:12px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:0.04em;transition:all 0.18s;}
+    .modal-close:hover{background:linear-gradient(135deg,var(--g-mid),var(--g-dark));}
+
+    .spinner{display:inline-block;width:10px;height:10px;border:1.5px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .thinking-dots::after{content:'';animation:dots 1.4s infinite;}
+    @keyframes dots{0%{content:'.'}33%{content:'..'}66%{content:'...'}100%{content:''}}
+
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(8,28,18,0.9);color:#d8f3dc;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid rgba(116,198,157,0.4);opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:300;}
+    .toast.show{opacity:1;}
+
+    .risk-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.04em;}
+    .risk-conservative{background:rgba(82,183,136,0.15);color:#0d4020;border:1px solid rgba(82,183,136,0.35);}
+    .risk-balanced{background:rgba(64,145,108,0.15);color:#1b4332;border:1px solid rgba(64,145,108,0.35);}
+    .risk-aggressive{background:rgba(188,71,73,0.15);color:#7a1a1a;border:1px solid rgba(188,71,73,0.3);}
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-suits"><span>♠</span><span class="red">♥</span></div>
+  <div class="header-title">Blackjack with AI Agents</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="about-btn" onclick="openAbout()">ABOUT</button>
+    <div class="header-suits"><span class="red">♦</span><span>♣</span></div>
+  </div>
+</header>
+
+<!-- SETUP -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="provider-toggle">
+      <button class="prov-btn active" id="provBtnAnthropic" onclick="setProvider('anthropic')">🟣 Anthropic</button>
+      <button class="prov-btn"        id="provBtnOpenai"    onclick="setProvider('openai')">🟢 OpenAI</button>
+    </div>
+    <div class="api-row">
+      <span class="api-label">API Key:</span>
+      <div class="api-input-wrap">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off"/>
+        <button class="eye-btn" onclick="toggleKeyVis()">👁</button>
+      </div>
+      <label class="upload-label" for="envFileInput">↑ .env
+        <input type="file" id="envFileInput" accept=".env,.txt,.csv" onchange="handleEnvFile(event)"/>
+      </label>
+      <div class="key-status" id="keyStatus"></div>
+    </div>
+    <div class="setup-grid">
+      <div class="field-group">
+        <label>Model Family</label>
+        <select class="styled-select" id="modelFamilySelect" onchange="onFamilyChange()">
+          <option value="">Select a model family</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Model</label>
+        <select class="styled-select" id="modelSelect"><option value="">Select a model</option></select>
+      </div>
+      <div class="field-group">
+        <label>Bet Amount</label>
+        <input class="styled-input" type="number" id="betInput" value="10" min="5" max="500" step="5"/>
+      </div>
+      <div class="balance-display">Balance: <span id="balanceDisplay">$1000</span></div>
+    </div>
+
+    <div class="setup-extras">
+      <div class="field-group">
+        <label>Explanation Detail</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="expBasic"       onclick="setExplain('basic')">Basic</button>
+          <button class="toggle-btn active" id="expStatistical" onclick="setExplain('statistical')">Statistical</button>
+          <button class="toggle-btn" id="expDeep"        onclick="setExplain('deep')">In-Depth</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Risk Tolerance</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="riskConservative" onclick="setRisk('conservative')">Conservative</button>
+          <button class="toggle-btn active" id="riskBalanced"   onclick="setRisk('balanced')">Balanced</button>
+          <button class="toggle-btn" id="riskAggressive"  onclick="setRisk('aggressive')">Aggressive</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="play-btn" id="playBtn" onclick="startGame()" style="flex:1;" disabled>PLAY</button>
+      <button class="refresh-btn" onclick="refreshModels()">REFRESH MODELS</button>
+    </div>
+    <div class="privacy-row">🔒 API key parsed in-browser — never stored or transmitted beyond the provider API call</div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="game-layout">
+    <div class="game-main">
+
+      <div class="felt-table">
+        <div>
+          <div class="hand-label">Dealer</div>
+          <div class="cards-row" id="dealerCards"></div>
+          <div class="score-badge" id="dealerScore" style="display:none;"></div>
+        </div>
+        <div>
+          <div class="hand-label">Player</div>
+          <div class="cards-row" id="playerCards"></div>
+          <div class="score-badge" id="playerScore" style="display:none;"></div>
+          <div class="current-bet" id="currentBetDisplay" style="display:none;">
+            🪙 Current Bet: <strong id="currentBetAmt"></strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="action-btn hit"       id="btnHit"       onclick="playerAction('hit')"       disabled>HIT</button>
+        <button class="action-btn stand"     id="btnStand"     onclick="playerAction('stand')"     disabled>STAND</button>
+        <button class="action-btn double"    id="btnDouble"    onclick="playerAction('double')"    disabled>DOUBLE</button>
+        <button class="action-btn split"     id="btnSplit"     onclick="playerAction('split')"     disabled>SPLIT</button>
+        <button class="action-btn insurance" id="btnInsurance" onclick="playerAction('insurance')" disabled>INSURANCE</button>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-title">Game Status</div>
+        <div class="ai-rec-row">
+          <span class="ai-rec-label">
+            AI recommends: <span class="ai-rec-action" id="aiRecAction">—</span>
+            <span id="currentRiskBadge" style="margin-left:8px;"></span>
+          </span>
+          <button class="exec-btn" id="execBtn" onclick="executeRecommendation()" disabled>EXECUTE RECOMMENDATION</button>
+        </div>
+        <div class="result-banner" id="resultBanner"></div>
+        <button class="new-hand-btn" id="newHandBtn" onclick="newHand()">DEAL NEW HAND</button>
+      </div>
+
+      <!-- PERFORMANCE ANALYTICS -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">📊 Performance Analytics</div>
+          <span id="analyticsHandCount" style="font-size:11px;color:var(--text3);">0 hands</span>
+        </div>
+        <div class="panel-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Win Rate</div>
+              <div class="stat-value" id="statWinRate">—</div>
+              <div class="stat-sub" id="statWinRateSub">no data</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">P&amp;L</div>
+              <div class="stat-value" id="statPnl">$0</div>
+              <div class="stat-sub" id="statPnlSub">vs $1000 start</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Current Streak</div>
+              <div class="stat-value" id="statStreak">—</div>
+              <div class="stat-sub" id="statStreakSub">no streak</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">AI Agreement</div>
+              <div class="stat-value" id="statDecQuality">—</div>
+              <div class="stat-sub">followed AI / total</div>
+            </div>
+          </div>
+          <div class="spark-label">Bankroll Over Time</div>
+          <div class="sparkline-wrap"><canvas id="sparkCanvas"></canvas></div>
+        </div>
+      </div>
+
+    </div><!-- /game-main -->
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+
+      <!-- AI ANALYSIS -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">🤖 AI Analysis</div>
+          <span id="explainLevelBadge" style="font-size:10px;color:var(--text3);text-transform:capitalize;"></span>
+        </div>
+        <div class="panel-body">
+          <div class="analysis-body" id="analysisBody">
+            <span class="analysis-empty">Analysis will appear here after dealing.</span>
+          </div>
+          <div class="confidence-bar" id="confidenceBar" style="display:none;">
+            <div class="confidence-label"><span>Confidence</span><span id="confidencePct">—</span></div>
+            <div class="confidence-track"><div class="confidence-fill" id="confidenceFill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STRATEGY MATRIX -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">🎯 Strategy Matrix</div>
+          <span style="font-size:10px;color:var(--text3);" id="matrixContext">—</span>
+        </div>
+        <div class="panel-body" style="padding:10px;">
+          <div class="matrix-wrap" id="matrixWrap">
+            <div style="font-size:11px;color:var(--text3);font-style:italic;padding:8px 0;">Matrix appears after dealing.</div>
+          </div>
+          <div class="matrix-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(46,125,50,0.7)"></div>H=Hit</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(198,40,40,0.7)"></div>S=Stand</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(230,81,0,0.7)"></div>D=Double</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(21,101,192,0.7)"></div>P=Split</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--gold);"></div>= You are here</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HAND HISTORY -->
+      <div class="panel-box">
+        <div class="panel-header">
+          <div class="panel-title">📋 Hand History</div>
+          <span style="font-size:11px;color:var(--text3);" id="handCount">0 hands</span>
+        </div>
+        <div class="panel-body" style="padding:10px 14px;">
+          <div class="history-list" id="historyList">
+            <div style="padding:10px 0;font-size:11px;color:var(--text3);text-align:center;">No hands played yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="backToSetup()" style="padding:9px;font-size:12px;font-weight:600;background:rgba(255,253,247,0.7);border:2px solid rgba(0,180,216,0.2);border-radius:10px;color:var(--text3);cursor:pointer;font-family:var(--sans);transition:all 0.18s;" onmouseover="this.style.color='var(--ocean)';this.style.borderColor='var(--ocean-mid)'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='rgba(0,180,216,0.2)'">← Change Model / Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT MODAL -->
+<div class="modal-overlay" id="aboutModal" onclick="closeAbout(event)">
+  <div class="modal-box">
+    <div class="modal-title">Blackjack with AI Agents</div>
+    <div class="modal-body">
+      <p>This app uses a Claude or GPT model as an AI agent that reads the current game state and recommends the optimal blackjack action.</p>
+      <p><strong>Explanation Levels:</strong> <em>Basic</em> — one sentence. <em>Statistical</em> — probabilities and EV direction. <em>In-Depth</em> — full analysis including bust probability, EV comparison, and card-counting considerations.</p>
+      <p><strong>Risk Profiles:</strong> <em>Conservative</em> prefers standing in borderline cases and avoids unnecessary doubles. <em>Balanced</em> follows strict basic strategy. <em>Aggressive</em> doubles and splits more liberally to maximise EV.</p>
+      <p><strong>Strategy Matrix:</strong> Shows the standard basic-strategy hard-total decision table. Your current situation is highlighted in gold.</p>
+      <p><strong>Performance Analytics:</strong> Tracks win rate, P&amp;L, streaks, and how often you followed the AI's advice.</p>
+      <p><strong>Privacy:</strong> Your API key is parsed in-browser, held only in memory, and never stored or transmitted beyond the provider API.</p>
+      <p><strong>Rules:</strong> Standard Las Vegas blackjack — dealer stands on soft 17, blackjack pays 3:2.</p>
+    </div>
+    <button class="modal-close" onclick="closeAbout()">Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════ */
+const MODELS = {
+  claude4:  ['claude-opus-4-5','claude-sonnet-4-5'],
+  claude35: ['claude-3-5-sonnet-20241022','claude-3-5-haiku-20241022'],
+  claude3:  ['claude-3-opus-20240229','claude-3-haiku-20240307'],
+  gpt4o:    ['gpt-4o','gpt-4o-mini'],
+  gpt4:     ['gpt-4-turbo','gpt-4'],
+  gpt35:    ['gpt-3.5-turbo'],
+  o_series: ['o1','o1-mini','o3-mini'],
+};
+const PROVIDER_FAMILIES = {
+  anthropic:['claude4','claude35','claude3'],
+  openai:   ['gpt4o','gpt4','gpt35','o_series'],
+};
+const FAMILY_LABELS = {
+  claude4:'Claude 4',claude35:'Claude 3.5',claude3:'Claude 3',
+  gpt4o:'GPT-4o',gpt4:'GPT-4',gpt35:'GPT-3.5',o_series:'o-series (o1/o3)',
+};
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let currentProvider = 'anthropic';
+let apiKey = '', selectedModel = '';
+let explainLevel = 'statistical';
+let riskProfile  = 'balanced';
+let runningBalance = 1000, balance = 1000, currentBet = 10;
+let handHistory = [], handNumber = 0;
+let wins = 0, losses = 0, pushes = 0;
+let currentStreak = 0, streakType = '';
+let totalAiActions = 0, playerFollowedAi = 0;
+let lastAiAction = null;
+let deck = [], playerHand = [], dealerHand = [];
+let gamePhase = 'idle', lastAiRec = null, aiLoading = false, insuranceBet = 0;
+
+/* ═══════════════════════════════════════════
+   SETUP
+═══════════════════════════════════════════ */
+function setProvider(p) {
+  currentProvider = p;
+  document.getElementById('provBtnAnthropic').classList.toggle('active', p==='anthropic');
+  document.getElementById('provBtnOpenai').classList.toggle('active', p==='openai');
+  document.getElementById('apiKeyInput').placeholder = p==='anthropic' ? 'sk-ant-...' : 'sk-...';
+  const f = document.getElementById('modelFamilySelect');
+  f.innerHTML = '<option value="">Select a model family</option>' +
+    PROVIDER_FAMILIES[p].map(k=>`<option value="${k}">${FAMILY_LABELS[k]}</option>`).join('');
+  document.getElementById('modelSelect').innerHTML = '<option value="">Select a model</option>';
+  selectedModel = '';
+  validateKey(); updatePlayBtn();
+}
+
+function setExplain(l) {
+  explainLevel = l;
+  ['Basic','Statistical','Deep'].forEach(x =>
+    document.getElementById('exp'+x).classList.toggle('active', x.toLowerCase()===l));
+  document.getElementById('explainLevelBadge').textContent = l;
+}
+
+function setRisk(r) {
+  riskProfile = r;
+  ['Conservative','Balanced','Aggressive'].forEach(x =>
+    document.getElementById('risk'+x).classList.toggle('active', x.toLowerCase()===r));
+  updateRiskBadge();
+}
+
+function updateRiskBadge() {
+  const cls = {conservative:'risk-conservative',balanced:'risk-balanced',aggressive:'risk-aggressive'}[riskProfile];
+  document.getElementById('currentRiskBadge').innerHTML = `<span class="risk-badge ${cls}">${riskProfile}</span>`;
+}
+
+function toggleKeyVis() { const i=document.getElementById('apiKeyInput'); i.type=i.type==='password'?'text':'password'; }
+
+function handleEnvFile(e) {
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const txt=ev.target.result; let key=null;
+    const m=txt.match(/(?:ANTHROPIC_API_KEY|OPENAI_API_KEY|API_KEY)\s*=\s*["']?([^\s"'\n]+)["']?/i);
+    if(m) key=m[1];
+    if(!key) for(const line of txt.split('\n')) for(const p of line.split(',')) if(p.trim().startsWith('sk-')){key=p.trim();break;}
+    if(key){
+      document.getElementById('apiKeyInput').value=key; apiKey=key;
+      if(key.startsWith('sk-ant-')&&currentProvider!=='anthropic') setProvider('anthropic');
+      else if(!key.startsWith('sk-ant-')&&key.startsWith('sk-')&&currentProvider!=='openai') setProvider('openai');
+      validateKey(); showToast('API key loaded from .env');
+    } else showToast('Could not find an API key in that file');
+  };
+  r.readAsText(f); e.target.value='';
+}
+
+document.getElementById('apiKeyInput').addEventListener('input', function(){ apiKey=this.value.trim(); validateKey(); });
+
+function validateKey() {
+  const k=document.getElementById('apiKeyInput').value.trim(), s=document.getElementById('keyStatus');
+  if(!k){s.className='key-status'; updatePlayBtn(); return;}
+  const ok = currentProvider==='anthropic' ? k.startsWith('sk-ant-') : (k.startsWith('sk-')&&!k.startsWith('sk-ant-'));
+  s.className='key-status '+(ok?'ok':'err');
+  s.textContent = ok ? (currentProvider==='anthropic'?'✓ Anthropic key':'✓ OpenAI key') : '✗ Unexpected key format';
+  updatePlayBtn();
+}
+
+function onFamilyChange() {
+  const fam=document.getElementById('modelFamilySelect').value, sel=document.getElementById('modelSelect');
+  sel.innerHTML = fam ? MODELS[fam].map(m=>`<option value="${m}">${m}</option>`).join('') : '<option value="">Select a model</option>';
+  selectedModel=sel.value; updatePlayBtn();
+}
+document.getElementById('modelSelect').addEventListener('change', function(){ selectedModel=this.value; updatePlayBtn(); });
+function refreshModels(){ const f=document.getElementById('modelFamilySelect').value; if(!f){showToast('Select a model family first');return;} onFamilyChange(); showToast('Model list refreshed'); }
+function updatePlayBtn(){ document.getElementById('playBtn').disabled=!(document.getElementById('apiKeyInput').value.trim()&&document.getElementById('modelSelect').value); }
+
+function startGame() {
+  apiKey=document.getElementById('apiKeyInput').value.trim();
+  selectedModel=document.getElementById('modelSelect').value;
+  currentBet=parseInt(document.getElementById('betInput').value)||10;
+  if(!apiKey||!selectedModel){showToast('Please set API key and model');return;}
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('game-screen').style.display='block';
+  document.getElementById('explainLevelBadge').textContent=explainLevel;
+  updateRiskBadge();
+  newHand();
+}
+
+function backToSetup() {
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='block';
+  document.getElementById('balanceDisplay').textContent='$'+runningBalance;
+}
+
+/* ═══════════════════════════════════════════
+   DECK
+═══════════════════════════════════════════ */
+const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SUITS=['♠','♥','♦','♣'], RED=new Set(['♥','♦']);
+function buildDeck(n=6){const d=[];for(let i=0;i<n;i++)for(const s of SUITS)for(const r of RANKS)d.push({rank:r,suit:s});return d;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function dealCard(){if(deck.length<15)deck=shuffle(buildDeck(6));return deck.pop();}
+function cardValue(r){if(r==='A')return 11;if(['J','Q','K'].includes(r))return 10;return parseInt(r);}
+function handScore(h){let t=0,a=0;for(const c of h){t+=cardValue(c.rank);if(c.rank==='A')a++;}while(t>21&&a>0){t-=10;a--;}return t;}
+function isSoftHand(h){let t=0,a=0;for(const c of h){t+=cardValue(c.rank);if(c.rank==='A')a++;}return a>0&&t<=21&&(t-10)<=21;}
+function isBlackjack(h){return h.length===2&&handScore(h)===21;}
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
+function renderCard(card,faceDown=false,delay=0){
+  const d=document.createElement('div');
+  d.className='card'+(faceDown?' face-down':(' '+(RED.has(card.suit)?'red':'black')));
+  d.style.animationDelay=delay+'ms';
+  d.style.setProperty('--card-rot',(Math.random()*6-3)+'deg');
+  if(!faceDown) d.innerHTML=`<div class="card-corner"><div class="card-rank">${card.rank}</div><div class="card-suit">${card.suit}</div></div><div class="card-center">${card.suit}</div><div class="card-corner bottom"><div class="card-rank">${card.rank}</div><div class="card-suit">${card.suit}</div></div>`;
+  return d;
+}
+
+function renderHands(revealDealer=false){
+  const dc=document.getElementById('dealerCards'), pc=document.getElementById('playerCards');
+  dc.innerHTML=''; pc.innerHTML='';
+  dealerHand.forEach((c,i)=>dc.appendChild(renderCard(c,!revealDealer&&i===1,i*60)));
+  playerHand.forEach((c,i)=>pc.appendChild(renderCard(c,false,i*60)));
+  const ps=handScore(playerHand),pb=document.getElementById('playerScore');
+  pb.style.display='inline-block';
+  pb.className='score-badge'+(ps>21?' bust':isBlackjack(playerHand)?' bj':'');
+  pb.textContent='Score: '+ps+(isBlackjack(playerHand)?' 🃏':'');
+  const db=document.getElementById('dealerScore');
+  db.style.display='inline-block';
+  if(revealDealer){const ds=handScore(dealerHand);db.className='score-badge'+(ds>21?' bust':'');db.textContent='Score: '+ds;}
+  else{db.className='score-badge';db.textContent='Score: '+dealerHand[0].rank+' + ?';}
+}
+
+function updateButtons(){
+  const active=gamePhase==='player', ps=handScore(playerHand);
+  const canD=playerHand.length===2&&balance>=currentBet;
+  const canSp=playerHand.length===2&&cardValue(playerHand[0].rank)===cardValue(playerHand[1].rank)&&balance>=currentBet;
+  const canI=dealerHand.length>=1&&dealerHand[0].rank==='A'&&playerHand.length===2&&insuranceBet===0&&balance>=Math.floor(currentBet/2);
+  document.getElementById('btnHit').disabled=!active||ps>=21;
+  document.getElementById('btnStand').disabled=!active;
+  document.getElementById('btnDouble').disabled=!active||!canD;
+  document.getElementById('btnSplit').disabled=!active||!canSp;
+  document.getElementById('btnInsurance').disabled=!active||!canI;
+}
+
+/* ═══════════════════════════════════════════
+   STRATEGY MATRIX
+═══════════════════════════════════════════ */
+// Basic strategy hard totals: rows = player total 8–17+, cols = dealer up 2–A
+const HARD_MATRIX = {
+   8: ['H','H','H','H','H','H','H','H','H','H'],
+   9: ['H','D','D','D','D','H','H','H','H','H'],
+  10: ['D','D','D','D','D','D','D','D','H','H'],
+  11: ['D','D','D','D','D','D','D','D','D','H'],
+  12: ['H','H','S','S','S','H','H','H','H','H'],
+  13: ['S','S','S','S','S','H','H','H','H','H'],
+  14: ['S','S','S','S','S','H','H','H','H','H'],
+  15: ['S','S','S','S','S','H','H','H','H','H'],
+  16: ['S','S','S','S','S','H','H','H','H','H'],
+  17: ['S','S','S','S','S','S','S','S','S','S'],
+};
+const DEALER_COLS = ['2','3','4','5','6','7','8','9','10','A'];
+
+function renderStrategyMatrix(ps, dealerUp) {
+  const wrap=document.getElementById('matrixWrap'), ctx=document.getElementById('matrixContext');
+  const displayScore=Math.min(Math.max(ps,8),17);
+  const normalised = ['J','Q','K'].includes(dealerUp) ? '10' : dealerUp;
+  const colIdx=DEALER_COLS.indexOf(normalised);
+  ctx.textContent = ps>0 ? `P:${ps} vs D:${dealerUp}` : '—';
+
+  let html='<table class="matrix-table"><thead><tr><th>Hard</th>'+DEALER_COLS.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  for(const [sc,row] of Object.entries(HARD_MATRIX)){
+    const s=parseInt(sc);
+    const rowLabel = s<=8?'≤8':s>=17?'17+':String(s);
+    html+=`<tr><th>${rowLabel}</th>`;
+    row.forEach((cell,ci)=>{
+      const hi=s===displayScore&&ci===colIdx;
+      html+=`<td class="m-${cell}${hi?' highlight':''}">${cell}</td>`;
+    });
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+/* ═══════════════════════════════════════════
+   SPARKLINE
+═══════════════════════════════════════════ */
+function drawSparkline(){
+  const canvas=document.getElementById('sparkCanvas');
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.offsetWidth||300; canvas.height=60;
+  const c=canvas.getContext('2d');
+  c.clearRect(0,0,canvas.width,canvas.height);
+  if(handHistory.length<2){
+    c.fillStyle='rgba(64,145,108,0.5)'; c.font='10px Nunito'; c.textAlign='center';
+    c.fillText('Play hands to see chart',canvas.width/2,30); return;
+  }
+  const bals=[1000,...handHistory.slice().reverse().map(h=>h.balance)];
+  const minV=Math.min(...bals), maxV=Math.max(...bals), range=maxV-minV||1;
+  const w=canvas.width, h=canvas.height, pad=4;
+  const pts=bals.map((b,i)=>({x:pad+(i/(bals.length-1))*(w-pad*2),y:pad+(1-(b-minV)/range)*(h-pad*2)}));
+  const grad=c.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(64,145,108,0.45)'); grad.addColorStop(1,'rgba(64,145,108,0)');
+  c.beginPath(); c.moveTo(pts[0].x,h);
+  pts.forEach(p=>c.lineTo(p.x,p.y));
+  c.lineTo(pts[pts.length-1].x,h); c.closePath(); c.fillStyle=grad; c.fill();
+  c.beginPath(); pts.forEach((p,i)=>i===0?c.moveTo(p.x,p.y):c.lineTo(p.x,p.y));
+  c.strokeStyle='#2d6a4f'; c.lineWidth=1.5; c.stroke();
+  const sy=pad+(1-(1000-minV)/range)*(h-pad*2);
+  c.beginPath(); c.moveTo(pad,sy); c.lineTo(w-pad,sy);
+  c.strokeStyle='rgba(188,71,73,0.35)'; c.lineWidth=1; c.setLineDash([3,3]); c.stroke(); c.setLineDash([]);
+}
+
+/* ═══════════════════════════════════════════
+   ANALYTICS
+═══════════════════════════════════════════ */
+function updateAnalytics(){
+  const total=wins+losses+pushes;
+  const $ = id => document.getElementById(id);
+  $('analyticsHandCount').textContent=total+' hands';
+  $('handCount').textContent=total+' hands';
+  if(!total) return;
+  const wr=(wins/(wins+losses||1)*100).toFixed(1);
+  $('statWinRate').textContent=wr+'%';
+  $('statWinRateSub').textContent=`${wins}W / ${losses}L / ${pushes}P`;
+  const pnl=runningBalance-1000;
+  $('statPnl').textContent=(pnl>=0?'+':'')+'$'+pnl;
+  $('statPnl').className='stat-value '+(pnl>0?'pos':pnl<0?'neg':'');
+  $('statPnlSub').textContent='Balance: $'+runningBalance;
+  const sl=currentStreak===0?'—':(streakType==='win'?'+':'-')+currentStreak;
+  $('statStreak').textContent=sl;
+  $('statStreak').className='stat-value '+(streakType==='win'?'pos':streakType==='lose'?'neg':'');
+  $('statStreakSub').textContent=streakType||'no streak';
+  const dq=totalAiActions>0?(playerFollowedAi+'/'+totalAiActions+' ('+Math.round(playerFollowedAi/totalAiActions*100)+'%)') : '—';
+  $('statDecQuality').textContent=dq;
+  drawSparkline();
+}
+
+/* ═══════════════════════════════════════════
+   GAME FLOW
+═══════════════════════════════════════════ */
+function newHand(){
+  currentBet=parseInt(document.getElementById('betInput').value)||currentBet;
+  if(runningBalance<=0){runningBalance=1000;balance=1000;showToast('Balance reloaded to $1000');}
+  currentBet=Math.min(currentBet,runningBalance);
+  insuranceBet=0; lastAiRec=null; lastAiAction=null; gamePhase='player';
+  document.getElementById('resultBanner').className='result-banner';
+  document.getElementById('newHandBtn').style.display='none';
+  document.getElementById('aiRecAction').textContent='—';
+  document.getElementById('execBtn').disabled=true;
+  document.getElementById('analysisBody').innerHTML='<span class="analysis-empty">Analyzing your hand<span class="thinking-dots"></span></span>';
+  document.getElementById('confidenceBar').style.display='none';
+  document.getElementById('currentBetDisplay').style.display='flex';
+  document.getElementById('currentBetAmt').textContent='$'+currentBet;
+  if(deck.length<15) deck=shuffle(buildDeck(6));
+  playerHand=[dealCard(),dealCard()];
+  dealerHand=[dealCard(),dealCard()];
+  renderHands(false); updateButtons();
+  renderStrategyMatrix(handScore(playerHand),dealerHand[0].rank);
+  console.log('[BJ] New hand — P:',playerHand.map(c=>c.rank+c.suit).join(', '),'→',handScore(playerHand),'| D up:',dealerHand[0].rank+dealerHand[0].suit);
+  if(isBlackjack(playerHand)){setTimeout(()=>resolveHand(),600);return;}
+  getAiRecommendation();
+}
+
+/* ═══════════════════════════════════════════
+   AI CALL
+═══════════════════════════════════════════ */
+async function getAiRecommendation(){
+  if(aiLoading) return;
+  aiLoading=true;
+  document.getElementById('execBtn').disabled=true;
+  document.getElementById('aiRecAction').textContent='...';
+
+  const ps=handScore(playerHand), soft=isSoftHand(playerHand), du=dealerHand[0].rank;
+  const canD=playerHand.length===2&&balance>=currentBet;
+  const canSp=playerHand.length===2&&cardValue(playerHand[0].rank)===cardValue(playerHand[1].rank)&&balance>=currentBet;
+  const canI=du==='A'&&playerHand.length===2&&insuranceBet===0;
+
+  const explainMap = {
+    basic:'Give a brief one-sentence recommendation.',
+    statistical:'Include approximate bust probability and expected value direction (2-3 sentences).',
+    deep:'Full analysis: basic strategy reasoning, bust probability, EV comparison of top 2 actions, and any card-counting considerations (3-5 sentences).'
+  };
+  const riskMap = {
+    conservative:'Bias toward conservative play: prefer standing in borderline cases, avoid doubles unless a very strong spot, minimise variance.',
+    balanced:'Follow strict basic strategy without deviation.',
+    aggressive:'Bias toward aggressive play: double in more borderline spots, split liberally, maximise EV over variance reduction.'
+  };
+
+  const prompt=`You are a blackjack strategy expert. Respond ONLY with valid JSON — no markdown, no extra text.
+
+Game state:
+- Player hand: ${playerHand.map(c=>c.rank+c.suit).join(', ')}
+- Player score: ${ps}${soft?' (soft)':''}
+- Dealer up card: ${du}
+- Available actions: hit, stand${canD?', double':''}${canSp?', split':''}${canI?', insurance':''}
+
+Explanation style: ${explainMap[explainLevel]}
+Risk profile: ${riskMap[riskProfile]}
+
+Return this exact JSON:
+{
+  "action": "<hit|stand|double|split|insurance>",
+  "confidence": <0.0-1.0>,
+  "reasoning": "<explanation per the requested style>",
+  "bust_probability": <0.0-1.0>,
+  "ev_note": "<positive|negative|neutral>"
+}`;
+
+  console.log('[BJ] AI call — explain:',explainLevel,'risk:',riskProfile,'model:',selectedModel);
+
+  try {
+    let rawText='';
+    if(currentProvider==='anthropic'){
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:selectedModel,max_tokens:500,temperature:0.1,messages:[{role:'user',content:prompt}]})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||r.statusText);}
+      rawText=(await r.json()).content?.[0]?.text||'';
+    } else {
+      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:selectedModel,max_tokens:500,...(selectedModel.startsWith('o')?{}:{temperature:0.1}),messages:[{role:'user',content:prompt}]})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||r.statusText);}
+      rawText=(await r.json()).choices?.[0]?.message?.content||'';
+    }
+
+    console.log('[BJ] Raw response:',rawText);
+    const parsed=JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    const valid=['hit','stand','double','split','insurance'];
+    if(!valid.includes(parsed.action)) throw new Error('Invalid action: '+parsed.action);
+
+    let action=parsed.action;
+    if(action==='double'&&!canD) action='hit';
+    if(action==='split'&&!canSp)  action='hit';
+    if(action==='insurance'&&!canI) action='stand';
+
+    lastAiRec={action,reasoning:parsed.reasoning,confidence:parsed.confidence};
+    lastAiAction=action; totalAiActions++;
+
+    document.getElementById('aiRecAction').textContent=action.toUpperCase();
+    document.getElementById('execBtn').disabled=gamePhase!=='player';
+    document.getElementById('analysisBody').textContent=parsed.reasoning;
+
+    const conf=Math.round((parsed.confidence||0.7)*100);
+    document.getElementById('confidenceBar').style.display='block';
+    document.getElementById('confidencePct').textContent=conf+'%';
+    document.getElementById('confidenceFill').style.width=conf+'%';
+    document.getElementById('confidenceFill').style.background=
+      conf>=80?'linear-gradient(90deg,#2d6a4f,#40916c)':
+      conf>=60?'linear-gradient(90deg,#c87941,#e8a060)':
+              'linear-gradient(90deg,#9b2335,#bc4749)';
+
+    renderStrategyMatrix(ps,du);
+    console.log('[BJ] Rec:',action,'conf:',conf+'%','bust_prob:',parsed.bust_probability);
+
+  } catch(e){
+    console.error('[BJ] AI error:',e);
+    document.getElementById('aiRecAction').textContent='ERROR';
+    document.getElementById('analysisBody').innerHTML=`<span style="color:var(--lose);">AI error: ${e.message}. Play manually.</span>`;
+    lastAiRec=null;
+  } finally { aiLoading=false; }
+}
+
+function executeRecommendation(){
+  if(!lastAiRec||gamePhase!=='player') return;
+  playerFollowedAi++;
+  playerAction(lastAiRec.action);
+}
+
+function playerAction(action){
+  if(gamePhase!=='player') return;
+  console.log('[BJ] Player action:',action);
+
+  if(action==='hit'){
+    playerHand.push(dealCard()); renderHands(false);
+    const ps=handScore(playerHand);
+    renderStrategyMatrix(ps,dealerHand[0].rank);
+    if(ps>=21){ setTimeout(()=>resolveHand(),ps>21?0:400); }
+    else{
+      updateButtons(); lastAiRec=null;
+      document.getElementById('aiRecAction').textContent='...';
+      document.getElementById('execBtn').disabled=true;
+      document.getElementById('analysisBody').innerHTML='<span class="analysis-empty">Analyzing<span class="thinking-dots"></span></span>';
+      document.getElementById('confidenceBar').style.display='none';
+      getAiRecommendation();
+    }
+  } else if(action==='stand'){
+    resolveHand();
+  } else if(action==='double'){
+    if(balance<currentBet){showToast('Not enough balance');return;}
+    runningBalance-=currentBet; balance=runningBalance; currentBet*=2;
+    document.getElementById('currentBetAmt').textContent='$'+currentBet;
+    playerHand.push(dealCard()); renderHands(false);
+    setTimeout(()=>resolveHand(),400);
+  } else if(action==='split'){
+    if(balance<currentBet){showToast('Not enough balance');return;}
+    showToast('Split: playing first hand');
+    runningBalance-=currentBet; balance=runningBalance;
+    playerHand.pop(); playerHand.push(dealCard()); renderHands(false);
+    updateButtons(); lastAiRec=null; getAiRecommendation();
+  } else if(action==='insurance'){
+    const ins=Math.floor(currentBet/2);
+    if(balance<ins){showToast('Not enough balance');return;}
+    runningBalance-=ins; balance=runningBalance; insuranceBet=ins;
+    showToast('Insurance placed: $'+ins);
+    updateButtons(); lastAiRec=null; getAiRecommendation();
+  }
+}
+
+async function resolveHand(){
+  gamePhase='dealer'; updateButtons(); document.getElementById('execBtn').disabled=true;
+  const ps=handScore(playerHand);
+  renderHands(true); await sleep(600);
+  if(ps<=21) while(handScore(dealerHand)<17){await sleep(500);dealerHand.push(dealCard());renderHands(true);}
+  const ds=handScore(dealerHand);
+  const pBJ=isBlackjack(playerHand), dBJ=isBlackjack(dealerHand);
+  let result,delta;
+  if(ps>21)            {result='lose';delta=-currentBet;}
+  else if(ds>21)       {result='win'; delta=currentBet;}
+  else if(pBJ&&!dBJ)   {result='win'; delta=Math.floor(currentBet*1.5);}
+  else if(dBJ&&!pBJ)   {result='lose';delta=-currentBet;}
+  else if(ps>ds)       {result='win'; delta=currentBet;}
+  else if(ds>ps)       {result='lose';delta=-currentBet;}
+  else                 {result='push';delta=0;}
+
+  if(insuranceBet>0&&dBJ){delta+=insuranceBet*2;showToast('Insurance paid: +$'+(insuranceBet*2));}
+  runningBalance+=delta; if(runningBalance<0)runningBalance=0; balance=runningBalance; handNumber++;
+
+  if(result==='win')wins++; else if(result==='lose')losses++; else pushes++;
+  if(result===streakType)currentStreak++;
+  else if(result!=='push'){streakType=result;currentStreak=1;}
+
+  const MSGS={win:['YOU WIN! 🎉','WINNER! 💰','NICE HAND! 🃏'],lose:['BUST! 💸','DEALER WINS 😤','YOU LOSE 😢'],push:['PUSH — BET RETURNED 🤝','TIE GAME 🤝']};
+  const msg=MSGS[result][Math.floor(Math.random()*MSGS[result].length)];
+  const banner=document.getElementById('resultBanner');
+  banner.className='result-banner '+result;
+  banner.textContent=msg+(delta!==0?(delta>0?' +$'+delta:' -$'+Math.abs(delta)):'');
+
+  gamePhase='done';
+  handHistory.unshift({num:handNumber,result,delta,ps,ds,balance:runningBalance});
+  if(handHistory.length>100)handHistory.pop();
+  document.getElementById('balanceDisplay').textContent='$'+runningBalance;
+  renderHistory(); updateAnalytics();
+  document.getElementById('newHandBtn').style.display='block';
+  console.log('[BJ] Result:',result,'Δ$'+delta,'Balance:$'+runningBalance);
+}
+
+/* ═══════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════ */
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(!handHistory.length){list.innerHTML='<div style="padding:10px 0;font-size:11px;color:var(--text3);text-align:center;">No hands played yet.</div>';return;}
+  list.innerHTML=handHistory.map(h=>`<div class="history-row"><span class="h-num">#${h.num}</span><span class="h-desc">P:${h.ps} vs D:${h.ds}</span><span class="h-result ${h.result}">${h.result.toUpperCase()}</span><span class="h-amount ${h.delta>=0?'pos':'neg'}">${h.delta>0?'+':''}$${h.delta} → $${h.balance}</span></div>`).join('');
+}
+
+/* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+function openAbout(){document.getElementById('aboutModal').classList.add('open');}
+function closeAbout(e){if(!e||e.target===document.getElementById('aboutModal'))document.getElementById('aboutModal').classList.remove('open');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+deck=shuffle(buildDeck(6));
+setProvider('anthropic');
+setExplain('statistical');
+setRisk('balanced');
+document.getElementById('balanceDisplay').textContent='$1000';
+console.log('[BJ] Initialized. Configure provider, model, explanation level & risk profile to begin.');
+</script>
+</body>
+</html>
